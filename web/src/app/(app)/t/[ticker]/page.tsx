@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
 
 import { DirectionChip, SessionChip, VerdictChip } from "@/components/Chip";
+import { CompanyLogo } from "@/components/CompanyLogo";
 import { ImpliedVsRealized } from "@/components/ImpliedVsRealized";
+import { NewsThumbnail } from "@/components/NewsThumbnail";
 import { Eyebrow, Panel, Stat, StatCard } from "@/components/Panel";
 import { PriceChart } from "@/components/PriceChart";
 import { TopBar } from "@/components/TopBar";
@@ -103,6 +105,13 @@ function SubHeader({ data }: { data: TickerData }) {
   return (
     <header className="flex flex-wrap items-start justify-between gap-4">
       <div>
+        {data.company_name && (
+          <div className="mb-1 flex items-center gap-1.5">
+            <CompanyLogo ticker={data.ticker} domain={data.company_domain} size={16} />
+            <span className="text-sm text-[var(--color-muted)]">{data.company_name}</span>
+          </div>
+        )}
+
         <div className="flex items-baseline gap-3">
           <span className="text-2xl font-semibold text-[var(--color-heading)]">
             {money(data.spot)}
@@ -307,27 +316,30 @@ function NewsPanel({ data }: { data: TickerData }) {
         {data.news.map((item) => (
           <li
             key={item.url ?? item.title}
-            className="border-b border-[var(--color-border-subtle)] pb-3 last:border-b-0 last:pb-0"
+            className="flex gap-3 border-b border-[var(--color-border-subtle)] pb-3 last:border-b-0 last:pb-0"
           >
-            {item.url ? (
-              // Third-party link: no `noopener` would let the destination
-              // page reach back via `window.opener` into this tab.
-              <a
-                href={item.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-[var(--color-body)] underline-offset-4 hover:text-[var(--color-heading)] hover:underline"
-              >
-                {item.title}
-              </a>
-            ) : (
-              <span className="text-sm text-[var(--color-body)]">{item.title}</span>
-            )}
-            {item.publisher && (
-              <span className="mt-0.5 block text-2xs text-[var(--color-muted)]">
-                {item.publisher}
-              </span>
-            )}
+            {item.thumbnail_url && <NewsThumbnail src={item.thumbnail_url} alt="" />}
+            <div className="min-w-0">
+              {item.url ? (
+                // Third-party link: no `noopener` would let the destination
+                // page reach back via `window.opener` into this tab.
+                <a
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-[var(--color-body)] underline-offset-4 hover:text-[var(--color-heading)] hover:underline"
+                >
+                  {item.title}
+                </a>
+              ) : (
+                <span className="text-sm text-[var(--color-body)]">{item.title}</span>
+              )}
+              {item.publisher && (
+                <span className="mt-0.5 block text-2xs text-[var(--color-muted)]">
+                  {item.publisher}
+                </span>
+              )}
+            </div>
           </li>
         ))}
       </ul>

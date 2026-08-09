@@ -15,6 +15,9 @@ const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const MAX_VISIBLE_PER_DAY = 3;
 
+const VERDICTS = ["RICH", "CHEAP", "FAIR"] as const;
+const DIRECTIONS = ["BULLISH", "BEARISH", "NEUTRAL"] as const;
+
 interface DayCell {
   iso: string;
   day: number;
@@ -45,15 +48,41 @@ export function MonthCalendar({ entries }: { entries: CalendarEntry[] }) {
     return { year: now.getFullYear(), month: now.getMonth() };
   });
 
+  const [verdicts, setVerdicts] = useState<Set<string>>(() => new Set());
+  const [directions, setDirections] = useState<Set<string>>(() => new Set());
+  const filtersActive = verdicts.size > 0 || directions.size > 0;
+
+  function toggle(set: Set<string>, setSet: (s: Set<string>) => void, value: string) {
+    const next = new Set(set);
+    if (next.has(value)) next.delete(value);
+    else next.add(value);
+    setSet(next);
+  }
+
+  function clearFilters() {
+    setVerdicts(new Set());
+    setDirections(new Set());
+  }
+
+  const filtered = useMemo(() => {
+    if (!filtersActive) return entries;
+    return entries.filter((e) => {
+      const verdictOk = verdicts.size === 0 || (e.verdict != null && verdicts.has(e.verdict));
+      const directionOk =
+        directions.size === 0 || (e.direction != null && directions.has(e.direction));
+      return verdictOk && directionOk;
+    });
+  }, [entries, verdicts, directions, filtersActive]);
+
   const byDate = useMemo(() => {
     const map = new Map<string, CalendarEntry[]>();
-    for (const e of entries) {
+    for (const e of filtered) {
       const list = map.get(e.report_date) ?? [];
       list.push(e);
       map.set(e.report_date, list);
     }
     return map;
-  }, [entries]);
+  }, [filtered]);
 
   const weeks = useMemo(() => buildGrid(cursor.year, cursor.month, byDate, todayIso), [
     cursor,
@@ -104,6 +133,37 @@ export function MonthCalendar({ entries }: { entries: CalendarEntry[] }) {
             <ChevronIcon direction="right" />
           </button>
         </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-[var(--color-border)] px-5 py-3">
+        <FilterGroup
+          label="Verdict"
+          options={VERDICTS}
+          active={verdicts}
+          dotClass={VERDICT_DOT}
+          onToggle={(v) => toggle(verdicts, setVerdicts, v)}
+        />
+        <FilterGroup
+          label="Direction"
+          options={DIRECTIONS}
+          active={directions}
+          dotClass={DIRECTION_DOT}
+          onToggle={(v) => toggle(directions, setDirections, v)}
+        />
+        {filtersActive && (
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="pressable text-2xs text-[var(--color-muted)] underline decoration-dotted underline-offset-2 hover:text-[var(--color-body)]"
+          >
+            Clear filters
+          </button>
+        )}
+        {filtersActive && (
+          <span className="text-2xs text-[var(--color-muted)]">
+            {filtered.length} of {entries.length} events
+          </span>
+        )}
       </div>
 
       <div className="grid grid-cols-7 border-b border-[var(--color-border)]">

@@ -261,6 +261,7 @@ def _news(snap: DashboardSnapshot) -> list[NewsItem] | None:
                     url=entry.get("url"),
                     publisher=entry.get("publisher"),
                     published_at=entry.get("published_at"),
+                    thumbnail_url=entry.get("thumbnail_url"),
                 )
             )
     return items
@@ -312,6 +313,8 @@ def ticker_page(
     page.is_stale = bool(
         age_hours is not None and age_hours > api_settings.snapshot_stale_after_hours
     )
+    page.company_name = snap.company_name
+    page.company_domain = snap.company_domain
     page.spot = snap.spot
     page.next_report_date = snap.next_report_date
     page.next_report_session = snap.next_report_session

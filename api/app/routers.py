@@ -133,6 +133,8 @@ def _index(session: Session) -> SiteIndex:
     entries = [
         TickerIndexEntry(
             ticker=t,
+            company_name=snapshots[t].company_name if t in snapshots else None,
+            company_domain=snapshots[t].company_domain if t in snapshots else None,
             next_report_date=snapshots[t].next_report_date if t in snapshots else None,
             next_report_session=snapshots[t].next_report_session if t in snapshots else None,
             verdict=snapshots[t].verdict if t in snapshots else None,

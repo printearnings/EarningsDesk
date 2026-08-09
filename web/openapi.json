@@ -734,6 +734,17 @@
               }
             ],
             "title": "Published At"
+          },
+          "thumbnail_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thumbnail Url"
           }
         },
         "type": "object",
@@ -1211,6 +1222,28 @@
             "type": "string",
             "title": "Ticker"
           },
+          "company_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company Name"
+          },
+          "company_domain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company Domain"
+          },
           "next_report_date": {
             "anyOf": [
               {
@@ -1313,6 +1346,29 @@
             "type": "boolean",
             "title": "Is Stale",
             "default": false
+          },
+          "company_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company Name"
+          },
+          "company_domain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company Domain",
+            "description": "for a logo lookup, e.g. 'walmart.com'"
           },
           "spot": {
             "anyOf": [

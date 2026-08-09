@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { CompanyLogo } from "@/components/CompanyLogo";
 import type { TickerIndexEntry } from "@/lib/types";
 import { formatDateShort } from "@/lib/format";
 
@@ -181,11 +182,17 @@ export function TickerSearch({
                       i === cursor ? "bg-[var(--color-panel-soft)]" : ""
                     }`}
                   >
+                    <CompanyLogo ticker={t.ticker} domain={t.company_domain} size={18} />
                     <span className="font-mono font-medium text-[var(--color-heading)]">
                       {t.ticker}
                     </span>
+                    {t.company_name && (
+                      <span className="truncate text-[var(--color-muted)]">
+                        {t.company_name}
+                      </span>
+                    )}
                     {t.next_report_date && (
-                      <span className="ml-auto text-[var(--color-muted)]">
+                      <span className="ml-auto shrink-0 text-[var(--color-muted)]">
                         {formatDateShort(t.next_report_date)}
                       </span>
                     )}

@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { VerdictChip, SessionChip } from "@/components/Chip";
+import { CompanyLogo } from "@/components/CompanyLogo";
 import { Panel } from "@/components/Panel";
 import { TopBar } from "@/components/TopBar";
 import { getIndex } from "@/lib/api";
@@ -38,12 +39,21 @@ export default async function TickersPage() {
                   href={`/t/${t.ticker}/`}
                   className="flex flex-col gap-1.5 px-4 py-3 transition-colors hover:bg-[var(--color-panel-soft)]"
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-sm font-medium text-[var(--color-heading)]">
-                      {t.ticker}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      <CompanyLogo ticker={t.ticker} domain={t.company_domain} size={18} />
+                      <span className="font-mono text-sm font-medium text-[var(--color-heading)]">
+                        {t.ticker}
+                      </span>
                     </span>
                     <VerdictChip verdict={t.verdict} />
                   </div>
+
+                  {t.company_name && (
+                    <p className="truncate text-2xs text-[var(--color-muted)]">
+                      {t.company_name}
+                    </p>
+                  )}
 
                   <div className="flex items-center justify-between text-sm">
                     <span className="tnum text-[var(--color-body)]">{money(t.spot)}</span>

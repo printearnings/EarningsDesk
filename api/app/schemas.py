@@ -59,6 +59,7 @@ class NewsItem(BaseModel):
     url: str | None = None
     publisher: str | None = None
     published_at: str | None = None
+    thumbnail_url: str | None = None
 
 
 class HistoryStats(BaseModel):
@@ -129,6 +130,9 @@ class TickerPage(BaseModel):
     as_of: datetime | None = None
     snapshot_age_hours: float | None = None
     is_stale: bool = False
+
+    company_name: str | None = None
+    company_domain: str | None = Field(None, description="for a logo lookup, e.g. 'walmart.com'")
 
     spot: float | None = None
     next_report_date: date | None = None
@@ -233,6 +237,8 @@ class TrackRecordPage(BaseModel):
 
 class TickerIndexEntry(BaseModel):
     ticker: str
+    company_name: str | None = None
+    company_domain: str | None = None
     next_report_date: date | None = None
     next_report_session: str | None = None
     verdict: str | None = None

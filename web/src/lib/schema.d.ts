@@ -332,6 +332,8 @@ export interface components {
             publisher?: string | null;
             /** Published At */
             published_at?: string | null;
+            /** Thumbnail Url */
+            thumbnail_url?: string | null;
         };
         /**
          * OptionsPanel
@@ -491,6 +493,10 @@ export interface components {
         TickerIndexEntry: {
             /** Ticker */
             ticker: string;
+            /** Company Name */
+            company_name?: string | null;
+            /** Company Domain */
+            company_domain?: string | null;
             /** Next Report Date */
             next_report_date?: string | null;
             /** Next Report Session */
@@ -521,6 +527,13 @@ export interface components {
              * @default false
              */
             is_stale: boolean;
+            /** Company Name */
+            company_name?: string | null;
+            /**
+             * Company Domain
+             * @description for a logo lookup, e.g. 'walmart.com'
+             */
+            company_domain?: string | null;
             /** Spot */
             spot?: number | null;
             /** Next Report Date */
