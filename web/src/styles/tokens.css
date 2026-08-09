@@ -1,0 +1,150 @@
+/*
+ * DESIGN TOKENS — TypeUI "Vertical"
+ *
+ * A cool neutral system: light gray page, white raised panels, a deep charcoal
+ * brand, and depth built from borders and spacing rather than shadow.
+ *
+ * Rules that define the look, in order of how easily they get broken:
+ *   1. ONE radius: 4px on everything. Only functionally round controls
+ *      (toggles, avatars, radios, range thumbs) get full rounding.
+ *   2. NO shadows, no glow, no pointer-tracking hover effects. Depth comes
+ *      from a white surface on a gray page, separated by a 1px border.
+ *   3. No pastel surfaces and no decorative color striping. Color appears
+ *      where it carries meaning, nowhere else.
+ *   4. 16px minimum for body copy. Smaller sizes are for true micro-elements
+ *      (mono eyebrows, table micro-labels) only.
+ *
+ * Typography roles:
+ *   Inter        — body and UI, compact control labels
+ *   Geist Mono   — labels and eyebrows: UPPERCASE, technical, sparse
+ *   EB Garamond  — headings (Adobe Jenson Pro's open fallback), medium weight,
+ *                  tight tracking. This is the editorial voice; use it for
+ *                  page and section headings, never for data.
+ *
+ * Everything else in the app references these variables and never a literal.
+ */
+
+@theme {
+  /* ---- Surfaces ---- */
+  --color-page: #f4f4f5;
+  --color-panel: #ffffff;
+  --color-panel-soft: #fafafa;
+
+  /* ---- Brand & text ---- */
+  --color-brand: #232323;
+  --color-brand-hover: #3a3a3a;
+  --color-heading: #18181b;
+  --color-body: #52525b;
+  --color-muted: #71717a;
+
+  /* ---- Borders ---- */
+  --color-border: #e4e4e7;
+  --color-border-subtle: #f2f2f2;
+
+  /* ---- On-brand (text sitting on the charcoal bands) ---- */
+  --color-on-brand: #fafafa;
+  --color-on-brand-muted: #a1a1aa;
+
+  /*
+   * ---- Verdict axis: is the option premium rich or cheap? ----
+   *
+   * Deliberately NOT green=good / red=bad. RICH is not "sell" and CHEAP is not
+   * "buy" — they describe pricing, and which side you want depends on the
+   * position you're building. The engine keeps this axis independent of
+   * direction; so does the UI.
+   *
+   * Kept deep and desaturated so they read as status, not decoration —
+   * Vertical has no room for bright chips. All clear 4.5:1 on white
+   * (RICH 6.57:1, CHEAP 5.69:1, FAIR 7.73:1).
+   */
+  --color-verdict-rich: #b42318;
+  --color-verdict-cheap: #067647;
+  --color-verdict-fair: #52525b;
+
+  /* Chip fills: a hairline tint, never a pastel block. */
+  --color-verdict-rich-bg: #fef3f2;
+  --color-verdict-cheap-bg: #f0fdf4;
+  --color-verdict-fair-bg: #fafafa;
+
+  /* ---- Direction axis: which way does the flow lean? ---- */
+  --color-direction-bullish: #067647;
+  --color-direction-bearish: #b42318;
+  --color-direction-neutral: #52525b;
+
+  /*
+   * ---- Data visualisation ----
+   *
+   * The price chart is a SINGLE series, so it wears the brand charcoal and
+   * needs no legend — matching Vertical's own charts, which draw one near-black
+   * line on white with no fill.
+   *
+   * `implied` vs `realized` is the pairing that carries the app's main insight
+   * (what the market priced vs what actually happened), so it must survive
+   * colour-blindness — hence indigo/ochre rather than green/red, in deep tones
+   * that sit inside Vertical's restraint.
+   *
+   * NOT eyeballed. Validated with the dataviz validator against the white panel;
+   * all six checks pass:
+   *   lightness band  L 0.43-0.77 ✓   chroma floor >= 0.1 ✓
+   *   CVD separation  ΔE 23.9 protan · 18.7 tritan ✓
+   *   normal vision   ΔE 25.1 ✓        contrast all >= 3:1 ✓
+   * Re-run before changing either value.
+   */
+  --color-viz-implied: #454598;
+  --color-viz-realized: #8f6316;
+  --color-viz-price: #232323;
+  --color-viz-grid: #e4e4e7;
+  --color-viz-axis: #a1a1aa;
+
+  /* ---- State ---- */
+  --color-positive: #067647;
+  --color-negative: #b42318;
+  --color-warning: #b54708;
+  --color-warning-bg: #fffaeb;
+
+  /* ---- Typography ----
+   * Families are wired to next/font in layout.tsx; these are the fallbacks. */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "Cascadia Mono", monospace;
+  --font-display: var(--font-eb-garamond), "Adobe Jenson Pro", Georgia, serif;
+
+  /* Micro sizes, for mono eyebrows and table labels only — never body copy. */
+  --text-2xs: 0.6875rem;
+  --text-eyebrow: 0.6875rem;
+
+  /* ---- Shape ----
+   * Vertical's signature: one slight radius everywhere. */
+  --radius-sm: 4px;
+  --radius-md: 4px;
+  --radius-lg: 4px;
+  --radius-panel: 4px;
+  --radius-chip: 4px;
+
+  /* ---- Motion ----
+   * Emil Kowalski's design-eng rules (see .claude/skills/emil-design-eng):
+   * built-in CSS easings are too weak for UI; use a stronger custom curve.
+   * ease-out for anything entering/exiting, ease-in-out for on-screen
+   * movement, plain ease for hover/color. Never ease-in on UI — it delays
+   * the frame the user is watching most closely.
+   *
+   * This is a data-dense trading dashboard checked many times a session, not
+   * a marketing site — durations stay short (140-200ms) and most surfaces
+   * (KPI cards, table rows) get NO entrance animation at all. Motion budget
+   * goes to the few things that are occasional and benefit from it: the
+   * search dropdown, the sidebar collapse, press/hover feedback.
+   */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --duration-fast: 120ms;
+  --duration-base: 160ms;
+  --duration-panel: 200ms;
+}
+
+/*
+ * Vertical is specified as a light system, and this is a faithful
+ * implementation of it. No dark mode: inventing one would mean inventing
+ * surfaces, tints, and chart steps the system doesn't define, and the result
+ * would be a different design wearing Vertical's name. `color-scheme: light`
+ * below stops the browser auto-darkening form controls and scrollbars, which
+ * is what makes a light-only page look broken on a dark OS.
+ */

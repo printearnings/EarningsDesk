@@ -1,0 +1,49 @@
+{
+  // One Worker serves BOTH the static site and the live-refresh API.
+  //
+  // Cloudflare's own migration guide is explicit that `wrangler pages deploy`
+  // is superseded by Workers Static Assets, so this deploys with
+  // `wrangler deploy` — never `wrangler pages deploy`.
+  //
+  // Unifying them is not just tidier than "Pages + a separate API Worker":
+  // the API is then SAME-ORIGIN with the page, so there are no CORS headers to
+  // configure, no preflight, and no cross-origin path by which another site
+  // could fire /api/refresh and burn the Massive quota.
+  "name": "earningsdesk",
+  "compatibility_date": "2026-08-08",
+  "main": "./worker/src/index.ts",
+
+  "assets": {
+    // `next build` with output: "export" writes here.
+    "directory": "./web/out",
+    "binding": "ASSETS",
+
+    // NOT "single-page-application" — this is a statically generated site
+    // with a real page per route, so an unknown path is a genuine 404 and
+    // should say so rather than silently serving the calendar.
+    "not_found_handling": "404-page",
+
+    // Static assets win by default; these paths go to the Worker script
+    // instead. Scoped to /api/* so page loads never pay for Worker startup.
+    "run_worker_first": ["/api/*"]
+  },
+
+  "kv_namespaces": [
+    {
+      // Per-IP rate limiting for the metered refresh endpoint.
+      "binding": "RATE_LIMIT",
+      "id": "9135f20d01354929b7b2eb0681e7bd66"
+    }
+  ],
+
+  "vars": {
+    "LIVE_REFRESH_PER_HOUR": "10"
+  },
+
+  "observability": {
+    "enabled": true
+  }
+
+  // MASSIVE_API_KEY is a secret, not a var:
+  //   wrangler secret put MASSIVE_API_KEY
+}

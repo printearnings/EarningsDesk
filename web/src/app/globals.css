@@ -1,0 +1,115 @@
+@import "tailwindcss";
+@import "../styles/tokens.css";
+
+/*
+ * Global rules only. Anything component-specific belongs in the component.
+ * Colours here must come from tokens.css — no literals.
+ */
+
+html {
+  /* Vertical is a light system. Without this, a dark-mode OS auto-inverts form
+     controls and scrollbars and the page reads as half-broken. */
+  color-scheme: light;
+}
+
+body {
+  background: var(--color-page);
+  color: var(--color-body);
+  font-family: var(--font-sans);
+  /* 16px floor for body copy — smaller sizes are reserved for mono eyebrows
+     and true micro-elements. */
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * The editorial voice. Medium weight and tight tracking, per the system —
+ * headings only, never data.
+ */
+.display {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  color: var(--color-heading);
+}
+
+/*
+ * Eyebrows and labels: mono, uppercase, sparse. Used above every stat and as
+ * section kickers. The wide tracking is what makes them read as technical
+ * labels rather than shrunken headings.
+ */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--text-eyebrow);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+/*
+ * Numbers in this app sit in columns that update. Proportional digits change
+ * width as values change, making tables jitter — which reads as instability in
+ * a tool whose entire job is precision. Applied per-element rather than
+ * globally so prose and large display figures keep natural spacing.
+ */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Visible focus for keyboard users, suppressed for mouse clicks. The brand
+   ring is part of the component language, not an afterthought. */
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/*
+ * Press feedback for anything clickable: scale(0.97) on press, per the
+ * design-eng skill — instant feedback on pointer-down is what makes a UI feel
+ * like it's listening. Gated to fine pointers so a touch tap (which fires
+ * :active too) doesn't get a phantom press state that never clears cleanly.
+ */
+@media (hover: hover) and (pointer: fine) {
+  .pressable {
+    transition: transform var(--duration-fast) var(--ease-out);
+  }
+  .pressable:active {
+    transform: scale(0.97);
+  }
+}
+
+/*
+ * The "live" dot on the intraday chart toggle. Constant, ongoing motion
+ * (unlike a one-shot entrance) gets `linear` timing per the design-eng skill,
+ * and it exists to state a real fact — the chart is polling — not for show.
+ * The global prefers-reduced-motion rule above already collapses this to a
+ * static dot for anyone who's asked for it.
+ */
+@keyframes live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.live-dot {
+  animation: live-pulse 1.6s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

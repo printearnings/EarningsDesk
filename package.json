@@ -1,0 +1,22 @@
+{
+  "name": "earningsdesk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cloudflare Worker serving the EarningsDesk static site and live-refresh API",
+  "type": "module",
+  "scripts": {
+    "//": "The full production pipeline. `gen:data` needs DB credentials; see README.",
+    "build": "npm run gen:data --prefix web && npm run build --prefix web",
+    "dev": "wrangler dev",
+    "deploy": "npm run build && wrangler deploy",
+    "deploy:dry": "wrangler deploy --dry-run",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260801.1",
+    "typescript": "^5",
+    "vitest": "^4",
+    "wrangler": "^4.0.0"
+  }
+}
