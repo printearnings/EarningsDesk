@@ -58,8 +58,8 @@ export function ImpliedVsRealized({ rows }: { rows: EarningsHistoryRow[] }) {
   if (data.length === 0) {
     return (
       <p className="py-8 text-sm text-[var(--color-muted)]">
-        No quarter yet has both an implied move and a scored outcome. This fills in as
-        the engine scores each print.
+        No quarter yet has both an implied move and a scored outcome. This fills in as the
+        engine scores each print.
       </p>
     );
   }
@@ -215,7 +215,7 @@ export function ImpliedVsRealized({ rows }: { rows: EarningsHistoryRow[] }) {
               </span>
             </div>
             <div
-              className={`mt-1 border-t border-[var(--color-border-subtle)] pt-1 font-mono text-[var(--text-2xs)] uppercase tracking-[0.06em] ${
+              className={`mt-1 border-t border-[var(--color-border-subtle)] pt-1 font-mono tracking-[0.06em] text-[var(--text-2xs)] uppercase ${
                 point.beatImplied
                   ? "text-[var(--color-verdict-cheap)]"
                   : "text-[var(--color-verdict-rich)]"

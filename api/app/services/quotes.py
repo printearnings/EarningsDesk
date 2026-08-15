@@ -9,6 +9,7 @@ memoises it per process.
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterable
 from datetime import date, timedelta
 
 from earnings.data import prices
@@ -49,6 +50,20 @@ def price_series(ticker: str, *, days: int = DEFAULT_DAYS) -> list[PricePoint]:
 
     _cache[key] = series
     return series
+
+
+def latest_closes(tickers: Iterable[str]) -> dict[str, float]:
+    """Most recent daily close per ticker — the free fallback for a ticker
+    with no dashboard snapshot (aged out of the tracked universe, or never
+    in it). Skips tickers whose series comes back empty rather than writing
+    a None in; callers already treat "no entry" as "no fallback available".
+    """
+    result: dict[str, float] = {}
+    for ticker in tickers:
+        series = price_series(ticker)
+        if series:
+            result[ticker] = series[-1].close
+    return result
 
 
 def clear_cache() -> None:

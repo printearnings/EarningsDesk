@@ -26,11 +26,11 @@ from pydantic import BaseModel
 
 from app.routers import (
     DEFAULT_WINDOW_DAYS,
-    SIGNAL_FEED_LIMIT,
     _calendar,
     _calendar_full,
     _index,
     _past_earnings,
+    _signals,
 )
 from app.services import pages, quotes
 
@@ -75,10 +75,7 @@ def dump(out_dir: Path, *, with_prices: bool = True) -> dict[str, int]:
             out_dir / "past-earnings.json", _past_earnings(session)
         )
 
-        written["signals.json"] = _write(
-            out_dir / "signals.json",
-            pages.signals_page(repo.recent_signals(session, limit=SIGNAL_FEED_LIMIT)),
-        )
+        written["signals.json"] = _write(out_dir / "signals.json", _signals(session))
         written["track-record.json"] = _write(
             out_dir / "track-record.json",
             pages.track_record_page(repo.track_record(session)),
@@ -113,9 +110,7 @@ def main() -> None:
     written = dump(out_dir, with_prices=not args.no_prices)
 
     total = sum(written.values())
-    log.info(
-        "Wrote %d files, %.1f KB total, to %s", len(written), total / 1024, out_dir
-    )
+    log.info("Wrote %d files, %.1f KB total, to %s", len(written), total / 1024, out_dir)
 
 
 if __name__ == "__main__":

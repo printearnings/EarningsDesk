@@ -64,10 +64,10 @@ export default async function TrackRecordPage() {
         </Panel>
 
         <p className="max-w-3xl text-sm text-[var(--color-muted)]">
-          Verdict and direction are independent claims. &ldquo;The market overpriced
-          this move&rdquo; and &ldquo;the stock went up&rdquo; are not the same bet, and
-          a correct call on one says nothing about the other — so they are tracked and
-          scored separately rather than folded into a single win rate.
+          Verdict and direction are independent claims. &ldquo;The market overpriced this
+          move&rdquo; and &ldquo;the stock went up&rdquo; are not the same bet, and a correct
+          call on one says nothing about the other — so they are tracked and scored separately
+          rather than folded into a single win rate.
         </p>
       </div>
     </>

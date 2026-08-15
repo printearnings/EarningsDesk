@@ -164,6 +164,7 @@ class CalendarEntry(BaseModel):
     implied_move: float | None = None
     hist_avg_move: float | None = None
     edge_score: float | None = None
+    spot: float | None = Field(None, description="current price, not point-in-time at report_date")
 
 
 class CalendarPage(BaseModel):
@@ -195,6 +196,7 @@ class PastEarningsRow(BaseModel):
     gap_filled: bool | None = None
     vol_ratio: float | None = None
     pnl: float | None = None
+    spot: float | None = Field(None, description="current price, not the price on report_date")
 
 
 class PastEarningsPage(BaseModel):
@@ -211,6 +213,13 @@ class SignalRow(BaseModel):
     implied_move: float | None = None
     edge_score: float | None = None
     confidence: float | None = None
+    spot: float | None = Field(None, description="current price, not the price at run_date")
+    beat_implied: bool | None = Field(
+        None, description="null = event hasn't happened/been scored yet, not a miss"
+    )
+    correct_direction: bool | None = Field(
+        None, description="null = event hasn't happened/been scored yet, not a miss"
+    )
 
 
 class SignalsPage(BaseModel):

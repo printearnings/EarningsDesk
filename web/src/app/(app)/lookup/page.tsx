@@ -21,9 +21,11 @@ export default async function LookupPage() {
 
   return (
     <>
-      <TopBar title="Look up a ticker" eyebrow="Cold lookup" tickers={index.tickers} />
+      <TopBar title="Look up a ticker" eyebrow="Live lookup" tickers={index.tickers} />
       {/* useSearchParams requires a Suspense boundary during static prerendering. */}
-      <Suspense fallback={<div className="px-6 py-6 text-sm text-[var(--color-muted)]">Loading…</div>}>
+      <Suspense
+        fallback={<div className="px-6 py-6 text-sm text-[var(--color-muted)]">Loading…</div>}
+      >
         <LookupClient trackedTickers={index.tickers.map((t) => t.ticker)} />
       </Suspense>
     </>

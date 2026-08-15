@@ -366,6 +366,18 @@
               }
             ],
             "title": "Edge Score"
+          },
+          "spot": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot",
+            "description": "current price, not point-in-time at report_date"
           }
         },
         "type": "object",
@@ -1064,6 +1076,18 @@
               }
             ],
             "title": "Pnl"
+          },
+          "spot": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot",
+            "description": "current price, not the price on report_date"
           }
         },
         "type": "object",
@@ -1168,6 +1192,42 @@
               }
             ],
             "title": "Confidence"
+          },
+          "spot": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot",
+            "description": "current price, not the price at run_date"
+          },
+          "beat_implied": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Beat Implied",
+            "description": "null = event hasn't happened/been scored yet, not a miss"
+          },
+          "correct_direction": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Correct Direction",
+            "description": "null = event hasn't happened/been scored yet, not a miss"
           }
         },
         "type": "object",

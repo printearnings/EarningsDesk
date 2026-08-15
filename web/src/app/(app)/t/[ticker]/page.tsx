@@ -34,20 +34,12 @@ export async function generateStaticParams() {
   return index.tickers.map((t) => ({ ticker: t.ticker }));
 }
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ ticker: string }>;
-}) {
+export async function generateMetadata({ params }: { params: Promise<{ ticker: string }> }) {
   const { ticker } = await params;
   return { title: `${ticker.toUpperCase()} earnings — EarningsDesk` };
 }
 
-export default async function TickerPage({
-  params,
-}: {
-  params: Promise<{ ticker: string }>;
-}) {
+export default async function TickerPage({ params }: { params: Promise<{ ticker: string }> }) {
   const { ticker } = await params;
   const [index, data] = await Promise.all([getIndex(), getTicker(ticker)]);
   if (!data) notFound();
@@ -191,8 +183,8 @@ function AiPanel({ data }: { data: TickerData }) {
       title="What the numbers say"
       subtitle={
         <>
-          Generated from this page&rsquo;s data{s.model ? ` by ${s.model}` : ""}. Describes
-          the numbers; does not recommend a trade.
+          Generated from this page&rsquo;s data{s.model ? ` by ${s.model}` : ""}. Describes the
+          numbers; does not recommend a trade.
         </>
       }
     >
@@ -335,7 +327,7 @@ function NewsPanel({ data }: { data: TickerData }) {
                 <span className="text-sm text-[var(--color-body)]">{item.title}</span>
               )}
               {item.publisher && (
-                <span className="mt-0.5 block text-2xs text-[var(--color-muted)]">
+                <span className="text-2xs mt-0.5 block text-[var(--color-muted)]">
                   {item.publisher}
                 </span>
               )}
@@ -366,7 +358,9 @@ function HistoryTable({ data }: { data: TickerData }) {
       title="Earnings history"
       subtitle="The last eight reports"
       bodyClassName="px-0 py-0"
-      empty={rows.length === 0 ? "No earnings history recorded for this symbol yet." : undefined}
+      empty={
+        rows.length === 0 ? "No earnings history recorded for this symbol yet." : undefined
+      }
     >
       {stats && (
         <dl className="grid grid-cols-2 gap-5 border-b border-[var(--color-border)] px-5 py-5 sm:grid-cols-4">
@@ -462,7 +456,7 @@ function HistoryTable({ data }: { data: TickerData }) {
                   <td className="px-3 py-2.5">
                     {pctSigned(r.gap_open_pct)}
                     {r.gap_filled === true && (
-                      <span className="ml-1.5 font-mono text-[var(--text-2xs)] uppercase tracking-[0.06em] text-[var(--color-muted)]">
+                      <span className="ml-1.5 font-mono tracking-[0.06em] text-[var(--color-muted)] text-[var(--text-2xs)] uppercase">
                         filled
                       </span>
                     )}

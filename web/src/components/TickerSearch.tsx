@@ -19,15 +19,26 @@ import { formatDateShort } from "@/lib/format";
  * is a search box you can only use with a mouse, which is the wrong shape for
  * a tool traders keep open.
  *
- * Search is not limited to the tracked universe. A query that matches nothing
- * in the prebuilt index, but looks like a real ticker (1-6 letters), offers a
- * "Look up" action instead of a dead end — that routes to /lookup/, a client-
- * rendered page that resolves arbitrary symbols live via the Worker. Static
- * export can't pre-render a page for every possible ticker, so this is the
- * only way "search any stock" can actually work.
+ * Search is not limited to the tracked universe. When the local index has no
+ * matches, a debounced call to the Worker's `/api/search` (backed by
+ * Massive's reference data — the same paid account /api/refresh uses) looks
+ * up symbols AND company names, so "walmart" finds WMT even though the ticker
+ * itself shares no substring with the query. Picking a remote result routes
+ * to /lookup/, a client-rendered page that resolves arbitrary symbols live.
+ * Static export can't pre-render a page for every possible ticker, so this is
+ * the only way "search any stock" can actually work. A query shaped like a
+ * ticker (1-6 letters) still gets a direct "Look up" row as a fallback if the
+ * remote search comes back empty or errors — typos and thinly-covered names
+ * shouldn't be dead ends either.
  */
 
 const TICKER_SHAPE = /^[A-Z]{1,6}$/;
+const REMOTE_SEARCH_DEBOUNCE_MS = 300;
+
+interface RemoteMatch {
+  ticker: string;
+  name: string | null;
+}
 export function TickerSearch({
   tickers,
   placeholder = "Search a ticker",
@@ -45,20 +56,93 @@ export function TickerSearch({
   const [cursor, setCursor] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const rawQuery = query.trim().toUpperCase();
+
   const matches = useMemo(() => {
-    const q = query.trim().toUpperCase();
+    const q = rawQuery;
     if (!q) return [];
-    return tickers
-      .filter((t) => t.ticker.includes(q))
-      // Prefix matches first: typing "A" should surface AAPL before AMD's
-      // neighbours that merely contain the letter.
-      .sort((a, b) => {
-        const aStarts = a.ticker.startsWith(q) ? 0 : 1;
-        const bStarts = b.ticker.startsWith(q) ? 0 : 1;
-        return aStarts - bStarts || a.ticker.localeCompare(b.ticker);
-      })
-      .slice(0, 8);
-  }, [query, tickers]);
+    return (
+      tickers
+        .filter((t) => t.ticker.includes(q))
+        // Prefix matches first: typing "A" should surface AAPL before AMD's
+        // neighbours that merely contain the letter.
+        .sort((a, b) => {
+          const aStarts = a.ticker.startsWith(q) ? 0 : 1;
+          const bStarts = b.ticker.startsWith(q) ? 0 : 1;
+          return aStarts - bStarts || a.ticker.localeCompare(b.ticker);
+        })
+        .slice(0, 8)
+    );
+  }, [rawQuery, tickers]);
+
+  const trackedSet = useMemo(() => new Set(tickers.map((t) => t.ticker)), [tickers]);
+
+  const [remote, setRemote] = useState<RemoteMatch[]>([]);
+  const [remoteLoading, setRemoteLoading] = useState(false);
+
+  // Only the local index missing a match justifies a network call — a query
+  // that already found something in the tracked universe has no reason to
+  // spend a metered Massive lookup confirming it.
+  const wantsRemote = matches.length === 0 && rawQuery.length >= 2;
+  const remoteKey = wantsRemote ? rawQuery : "";
+
+  // Clear stale remote results (and flip the loading flag) the instant the
+  // query changes, before the debounced fetch below even fires — done during
+  // render, the same reset-on-prop-change pattern useIntradayChart uses, so
+  // there's no flash of a previous query's results under a new one.
+  const [prevRemoteKey, setPrevRemoteKey] = useState(remoteKey);
+  if (prevRemoteKey !== remoteKey) {
+    setPrevRemoteKey(remoteKey);
+    setRemote([]);
+    setRemoteLoading(remoteKey !== "");
+  }
+
+  useEffect(() => {
+    if (!wantsRemote) return;
+
+    let cancelled = false;
+
+    const timer = setTimeout(() => {
+      fetch(`/api/search?q=${encodeURIComponent(rawQuery)}`)
+        .then((res) => (res.ok ? (res.json() as Promise<{ results: RemoteMatch[] }>) : null))
+        .then((body) => {
+          if (!cancelled) setRemote(body?.results ?? []);
+        })
+        .catch(() => {
+          if (!cancelled) setRemote([]);
+        })
+        .finally(() => {
+          if (!cancelled) setRemoteLoading(false);
+        });
+    }, REMOTE_SEARCH_DEBOUNCE_MS);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [wantsRemote, rawQuery]);
+
+  // Whichever list is showing drives keyboard nav and the click targets below.
+  // Local matches always win when present; remote only fills the gap.
+  const items = useMemo(
+    () =>
+      matches.length > 0
+        ? matches.map((t) => ({
+            ticker: t.ticker,
+            name: t.company_name,
+            domain: t.company_domain,
+            nextReportDate: t.next_report_date,
+            tracked: true as const,
+          }))
+        : remote.map((r) => ({
+            ticker: r.ticker,
+            name: r.name,
+            domain: null,
+            nextReportDate: null,
+            tracked: trackedSet.has(r.ticker),
+          })),
+    [matches, remote, trackedSet],
+  );
 
   // Reset the highlighted row whenever the query changes. Done during render
   // rather than in an effect — React's documented pattern for "reset state
@@ -92,35 +176,35 @@ export function TickerSearch({
     router.push(`/lookup/?ticker=${ticker}`);
   }
 
-  // A query that's shaped like a ticker but matches nothing in the tracked
-  // index still gets an option — the "no results" state is itself a row.
-  const rawQuery = query.trim().toUpperCase();
-  const offerLookup = matches.length === 0 && TICKER_SHAPE.test(rawQuery);
+  function pick(item: (typeof items)[number]) {
+    return item.tracked ? go(item.ticker) : lookup(item.ticker);
+  }
+
+  // Ticker-shaped and nothing found anywhere (local, or remote once it's
+  // settled) — the "no results" state is itself a row, not a dead end.
+  const offerLookup = items.length === 0 && !remoteLoading && TICKER_SHAPE.test(rawQuery);
 
   function onKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Escape") return setOpen(false);
 
     if (e.key === "Enter") {
       e.preventDefault();
-      if (matches.length) return go(matches[cursor].ticker);
+      if (items.length) return pick(items[cursor]);
       if (offerLookup) return lookup(rawQuery);
       return;
     }
 
-    if (!matches.length) return;
+    if (!items.length) return;
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setCursor((c) => (c + 1) % matches.length);
+      setCursor((c) => (c + 1) % items.length);
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setCursor((c) => (c - 1 + matches.length) % matches.length);
+      setCursor((c) => (c - 1 + items.length) % items.length);
     }
   }
 
-  const input =
-    size === "lg"
-      ? "h-14 pl-12 pr-4 text-lg"
-      : "h-9 pl-9 pr-3 text-sm";
+  const input = size === "lg" ? "h-14 pl-12 pr-4 text-lg" : "h-9 pl-9 pr-3 text-sm";
 
   return (
     <div ref={containerRef} className="relative w-full">
@@ -147,11 +231,11 @@ export function TickerSearch({
         // style` is the modern no-JS way to animate a freshly-mounted element
         // in; it fires because React unmounts this div entirely when closed,
         // so every open is a real mount, not a visibility toggle.
-        <div
-          className="absolute z-20 mt-1 w-full origin-top overflow-hidden rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-panel)] opacity-100 transition-[opacity,transform] duration-[var(--duration-base)] ease-[var(--ease-out)] starting:scale-95 starting:opacity-0"
-        >
-          {matches.length === 0 ? (
-            offerLookup ? (
+        <div className="absolute z-20 mt-1 w-full origin-top overflow-hidden rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-panel)] opacity-100 transition-[opacity,transform] duration-[var(--duration-base)] ease-[var(--ease-out)] starting:scale-95 starting:opacity-0">
+          {items.length === 0 ? (
+            remoteLoading ? (
+              <p className="px-3 py-3 text-sm text-[var(--color-muted)]">Searching…</p>
+            ) : offerLookup ? (
               <button
                 type="button"
                 onClick={() => lookup(rawQuery)}
@@ -172,28 +256,31 @@ export function TickerSearch({
             )
           ) : (
             <ul>
-              {matches.map((t, i) => (
-                <li key={t.ticker}>
+              {items.map((item, i) => (
+                <li key={item.ticker}>
                   <button
                     type="button"
                     onMouseEnter={() => setCursor(i)}
-                    onClick={() => go(t.ticker)}
+                    onClick={() => pick(item)}
                     className={`flex w-full items-center gap-3 px-3 py-2 text-left text-sm ${
                       i === cursor ? "bg-[var(--color-panel-soft)]" : ""
                     }`}
                   >
-                    <CompanyLogo ticker={t.ticker} domain={t.company_domain} size={18} />
+                    <CompanyLogo ticker={item.ticker} domain={item.domain} size={18} />
                     <span className="font-mono font-medium text-[var(--color-heading)]">
-                      {t.ticker}
+                      {item.ticker}
                     </span>
-                    {t.company_name && (
-                      <span className="truncate text-[var(--color-muted)]">
-                        {t.company_name}
+                    {item.name && (
+                      <span className="truncate text-[var(--color-muted)]">{item.name}</span>
+                    )}
+                    {item.tracked && item.nextReportDate && (
+                      <span className="ml-auto shrink-0 text-[var(--color-muted)]">
+                        {formatDateShort(item.nextReportDate)}
                       </span>
                     )}
-                    {t.next_report_date && (
-                      <span className="ml-auto shrink-0 text-[var(--color-muted)]">
-                        {formatDateShort(t.next_report_date)}
+                    {!item.tracked && (
+                      <span className="text-2xs ml-auto shrink-0 text-[var(--color-muted)]">
+                        Look up
                       </span>
                     )}
                   </button>

@@ -103,6 +103,47 @@ export function WorkflowChip({ workflow }: { workflow: string }) {
 }
 
 /**
+ * Whether a signal's call turned out right, once the print has happened and
+ * the engine has scored it — the accountability piece of the activity feed.
+ * A workflow-A (vol) call is scored by `beat_implied`; workflow-B (direction)
+ * by `correct_direction`. Both are null until the event happens AND gets
+ * scored, which is a normal, common state — not a miss — so it renders as
+ * "Pending" rather than defaulting to either Hit or Miss.
+ */
+export function ResultChip({
+  workflow,
+  beatImplied,
+  correctDirection,
+}: {
+  workflow: string;
+  beatImplied?: boolean | null;
+  correctDirection?: boolean | null;
+}) {
+  const hit = workflow === "A" ? beatImplied : correctDirection;
+
+  if (hit === null || hit === undefined) {
+    return <span className="text-2xs text-[var(--color-muted)]">Pending</span>;
+  }
+
+  return (
+    <span
+      className={`${BASE} ${
+        hit
+          ? "border-[var(--color-positive)]/25 bg-[var(--color-verdict-cheap-bg)] text-[var(--color-positive)]"
+          : "border-[var(--color-negative)]/25 bg-[var(--color-verdict-rich-bg)] text-[var(--color-negative)]"
+      }`}
+      title={
+        workflow === "A"
+          ? "Did the realized move beat the priced-in implied move?"
+          : "Did the stock move the direction called?"
+      }
+    >
+      {hit ? "Hit" : "Miss"}
+    </span>
+  );
+}
+
+/**
  * Before/after the bell. Rendered only when known — an absent session is
  * genuinely unknown (Yahoo supplies a midday placeholder for "time not
  * supplied"), and guessing would tell someone to hold a position through the

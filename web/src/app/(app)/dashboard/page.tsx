@@ -72,9 +72,7 @@ export default async function DashboardPage() {
               </Link>
             }
             empty={
-              calendar.entries.length === 0
-                ? "Nothing scheduled in the window."
-                : undefined
+              calendar.entries.length === 0 ? "Nothing scheduled in the window." : undefined
             }
           >
             <ul>
@@ -141,9 +139,9 @@ export default async function DashboardPage() {
               </dl>
 
               <p className="mt-5 border-t border-[var(--color-border-subtle)] pt-4 text-sm text-[var(--color-muted)]">
-                Verdict and direction are separate claims — &ldquo;the market overpriced
-                this move&rdquo; and &ldquo;the stock went up&rdquo; are not the same
-                bet, so they are scored apart.
+                Verdict and direction are separate claims — &ldquo;the market overpriced this
+                move&rdquo; and &ldquo;the stock went up&rdquo; are not the same bet, so they
+                are scored apart.
               </p>
             </Panel>
 

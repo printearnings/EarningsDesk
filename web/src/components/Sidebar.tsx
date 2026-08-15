@@ -99,7 +99,7 @@ export function Sidebar() {
           ))}
         </ul>
 
-        {!collapsed && <p className="eyebrow pt-6 pb-2 px-2">Others</p>}
+        {!collapsed && <p className="eyebrow px-2 pt-6 pb-2">Others</p>}
         <ul className={`space-y-0.5 ${collapsed ? "mt-2" : ""}`}>
           {OTHER.map((item) => (
             <NavItem key={item.href} {...item} pathname={pathname} collapsed={collapsed} />
@@ -110,8 +110,8 @@ export function Sidebar() {
       {!collapsed && (
         <div className="border-t border-[var(--color-border)] p-4">
           <p className="text-2xs text-[var(--color-muted)]">
-            Snapshots rebuild nightly. Options pricing is as of the last run, never live
-            on page load.
+            Snapshots rebuild nightly. Options pricing is as of the last run, never live on page
+            load.
           </p>
         </div>
       )}
@@ -135,8 +135,7 @@ function NavItem({
   // Ticker pages are reached from the calendar, so highlight Calendar while
   // you're on one — otherwise the sidebar shows nothing active and the user
   // loses their sense of place.
-  const active =
-    pathname === href || (href === "/calendar/" && pathname.startsWith("/t/"));
+  const active = pathname === href || (href === "/calendar/" && pathname.startsWith("/t/"));
 
   return (
     <li>
@@ -251,9 +250,17 @@ function PanelIcon({ collapsed }: { collapsed: boolean }) {
       <rect x="2" y="3" width="12" height="10" rx="1.5" />
       <path d="M6.5 3v10" />
       {collapsed ? (
-        <path d="M6.5 3v10H12.5a1.5 1.5 0 0 0 1.5-1.5v-7A1.5 1.5 0 0 0 12.5 3z" fill="currentColor" stroke="none" />
+        <path
+          d="M6.5 3v10H12.5a1.5 1.5 0 0 0 1.5-1.5v-7A1.5 1.5 0 0 0 12.5 3z"
+          fill="currentColor"
+          stroke="none"
+        />
       ) : (
-        <path d="M2 4.5A1.5 1.5 0 0 1 3.5 3H6.5V13H3.5A1.5 1.5 0 0 1 2 11.5z" fill="currentColor" stroke="none" />
+        <path
+          d="M2 4.5A1.5 1.5 0 0 1 3.5 3H6.5V13H3.5A1.5 1.5 0 0 1 2 11.5z"
+          fill="currentColor"
+          stroke="none"
+        />
       )}
     </svg>
   );

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 
 import type { EarningsHistoryRow, PricePoint } from "@/lib/api";
 import { formatDate, money } from "@/lib/format";
+import { useIndicators } from "@/lib/useIndicators";
 import { useIntradayChart } from "@/lib/useIntradayChart";
 
 /**
@@ -28,8 +29,12 @@ const RANGES: { key: Range; label: string }[] = [
   { key: "1y", label: "1Y" },
 ];
 
-const H = 240;
-const PAD = { top: 14, right: 14, bottom: 26, left: 52 };
+// The viewBox ratio IS the rendered aspect ratio (the SVG scales to the
+// panel's full width, height following automatically) — 800x240 read as a
+// flat, hard-to-scan line on a wide desktop panel. 340 gives daily price
+// swings enough vertical room to actually show their shape.
+const H = 340;
+const PAD = { top: 16, right: 14, bottom: 28, left: 56 };
 const W = 800;
 
 interface Point {
@@ -53,6 +58,9 @@ export function PriceChart({
   const intraday = useIntradayChart(ticker, range === "5d" ? "5d" : "1d", {
     live: live && range === "1d",
   });
+  // Daily-only — a moving average over a few hours of 1-minute bars isn't a
+  // signal anyone reads, so 1D/5D never fetch this.
+  const indicators = useIndicators(ticker, range === "1y");
 
   const points: Point[] = useMemo(() => {
     if (range === "1y") {
@@ -127,20 +135,54 @@ export function PriceChart({
           {intraday.error} Try the 1Y view instead.
         </p>
       ) : (
-        <ChartBody points={points} markerDates={markerDates} intraday={range !== "1y"} />
+        <ChartBody
+          points={points}
+          markerDates={markerDates}
+          intraday={range !== "1y"}
+          sma20={indicators?.sma20}
+          ema50={indicators?.ema50}
+        />
       )}
     </figure>
   );
+}
+
+/** SVG path for an overlay series keyed by date against the main series' own
+ * x/y scale — breaks into a fresh `M` after any gap (an indicator's warm-up
+ * window, a date the main series doesn't have) rather than drawing a line
+ * across missing data. */
+function overlayPath(
+  points: Point[],
+  byDate: Map<string, number>,
+  x: (i: number) => number,
+  y: (v: number) => number,
+): string {
+  let d = "";
+  let prevIdx: number | null = null;
+  points.forEach((p, i) => {
+    const v = byDate.get(p.key);
+    if (v === undefined) {
+      prevIdx = null;
+      return;
+    }
+    d += `${prevIdx === i - 1 ? "L" : "M"}${x(i)} ${y(v)} `;
+    prevIdx = i;
+  });
+  return d.trim();
 }
 
 function ChartBody({
   points,
   markerDates,
   intraday,
+  sma20,
+  ema50,
 }: {
   points: Point[];
   markerDates: Set<string>;
   intraday: boolean;
+  sma20?: { date: string; value: number }[];
+  ema50?: { date: string; value: number }[];
 }) {
   const [hover, setHover] = useState<number | null>(null);
 
@@ -167,13 +209,24 @@ function ChartBody({
     const markers = intraday
       ? []
       : points
-          .map((p, i) => (markerDates.has(p.key) ? { key: p.key, cx: x(i), cy: y(p.close) } : null))
+          .map((p, i) =>
+            markerDates.has(p.key) ? { key: p.key, cx: x(i), cy: y(p.close) } : null,
+          )
           .filter((m): m is { key: string; cx: number; cy: number } => m !== null);
+
+    const smaLine =
+      !intraday && sma20?.length
+        ? overlayPath(points, new Map(sma20.map((p) => [p.date, p.value])), x, y)
+        : "";
+    const emaLine =
+      !intraday && ema50?.length
+        ? overlayPath(points, new Map(ema50.map((p) => [p.date, p.value])), x, y)
+        : "";
 
     const ticks = [lo + (hi - lo) * 0.08, (lo + hi) / 2, hi - (hi - lo) * 0.08];
 
-    return { x, y, line, markers, ticks, plotW, plotH, min, max };
-  }, [points, markerDates, intraday]);
+    return { x, y, line, markers, smaLine, emaLine, ticks, plotW, plotH, min, max };
+  }, [points, markerDates, intraday, sma20, ema50]);
 
   if (!chart) {
     return (
@@ -230,6 +283,29 @@ function ChartBody({
             </g>
           ))}
 
+          {/* SMA/EMA overlays render under the price line so the primary
+              series stays the most prominent mark on the chart. */}
+          {chart.smaLine && (
+            <path
+              d={chart.smaLine}
+              fill="none"
+              stroke="var(--color-viz-sma)"
+              strokeWidth={1.5}
+              strokeLinejoin="round"
+              strokeLinecap="round"
+            />
+          )}
+          {chart.emaLine && (
+            <path
+              d={chart.emaLine}
+              fill="none"
+              stroke="var(--color-viz-ema)"
+              strokeWidth={1.5}
+              strokeLinejoin="round"
+              strokeLinecap="round"
+            />
+          )}
+
           {/* No area fill — Vertical draws the line alone. */}
           <path
             d={chart.line}
@@ -276,7 +352,7 @@ function ChartBody({
             </div>
             <div className="text-[var(--color-muted)]">{point.label}</div>
             {onMarker && (
-              <div className="mt-0.5 font-mono text-[var(--text-2xs)] uppercase tracking-[0.06em] text-[var(--color-viz-realized)]">
+              <div className="mt-0.5 font-mono tracking-[0.06em] text-[var(--color-viz-realized)] text-[var(--text-2xs)] uppercase">
                 Earnings
               </div>
             )}
@@ -292,6 +368,24 @@ function ChartBody({
           />
           {intraday ? "Price" : "Daily close"}
         </span>
+        {chart.smaLine && (
+          <span className="inline-flex items-center gap-2">
+            <span
+              className="inline-block h-0.5 w-4"
+              style={{ background: "var(--color-viz-sma)" }}
+            />
+            SMA 20
+          </span>
+        )}
+        {chart.emaLine && (
+          <span className="inline-flex items-center gap-2">
+            <span
+              className="inline-block h-0.5 w-4"
+              style={{ background: "var(--color-viz-ema)" }}
+            />
+            EMA 50
+          </span>
+        )}
         {!intraday && chart.markers.length > 0 && (
           <span className="inline-flex items-center gap-2">
             <span

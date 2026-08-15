@@ -106,9 +106,9 @@ export default async function LandingPage() {
           <strong className="font-medium text-[var(--color-body)]">
             Not financial advice.
           </strong>{" "}
-          EarningsDesk reports what the options market is currently pricing and what a
-          stock has historically done after earnings. It does not predict outcomes, and
-          past behaviour does not constrain the next print.
+          EarningsDesk reports what the options market is currently pricing and what a stock has
+          historically done after earnings. It does not predict outcomes, and past behaviour
+          does not constrain the next print.
         </p>
       </section>
     </main>

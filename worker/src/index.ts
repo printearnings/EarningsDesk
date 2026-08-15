@@ -44,21 +44,12 @@ export interface Env {
   RATE_LIMIT: KVNamespace;
   MASSIVE_API_KEY: string;
   LIVE_REFRESH_PER_HOUR?: string;
+  SEARCH_PER_HOUR?: string;
 }
 
 const MASSIVE_BASE = "https://api.massive.com";
 const YAHOO_CHART_BASE = "https://query1.finance.yahoo.com/v8/finance/chart";
 const YAHOO_QUOTE_SUMMARY_BASE = "https://query1.finance.yahoo.com/v10/finance/quoteSummary";
-
-/**
- * The only two ranges the intraday endpoint serves. Longer windows (1Y) are
- * daily closes and already ship in the nightly static payload — routing them
- * through here too would just be a slower path to data the page already has.
- */
-const CHART_RANGES: Record<string, string> = {
-  "1d": "5m",
-  "5d": "15m",
-};
 
 const CHART_CACHE_SECONDS = 60;
 
@@ -66,6 +57,7 @@ const CHART_CACHE_SECONDS = 60;
 const STRIKE_BRACKET = 0.15;
 
 const DEFAULT_LIMIT_PER_HOUR = 10;
+const DEFAULT_SEARCH_PER_HOUR = 60;
 
 function json(body: unknown, status = 200, extra: HeadersInit = {}): Response {
   return new Response(JSON.stringify(body), {
@@ -108,10 +100,12 @@ function parseDate(raw: string | null): string | null {
 async function checkRateLimit(
   env: Env,
   ip: string,
+  { kind = "refresh", limit: limitOverride }: { kind?: string; limit?: number } = {},
 ): Promise<{ ok: boolean; remaining: number; limit: number }> {
-  const limit = Number(env.LIVE_REFRESH_PER_HOUR ?? DEFAULT_LIMIT_PER_HOUR);
+  const limit =
+    limitOverride ?? Number(env.LIVE_REFRESH_PER_HOUR ?? DEFAULT_LIMIT_PER_HOUR);
   const window = Math.floor(Date.now() / 3_600_000);
-  const key = `refresh:${ip}:${window}`;
+  const key = `${kind}:${ip}:${window}`;
 
   const current = Number((await env.RATE_LIMIT.get(key)) ?? 0);
   if (current >= limit) return { ok: false, remaining: 0, limit };
@@ -211,90 +205,126 @@ export interface ChartResponse {
   points: ChartPoint[];
 }
 
+/** "YYYY-MM-DD" in US market time — the aggs endpoint's `from`/`to` are ET
+ * calendar dates, and a UTC-local `toISOString().slice(0,10)` would read as
+ * tomorrow for anyone west of Greenwich after 8pm ET. */
+function etDateString(d: Date): string {
+  return d.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+}
+
+const MASSIVE_AGGS_LIMIT = 5000; // comfortably above a day's worth of 1m bars (~390).
+
+interface MassiveAggBar {
+  t: number; // epoch ms
+  c: number; // close
+}
+
+async function fetchMassiveAggs(
+  env: Env,
+  ticker: string,
+  multiplier: number,
+  timespan: "minute" | "day",
+  from: string,
+  to: string,
+): Promise<MassiveAggBar[]> {
+  const url = new URL(`${MASSIVE_BASE}/v2/aggs/ticker/${ticker}/range/${multiplier}/${timespan}/${from}/${to}`);
+  url.searchParams.set("adjusted", "true");
+  url.searchParams.set("sort", "asc");
+  url.searchParams.set("limit", String(MASSIVE_AGGS_LIMIT));
+  url.searchParams.set("apiKey", env.MASSIVE_API_KEY);
+
+  const res = await fetch(url.toString(), { signal: AbortSignal.timeout(10_000) });
+  if (!res.ok) throw new Error(`upstream ${res.status}`);
+  const body = (await res.json()) as { results?: MassiveAggBar[] };
+  return body.results ?? [];
+}
+
+async function fetchMassivePrevClose(env: Env, ticker: string): Promise<number | null> {
+  try {
+    const url = new URL(`${MASSIVE_BASE}/v2/aggs/ticker/${ticker}/prev`);
+    url.searchParams.set("apiKey", env.MASSIVE_API_KEY);
+    const res = await fetch(url.toString(), { signal: AbortSignal.timeout(8_000) });
+    if (!res.ok) return null;
+    const body = (await res.json()) as { results?: Array<{ c?: number }> };
+    return body.results?.[0]?.c ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** How many calendar days of buffer to request so weekends/holidays don't
+ * leave a range short of its labeled trading-day count. */
+const RANGE_LOOKBACK_DAYS: Record<string, number> = { "1d": 1, "5d": 10 };
+const RANGE_BAR_MINUTES: Record<string, number> = { "1d": 1, "5d": 5 };
+const RANGE_TRADING_DAYS: Record<string, number> = { "1d": 1, "5d": 5 };
+
 /**
- * Intraday price series, proxied from Yahoo's public chart endpoint.
+ * Intraday price series, from Massive's minute aggregates — the underlying
+ * stock, not the options chain, so this is a different endpoint from
+ * everything else that touches MASSIVE_API_KEY on this page. Upgraded from a
+ * free Yahoo proxy now that Massive calls are unlimited on this account: 1m
+ * bars for 1D (was Yahoo's 5m) and 5m bars for 5D (was 15m).
  *
- * This is NOT Massive — it's free, unauthenticated, and unrelated to the
- * metered options data, so it deliberately bypasses the rate limiter that
- * guards /api/refresh. What protects it instead is the edge cache: every
- * viewer of one ticker within the same 60s window shares a single upstream
- * fetch, via Cloudflare's `caches.default` keyed on the request URL.
+ * Edge-cached same as before — a popular ticker within the same 60s window
+ * shares one upstream fetch rather than paying for it per visitor.
  */
 async function handleChart(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const url = new URL(request.url);
   const ticker = parseTicker(url.searchParams.get("ticker"));
   const range = url.searchParams.get("range") ?? "1d";
-  const interval = CHART_RANGES[range];
+  const barMinutes = RANGE_BAR_MINUTES[range];
 
   if (!ticker) return json({ error: "Missing or malformed `ticker`." }, 400);
-  if (!interval) {
+  if (!barMinutes) {
     return json(
-      { error: `Unsupported range. Use one of: ${Object.keys(CHART_RANGES).join(", ")}.` },
+      { error: `Unsupported range. Use one of: ${Object.keys(RANGE_BAR_MINUTES).join(", ")}.` },
       400,
     );
   }
+  if (!env.MASSIVE_API_KEY) {
+    return json({ error: "Chart data is not configured." }, 503);
+  }
 
   const cache = caches.default;
-  // Cache key ignores query param order and any client-added params — only
-  // ticker+range identify the response.
-  const cacheKey = new Request(
-    `https://cache.internal/chart/${ticker}/${range}`,
-    { method: "GET" },
-  );
-
+  const cacheKey = new Request(`https://cache.internal/chart/${ticker}/${range}`, { method: "GET" });
   const cached = await cache.match(cacheKey);
   if (cached) return cached;
 
-  const upstream = new URL(`${YAHOO_CHART_BASE}/${ticker}`);
-  upstream.searchParams.set("range", range);
-  upstream.searchParams.set("interval", interval);
+  const now = new Date();
+  const to = etDateString(now);
+  const from = etDateString(new Date(now.getTime() - RANGE_LOOKBACK_DAYS[range] * 86_400_000));
 
-  let body: {
-    chart?: {
-      result?: Array<{
-        meta?: {
-          currency?: string;
-          regularMarketPrice?: number;
-          chartPreviousClose?: number;
-        };
-        timestamp?: number[];
-        indicators?: { quote?: Array<{ close?: (number | null)[] }> };
-      }>;
-    };
-  };
-
+  let bars: MassiveAggBar[];
+  let previousClose: number | null;
   try {
-    const res = await fetch(upstream.toString(), {
-      headers: { "user-agent": "Mozilla/5.0 (compatible; EarningsDeskBot/1.0)" },
-      signal: AbortSignal.timeout(8_000),
-    });
-    if (!res.ok) throw new Error(`upstream ${res.status}`);
-    body = await res.json();
+    [bars, previousClose] = await Promise.all([
+      fetchMassiveAggs(env, ticker, barMinutes, "minute", from, to),
+      fetchMassivePrevClose(env, ticker),
+    ]);
   } catch (err) {
     console.error("chart fetch failed", { ticker, range, err: String(err) });
     return json({ error: `Couldn't reach the price data provider for ${ticker}.` }, 502);
   }
 
-  const result = body.chart?.result?.[0];
-  const timestamps = result?.timestamp ?? [];
-  const closes = result?.indicators?.quote?.[0]?.close ?? [];
+  // The lookback buffer intentionally overshoots (to survive weekends and
+  // holidays); trim to the labeled number of trading days by keeping only
+  // the most recent N distinct ET calendar dates present in the bars.
+  const distinctDates = [...new Set(bars.map((b) => etDateString(new Date(b.t))))];
+  const keepDates = new Set(distinctDates.slice(-RANGE_TRADING_DAYS[range]));
+  const trimmed = bars.filter((b) => keepDates.has(etDateString(new Date(b.t))));
 
-  const points: ChartPoint[] = [];
-  for (let i = 0; i < timestamps.length; i++) {
-    const close = closes[i];
-    // Yahoo pads pre/post-market gaps with null closes rather than omitting
-    // the bar — drop those rather than plotting a fake zero.
-    if (typeof close !== "number") continue;
-    points.push({ t: new Date(timestamps[i] * 1000).toISOString(), close });
-  }
+  const points: ChartPoint[] = trimmed.map((b) => ({
+    t: new Date(b.t).toISOString(),
+    close: b.c,
+  }));
 
   const payload: ChartResponse = {
     ticker,
     range,
-    interval,
-    currency: result?.meta?.currency ?? null,
-    regular_market_price: result?.meta?.regularMarketPrice ?? null,
-    previous_close: result?.meta?.chartPreviousClose ?? null,
+    interval: `${barMinutes}m`,
+    currency: "USD",
+    regular_market_price: points.length ? points[points.length - 1].close : null,
+    previous_close: previousClose,
     points,
   };
 
@@ -309,6 +339,105 @@ async function handleChart(request: Request, env: Env, ctx: ExecutionContext): P
   return response;
 }
 
+export interface IndicatorPoint {
+  date: string; // ISO date
+  value: number;
+}
+
+export interface IndicatorsResponse {
+  ticker: string;
+  sma20: IndicatorPoint[];
+  ema50: IndicatorPoint[];
+}
+
+const INDICATOR_CACHE_SECONDS = 3_600; // daily indicators only change once a day, at the close.
+const INDICATOR_LIMIT = 5000; // comfortably above a year of daily values (~252).
+
+async function fetchMassiveIndicator(
+  env: Env,
+  ticker: string,
+  kind: "sma" | "ema",
+  window: number,
+): Promise<IndicatorPoint[]> {
+  try {
+    const url = new URL(`${MASSIVE_BASE}/v1/indicators/${kind}/${ticker}`);
+    url.searchParams.set("timespan", "day");
+    url.searchParams.set("window", String(window));
+    url.searchParams.set("series_type", "close");
+    url.searchParams.set("order", "asc");
+    url.searchParams.set("limit", String(INDICATOR_LIMIT));
+    url.searchParams.set("apiKey", env.MASSIVE_API_KEY);
+
+    const res = await fetch(url.toString(), { signal: AbortSignal.timeout(10_000) });
+    if (!res.ok) return [];
+    const body = (await res.json()) as {
+      results?: { values?: Array<{ timestamp?: number; value?: number }> };
+    };
+    return (body.results?.values ?? [])
+      .filter((v): v is { timestamp: number; value: number } =>
+        typeof v.timestamp === "number" && typeof v.value === "number",
+      )
+      .map((v) => ({ date: etDateString(new Date(v.timestamp)), value: v.value }));
+  } catch (err) {
+    console.error("indicator fetch failed", { ticker, kind, window, err: String(err) });
+    return [];
+  }
+}
+
+/**
+ * 20-day SMA and 50-day EMA overlays for the 1Y daily price chart — computed
+ * server-side by Massive itself rather than in the Worker, so there's no
+ * rolling-window math to get subtly wrong here. Daily-only: an intraday
+ * moving average over a few hours of 1-minute bars isn't a signal anyone
+ * reads, so 1D/5D don't call this.
+ */
+async function handleIndicators(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  const url = new URL(request.url);
+  const ticker = parseTicker(url.searchParams.get("ticker"));
+  if (!ticker) return json({ error: "Missing or malformed `ticker`." }, 400);
+  if (!env.MASSIVE_API_KEY) return json({ error: "Indicators are not configured." }, 503);
+
+  const cache = caches.default;
+  const cacheKey = new Request(`https://cache.internal/indicators/${ticker}`, { method: "GET" });
+  const cached = await cache.match(cacheKey);
+  if (cached) return cached;
+
+  const [sma20, ema50] = await Promise.all([
+    fetchMassiveIndicator(env, ticker, "sma", 20),
+    fetchMassiveIndicator(env, ticker, "ema", 50),
+  ]);
+
+  const payload: IndicatorsResponse = { ticker, sma20, ema50 };
+  const response = json(payload, 200, {
+    "cache-control": `public, max-age=${INDICATOR_CACHE_SECONDS}`,
+  });
+  ctx.waitUntil(cache.put(cacheKey, response.clone()));
+  return response;
+}
+
+export interface LookupPricePoint {
+  date: string; // ISO date
+  close: number;
+}
+
+export interface LookupEarningsRow {
+  // Yahoo's earningsHistory keys rows by fiscal *quarter end*, not the
+  // announcement date the rest of the app means by "report_date" — labeled
+  // accordingly in the UI rather than presented as the same field.
+  quarter_end: string; // ISO date
+  eps_estimate: number | null;
+  eps_actual: number | null;
+  eps_surprise_pct: number | null;
+}
+
+export interface LookupNewsItem {
+  title: string;
+  url: string | null;
+  publisher: string | null;
+  published_at: string | null; // ISO datetime
+  thumbnail_url: string | null;
+}
+
 export interface LookupResponse {
   ticker: string;
   found: boolean;
@@ -316,9 +445,13 @@ export interface LookupResponse {
   previous_close: number | null;
   company_name: string | null;
   next_report_date: string | null; // ISO date, best-effort
+  prices: LookupPricePoint[];
+  earnings_history: LookupEarningsRow[];
+  news: LookupNewsItem[];
 }
 
 const LOOKUP_CACHE_SECONDS = 300;
+const YAHOO_UA = "Mozilla/5.0 (compatible; EarningsDeskBot/1.0)";
 
 /**
  * Free, unrestricted "is this a real ticker, and roughly what does it look
@@ -344,21 +477,26 @@ async function handleLookup(request: Request, env: Env, ctx: ExecutionContext): 
   const cached = await cache.match(cacheKey);
   if (cached) return cached;
 
-  const [chart, calendar] = await Promise.all([
+  const [chart, earnings, prices, news] = await Promise.all([
     fetchYahooChartMeta(ticker),
-    fetchYahooCalendarEvents(ticker),
+    fetchYahooEarnings(env, ticker),
+    fetchYahoo1yDaily(ticker),
+    fetchYahooNews(ticker),
   ]);
 
-  // Neither call resolving to anything usable means the symbol doesn't exist
-  // (or Yahoo has nothing on it) — that's a normal, expected outcome for a
-  // search box open to arbitrary input, not a server error.
+  // None of the four calls resolving to anything usable means the symbol
+  // doesn't exist (or Yahoo has nothing on it) — a normal, expected outcome
+  // for a search box open to arbitrary input, not a server error.
   const payload: LookupResponse = {
     ticker,
-    found: chart !== null,
+    found: chart !== null || prices.length > 0,
     spot: chart?.regularMarketPrice ?? null,
     previous_close: chart?.chartPreviousClose ?? null,
     company_name: chart?.shortName ?? null,
-    next_report_date: calendar,
+    next_report_date: earnings.nextReportDate,
+    prices,
+    earnings_history: earnings.history,
+    news,
   };
 
   const response = json(payload, 200, {
@@ -389,29 +527,316 @@ async function fetchYahooChartMeta(ticker: string): Promise<{
   }
 }
 
-/** Best-effort next earnings date. Yahoo's calendarEvents module is not
- * always populated; a miss here just means next_report_date stays null —
- * never a reason to fail the whole lookup. */
-async function fetchYahooCalendarEvents(ticker: string): Promise<string | null> {
+interface YahooAuth {
+  crumb: string;
+  cookie: string;
+}
+
+const YAHOO_CRUMB_KV_KEY = "yahoo:crumb";
+const YAHOO_CRUMB_TTL_SECONDS = 3_300; // under an hour — refreshed well before Yahoo expires it.
+
+/**
+ * Yahoo's `quoteSummary` family (unlike `chart`) now demands a crumb tied to
+ * a session cookie — an unauthenticated request comes back `Unauthorized:
+ * Invalid Crumb`. Cached in KV rather than fetched per-request: the crumb is
+ * a bot-mitigation formality, not a per-visitor credential, so one Worker-
+ * wide token shared across all lookups for under an hour is exactly as valid
+ * as fetching a fresh one every time, for a fraction of the upstream calls.
+ */
+async function getYahooAuth(env: Env, { forceRefresh = false } = {}): Promise<YahooAuth | null> {
+  if (!forceRefresh) {
+    const cached = await env.RATE_LIMIT.get(YAHOO_CRUMB_KV_KEY, "json");
+    if (cached) return cached as YahooAuth;
+  }
+
   try {
-    const url = `${YAHOO_QUOTE_SUMMARY_BASE}/${ticker}?modules=calendarEvents`;
-    const res = await fetch(url, {
-      headers: { "user-agent": "Mozilla/5.0 (compatible; EarningsDeskBot/1.0)" },
+    const cookieRes = await fetch("https://fc.yahoo.com", {
+      headers: { "user-agent": YAHOO_UA },
       signal: AbortSignal.timeout(6_000),
     });
-    if (!res.ok) return null;
+    const setCookie = cookieRes.headers.get("set-cookie");
+    if (!setCookie) return null;
+    const cookie = setCookie.split(";")[0];
+
+    const crumbRes = await fetch("https://query2.finance.yahoo.com/v1/test/getcrumb", {
+      headers: { "user-agent": YAHOO_UA, cookie },
+      signal: AbortSignal.timeout(6_000),
+    });
+    if (!crumbRes.ok) return null;
+    const crumb = (await crumbRes.text()).trim();
+    // A failed handshake returns an HTML error page, not a short token.
+    if (!crumb || crumb.length > 64 || crumb.includes("<")) return null;
+
+    const auth: YahooAuth = { crumb, cookie };
+    await env.RATE_LIMIT.put(YAHOO_CRUMB_KV_KEY, JSON.stringify(auth), {
+      expirationTtl: YAHOO_CRUMB_TTL_SECONDS,
+    });
+    return auth;
+  } catch (err) {
+    console.error("yahoo auth handshake failed", { err: String(err) });
+    return null;
+  }
+}
+
+/**
+ * `quoteSummary` fetch with the crumb handshake, retrying once with a forced
+ * fresh crumb if the cached one has expired server-side (KV's TTL is a
+ * conservative estimate, not a guarantee — Yahoo is the actual authority).
+ */
+async function fetchYahooQuoteSummary(
+  env: Env,
+  ticker: string,
+  modules: string,
+): Promise<Record<string, unknown> | null> {
+  for (const forceRefresh of [false, true]) {
+    const auth = await getYahooAuth(env, { forceRefresh });
+    if (!auth) continue;
+
+    try {
+      const url = `${YAHOO_QUOTE_SUMMARY_BASE}/${ticker}?modules=${modules}&crumb=${encodeURIComponent(auth.crumb)}`;
+      const res = await fetch(url, {
+        headers: { "user-agent": YAHOO_UA, cookie: auth.cookie },
+        signal: AbortSignal.timeout(6_000),
+      });
+      if (!res.ok) continue;
+
+      const body = (await res.json()) as {
+        quoteSummary?: { result?: Array<Record<string, unknown>>; error?: unknown };
+      };
+      if (body.quoteSummary?.error) continue; // e.g. "Invalid Crumb" — retry with a fresh one.
+      const result = body.quoteSummary?.result?.[0];
+      if (result) return result;
+    } catch (err) {
+      console.error("quoteSummary fetch failed", { ticker, modules, err: String(err) });
+    }
+  }
+  return null;
+}
+
+interface YahooRaw {
+  raw?: number;
+}
+
+/** Best-effort next earnings date + EPS history, from one quoteSummary call.
+ * A miss on either just means that field stays empty — never a reason to
+ * fail the whole lookup. */
+async function fetchYahooEarnings(
+  env: Env,
+  ticker: string,
+): Promise<{ nextReportDate: string | null; history: LookupEarningsRow[] }> {
+  const result = await fetchYahooQuoteSummary(env, ticker, "calendarEvents,earningsHistory");
+  if (!result) return { nextReportDate: null, history: [] };
+
+  const calendar = result.calendarEvents as
+    | { earnings?: { earningsDate?: YahooRaw[] } }
+    | undefined;
+  const nextRaw = calendar?.earnings?.earningsDate?.[0]?.raw;
+  const nextReportDate = typeof nextRaw === "number" ? isoDate(nextRaw) : null;
+
+  const rows = (result.earningsHistory as { history?: Record<string, unknown>[] } | undefined)
+    ?.history;
+  const history: LookupEarningsRow[] = (rows ?? [])
+    .map((row): LookupEarningsRow | null => {
+      const quarterRaw = (row.quarter as YahooRaw | undefined)?.raw;
+      if (typeof quarterRaw !== "number") return null;
+      return {
+        quarter_end: isoDate(quarterRaw),
+        eps_estimate: (row.epsEstimate as YahooRaw | undefined)?.raw ?? null,
+        eps_actual: (row.epsActual as YahooRaw | undefined)?.raw ?? null,
+        eps_surprise_pct: (row.surprisePercent as YahooRaw | undefined)?.raw ?? null,
+      };
+    })
+    .filter((r): r is LookupEarningsRow => r !== null)
+    // Yahoo returns oldest-first; the rest of the app shows history newest-first.
+    .reverse();
+
+  return { nextReportDate, history };
+}
+
+function isoDate(epochSeconds: number): string {
+  return new Date(epochSeconds * 1000).toISOString().slice(0, 10);
+}
+
+/** A year of daily closes, live from Yahoo — the cold-lookup counterpart to
+ * quotes.price_series() (which only runs for the tracked universe at build
+ * time). Reuses the same chart endpoint as the intraday proxy but with a
+ * range/interval combination `handleChart` deliberately doesn't serve. */
+async function fetchYahoo1yDaily(ticker: string): Promise<LookupPricePoint[]> {
+  try {
+    const res = await fetch(`${YAHOO_CHART_BASE}/${ticker}?range=1y&interval=1d`, {
+      headers: { "user-agent": YAHOO_UA },
+      signal: AbortSignal.timeout(8_000),
+    });
+    if (!res.ok) return [];
     const body = (await res.json()) as {
-      quoteSummary?: {
+      chart?: {
         result?: Array<{
-          calendarEvents?: { earnings?: { earningsDate?: Array<{ raw?: number }> } };
+          timestamp?: number[];
+          indicators?: { quote?: Array<{ close?: (number | null)[] }> };
         }>;
       };
     };
-    const raw = body.quoteSummary?.result?.[0]?.calendarEvents?.earnings?.earningsDate?.[0]?.raw;
-    return typeof raw === "number" ? new Date(raw * 1000).toISOString().slice(0, 10) : null;
-  } catch {
-    return null;
+    const result = body.chart?.result?.[0];
+    const timestamps = result?.timestamp ?? [];
+    const closes = result?.indicators?.quote?.[0]?.close ?? [];
+
+    const points: LookupPricePoint[] = [];
+    for (let i = 0; i < timestamps.length; i++) {
+      const close = closes[i];
+      if (typeof close !== "number") continue;
+      points.push({ date: isoDate(timestamps[i]), close });
+    }
+    return points;
+  } catch (err) {
+    console.error("1y chart fetch failed", { ticker, err: String(err) });
+    return [];
   }
+}
+
+interface YahooNewsThumbnailResolution {
+  tag?: string;
+  url?: string;
+}
+
+/** Best-effort headline thumbnail: prefer any pre-sized resolution over the
+ * full-size original — a list-row image, not a hero. Mirrors the engine's
+ * `data.news._thumbnail_url`, adapted to this endpoint's flatter shape (see
+ * that function's docstring for why the "original" tag is skipped). */
+function newsThumbnailUrl(resolutions: YahooNewsThumbnailResolution[] | undefined): string | null {
+  if (!resolutions?.length) return null;
+  const sized = resolutions.find((r) => r.tag && r.tag !== "original" && r.url);
+  if (sized) return sized.url ?? null;
+  return resolutions.find((r) => r.url)?.url ?? null;
+}
+
+const NEWS_RESULT_LIMIT = 8;
+
+/** Recent headlines, unfiltered by relevance (unlike the engine's per-ticker
+ * feed) — a cold lookup has no company-name cache to check mentions against,
+ * and a handful of loosely-related stories beats none for a ticker no other
+ * part of the site has ever looked at. */
+async function fetchYahooNews(ticker: string): Promise<LookupNewsItem[]> {
+  try {
+    const url = new URL("https://query1.finance.yahoo.com/v1/finance/search");
+    url.searchParams.set("q", ticker);
+    url.searchParams.set("newsCount", String(NEWS_RESULT_LIMIT));
+    url.searchParams.set("quotesCount", "0");
+
+    const res = await fetch(url.toString(), {
+      headers: { "user-agent": YAHOO_UA },
+      signal: AbortSignal.timeout(6_000),
+    });
+    if (!res.ok) return [];
+
+    const body = (await res.json()) as {
+      news?: Array<{
+        title?: string;
+        link?: string;
+        publisher?: string;
+        providerPublishTime?: number;
+        thumbnail?: { resolutions?: YahooNewsThumbnailResolution[] };
+      }>;
+    };
+
+    return (body.news ?? [])
+      .filter((item): item is typeof item & { title: string } => Boolean(item.title))
+      .slice(0, NEWS_RESULT_LIMIT)
+      .map((item) => ({
+        title: item.title,
+        url: item.link ?? null,
+        publisher: item.publisher ?? null,
+        published_at:
+          typeof item.providerPublishTime === "number"
+            ? new Date(item.providerPublishTime * 1000).toISOString()
+            : null,
+        thumbnail_url: newsThumbnailUrl(item.thumbnail?.resolutions),
+      }));
+  } catch (err) {
+    console.error("news fetch failed", { ticker, err: String(err) });
+    return [];
+  }
+}
+
+export interface SearchResult {
+  ticker: string;
+  name: string | null;
+}
+
+const SEARCH_CACHE_SECONDS = 21_600; // 6h — the reference list barely moves intraday.
+const SEARCH_RESULT_LIMIT = 8;
+
+/**
+ * Ticker search backed by Massive's reference data (already-paid-for, the
+ * same account /api/refresh uses) — matches on company name as well as
+ * symbol, unlike the tracked-universe index the search box falls back to
+ * client-side. Scoped to `market=stocks` so OTC/pink-sheet noise (e.g. a
+ * "walmart" query surfacing WMMVF ahead of WMT) doesn't crowd out the name a
+ * trader actually typed for.
+ *
+ * This is a metered call on every miss, so it's both edge-cached (a popular
+ * query like "apple" shouldn't cost twice) and per-IP rate limited — search-
+ * as-you-type fires far more often than the deliberate click that drives
+ * /api/refresh, and deserves a correspondingly higher ceiling, not the same
+ * one.
+ */
+async function handleSearch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  const url = new URL(request.url);
+  const q = (url.searchParams.get("q") ?? "").trim();
+  if (q.length < 2) return json({ results: [] });
+  if (q.length > 40) return json({ error: "Query too long." }, 400);
+
+  if (!env.MASSIVE_API_KEY) {
+    return json({ error: "Search is not configured." }, 503);
+  }
+
+  const ip = request.headers.get("cf-connecting-ip") ?? "unknown";
+  const limit = await checkRateLimit(env, ip, {
+    kind: "search",
+    limit: Number(env.SEARCH_PER_HOUR ?? DEFAULT_SEARCH_PER_HOUR),
+  });
+  if (!limit.ok) {
+    return json({ error: "Search limit reached — try again in a bit." }, 429, {
+      "retry-after": "3600",
+    });
+  }
+
+  const cacheKey = new Request(`https://cache.internal/search/${q.toLowerCase()}`, {
+    method: "GET",
+  });
+  const cache = caches.default;
+  const cached = await cache.match(cacheKey);
+  if (cached) return cached;
+
+  const upstream = new URL(`${MASSIVE_BASE}/v3/reference/tickers`);
+  upstream.searchParams.set("search", q);
+  upstream.searchParams.set("market", "stocks");
+  upstream.searchParams.set("active", "true");
+  upstream.searchParams.set("limit", String(SEARCH_RESULT_LIMIT));
+  upstream.searchParams.set("apiKey", env.MASSIVE_API_KEY);
+
+  let results: SearchResult[] = [];
+  try {
+    const res = await fetch(upstream.toString(), { signal: AbortSignal.timeout(6_000) });
+    if (!res.ok) throw new Error(`upstream ${res.status}`);
+    const body = (await res.json()) as {
+      results?: Array<{ ticker?: string; name?: string }>;
+    };
+    results = (body.results ?? [])
+      .filter((r): r is { ticker: string; name?: string } => typeof r.ticker === "string")
+      .map((r) => ({ ticker: r.ticker, name: r.name ?? null }));
+  } catch (err) {
+    // Never surface the upstream error verbatim — it carries the API key.
+    console.error("massive search failed", { q, err: String(err) });
+    return json({ error: "Couldn't reach the search provider." }, 502);
+  }
+
+  const response = json(
+    { results },
+    200,
+    { "cache-control": `public, max-age=${SEARCH_CACHE_SECONDS}` },
+  );
+  ctx.waitUntil(cache.put(cacheKey, response.clone()));
+  return response;
 }
 
 async function fetchChain(
@@ -461,8 +886,16 @@ export default {
       return handleChart(request, env, ctx);
     }
 
+    if (url.pathname === "/api/indicators") {
+      return handleIndicators(request, env, ctx);
+    }
+
     if (url.pathname === "/api/lookup") {
       return handleLookup(request, env, ctx);
+    }
+
+    if (url.pathname === "/api/search") {
+      return handleSearch(request, env, ctx);
     }
 
     if (url.pathname === "/api/health") {

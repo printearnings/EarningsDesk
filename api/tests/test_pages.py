@@ -152,8 +152,15 @@ def test_history_is_newest_first_and_capped():
 
 def test_history_carries_eps_fields():
     rows = pages.history_rows(
-        [_tl(date(2026, 5, 20), session="AMC", eps_estimate=1.77, eps_actual=1.87,
-             eps_surprise=5.54)]
+        [
+            _tl(
+                date(2026, 5, 20),
+                session="AMC",
+                eps_estimate=1.77,
+                eps_actual=1.87,
+                eps_surprise=5.54,
+            )
+        ]
     )
     assert (rows[0].session, rows[0].eps_surprise) == ("AMC", 5.54)
 
@@ -234,6 +241,45 @@ def test_ticker_is_normalised(s):
     assert pages.ticker_page(s, "  nvda ", now=NOW).ticker == "NVDA"
 
 
+# ---- spot price fallback ----------------------------------------------------
+
+
+def _prices(*closes: float) -> list:
+    from app.schemas import PricePoint
+
+    return [PricePoint(date=date(2026, 7, 1 + i), close=c) for i, c in enumerate(closes)]
+
+
+def test_snapshot_less_ticker_falls_back_to_latest_close(s):
+    """A ticker with no snapshot still has yfinance-fetched daily closes — the
+    header shouldn't show an em dash for a number that's sitting right there
+    in the chart data."""
+    page = pages.ticker_page(s, "COST", prices=_prices(950.0, 958.25), now=NOW)
+    assert page.spot == 958.25
+
+
+def test_snapshot_spot_wins_over_the_price_series_fallback(s):
+    """The snapshot's spot is the real thing (captured at cron time); the
+    daily-close fallback only fills the gap when there isn't one."""
+    _snap(s, spot=223.76)
+    page = pages.ticker_page(s, "NVDA", prices=_prices(220.0, 221.5), now=NOW)
+    assert page.spot == 223.76
+
+
+def test_no_prices_and_no_snapshot_leaves_spot_none(s):
+    page = pages.ticker_page(s, "ZZZZ", now=NOW)
+    assert page.spot is None
+
+
+def test_snapshot_with_a_null_spot_still_falls_back_to_price_series(s):
+    """A snapshot can exist (options data, news) without a spot (e.g. the
+    underlying price fetch failed that night) — the fallback should still
+    kick in rather than leaving a real, available number blank."""
+    _snap(s, spot=None)
+    page = pages.ticker_page(s, "NVDA", prices=_prices(180.0, 182.4), now=NOW)
+    assert page.spot == 182.4
+
+
 # ---- the guarantee the hosting model depends on ----------------------------
 
 
@@ -298,9 +344,7 @@ def test_past_earnings_page_merges_workflow_a_and_b_for_one_event():
 
 
 def test_past_earnings_page_merge_does_not_overwrite_a_known_value():
-    page = pages.past_earnings_page(
-        [_past_row(verdict="RICH"), _past_row(verdict="CHEAP")]
-    )
+    page = pages.past_earnings_page([_past_row(verdict="RICH"), _past_row(verdict="CHEAP")])
     assert page.rows[0].verdict == "RICH"
 
 
@@ -334,6 +378,39 @@ def test_past_earnings_page_preserves_input_order():
 
 def test_past_earnings_page_empty_input():
     assert pages.past_earnings_page([]).rows == []
+
+
+def test_past_earnings_page_attaches_current_spot_from_snapshot():
+    """spot is today's price via the latest snapshot, not a historical field —
+    a ticker that's been re-snapshotted since the print shows its current
+    price next to a quarter-old event."""
+    page = pages.past_earnings_page([_past_row(ticker="NVDA")], {"NVDA": _FakeSnap(spot=180.5)})
+    assert page.rows[0].spot == 180.5
+
+
+def test_past_earnings_page_spot_is_none_without_a_snapshot():
+    page = pages.past_earnings_page([_past_row(ticker="ZZZZ")], {})
+    assert page.rows[0].spot is None
+
+
+def test_past_earnings_page_falls_back_to_latest_close_without_a_snapshot():
+    page = pages.past_earnings_page([_past_row(ticker="AAPL")], {}, {"AAPL": 227.5})
+    assert page.rows[0].spot == 227.5
+
+
+def test_past_earnings_page_snapshot_spot_wins_over_latest_close():
+    page = pages.past_earnings_page(
+        [_past_row(ticker="NVDA")], {"NVDA": _FakeSnap(spot=180.5)}, {"NVDA": 100.0}
+    )
+    assert page.rows[0].spot == 180.5
+
+
+class _FakeSnap:
+    """A minimal stand-in for DashboardSnapshot — these tests only read .spot,
+    so a full ORM row would be needlessly heavy to construct."""
+
+    def __init__(self, spot: float | None):
+        self.spot = spot
 
 
 # ---- calendar_page ----------------------------------------------------------
@@ -383,6 +460,17 @@ def test_calendar_page_keeps_distinct_tickers_and_dates_separate():
     }
 
 
+def test_calendar_page_attaches_current_spot_from_snapshot(s):
+    snap = _snap(s, ticker="PLTR", spot=42.1)
+    page = pages.calendar_page(
+        [_upcoming(ticker="PLTR")],
+        {"PLTR": snap},
+        as_of=date(2026, 8, 1),
+        window_days=30,
+    )
+    assert page.entries[0].spot == 42.1
+
+
 def test_calendar_page_days_until_can_go_negative_for_past_events():
     """The full-window calendar includes past events; a 12-days-ago print must
     read as -12, not be clamped to 0."""
@@ -393,3 +481,54 @@ def test_calendar_page_days_until_can_go_negative_for_past_events():
         window_days=545,
     )
     assert page.entries[0].days_until == -12
+
+
+# ---- signals_page -------------------------------------------------------------
+
+
+def _signal_row(ticker="NVDA", **kw):
+    from earnings.store.repo import SignalFeedRow
+
+    base = dict(
+        run_date=date(2026, 8, 1),
+        report_date=date(2026, 8, 26),
+        workflow="A",
+        verdict=None,
+        direction=None,
+        implied_move=None,
+        edge_score=None,
+        confidence=None,
+        beat_implied=None,
+        correct_direction=None,
+    )
+    return SignalFeedRow(ticker=ticker, **{**base, **kw})
+
+
+def test_signals_page_attaches_current_spot_from_snapshot():
+    page = pages.signals_page([_signal_row(ticker="NVDA")], {"NVDA": _FakeSnap(spot=223.76)})
+    assert page.rows[0].spot == 223.76
+
+
+def test_signals_page_spot_is_none_without_a_snapshot():
+    page = pages.signals_page([_signal_row(ticker="ZZZZ")])
+    assert page.rows[0].spot is None
+
+
+def test_signals_page_falls_back_to_latest_close_without_a_snapshot():
+    """A ticker that's aged out of the tracked universe still has a real,
+    freely-available price — same fallback as the ticker page."""
+    page = pages.signals_page([_signal_row(ticker="AAPL")], {}, {"AAPL": 227.5})
+    assert page.rows[0].spot == 227.5
+
+
+def test_signals_page_snapshot_spot_wins_over_latest_close():
+    page = pages.signals_page(
+        [_signal_row(ticker="NVDA")], {"NVDA": _FakeSnap(spot=223.76)}, {"NVDA": 180.0}
+    )
+    assert page.rows[0].spot == 223.76
+
+
+def test_signals_page_carries_the_outcome_through():
+    page = pages.signals_page([_signal_row(ticker="NVDA", beat_implied=True)])
+    assert page.rows[0].beat_implied is True
+    assert page.rows[0].correct_direction is None

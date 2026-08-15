@@ -33,7 +33,7 @@ export default async function TickersPage() {
             {tickers.map((t) => (
               <li
                 key={t.ticker}
-                className="border-b border-r border-[var(--color-border-subtle)] [&:nth-child(4n)]:border-r-0"
+                className="border-r border-b border-[var(--color-border-subtle)] [&:nth-child(4n)]:border-r-0"
               >
                 <Link
                   href={`/t/${t.ticker}/`}
@@ -50,7 +50,7 @@ export default async function TickersPage() {
                   </div>
 
                   {t.company_name && (
-                    <p className="truncate text-2xs text-[var(--color-muted)]">
+                    <p className="text-2xs truncate text-[var(--color-muted)]">
                       {t.company_name}
                     </p>
                   )}
@@ -62,7 +62,7 @@ export default async function TickersPage() {
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-1.5 text-2xs text-[var(--color-muted)]">
+                  <div className="text-2xs flex items-center gap-1.5 text-[var(--color-muted)]">
                     {t.next_report_date ? (
                       <>
                         <SessionChip session={t.next_report_session} />

@@ -30,14 +30,15 @@
 
   "kv_namespaces": [
     {
-      // Per-IP rate limiting for the metered refresh endpoint.
+      // Per-IP rate limiting, shared by the metered refresh and search endpoints.
       "binding": "RATE_LIMIT",
       "id": "9135f20d01354929b7b2eb0681e7bd66"
     }
   ],
 
   "vars": {
-    "LIVE_REFRESH_PER_HOUR": "10"
+    "LIVE_REFRESH_PER_HOUR": "10",
+    "SEARCH_PER_HOUR": "60"
   },
 
   "observability": {

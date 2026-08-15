@@ -82,9 +82,9 @@ def options_panel(snap: DashboardSnapshot) -> OptionsPanel | None:
     )
 
 
-def history_rows(timeline: list[TimelineEvent], *, limit: int = HISTORY_LIMIT) -> list[
-    EarningsHistoryRow
-]:
+def history_rows(
+    timeline: list[TimelineEvent], *, limit: int = HISTORY_LIMIT
+) -> list[EarningsHistoryRow]:
     """Newest-first history, deduped to one row per report date.
 
     `ticker_timeline` LEFT JOINs signals, so an event carrying both a
@@ -141,14 +141,43 @@ def history_rows(timeline: list[TimelineEvent], *, limit: int = HISTORY_LIMIT) -
     return ordered[:limit]
 
 
-def past_earnings_page(rows: list[EnginePastEarningsRow]) -> PastEarningsPage:
+def _resolve_spot(
+    ticker: str,
+    snapshots: dict[str, DashboardSnapshot],
+    latest_close: dict[str, float],
+) -> float | None:
+    """The snapshot's spot when there is one; otherwise the most recent daily
+    close, fetched for free via yfinance. A ticker that has aged out of the
+    tracked universe (its print already happened, so it no longer gets a
+    nightly snapshot) still has a real, freely-available price — this is the
+    same fallback ticker_page() applies, so a name doesn't read as "no price
+    exists" just because it's no longer in the nightly window."""
+    snap = snapshots.get(ticker)
+    if snap and snap.spot is not None:
+        return snap.spot
+    return latest_close.get(ticker)
+
+
+def past_earnings_page(
+    rows: list[EnginePastEarningsRow],
+    snapshots: dict[str, DashboardSnapshot] | None = None,
+    latest_close: dict[str, float] | None = None,
+) -> PastEarningsPage:
     """Cross-ticker history feed, deduped to one row per (ticker, report_date).
 
     Same merge shape as history_rows: repo.past_earnings does a plain LEFT
     JOIN, so a ticker with both a Workflow-A and Workflow-B signal for one
     event arrives as two rows. First value seen for each field wins; a later
     duplicate only fills genuine holes, never overwrites a known value.
+
+    `snapshots` and `latest_close` are both optional (default to no prices)
+    so callers that don't have them handy — and every existing test — keep
+    working unchanged. `spot` is *today's* price, not the price on
+    report_date; it's a "what's this trading at now" reference, not a
+    historical field, so the merge logic above never touches it.
     """
+    snapshots = snapshots or {}
+    latest_close = latest_close or {}
     merged: dict[tuple[str, date], PastEarningsRow] = {}
 
     for r in rows:
@@ -171,6 +200,7 @@ def past_earnings_page(rows: list[EnginePastEarningsRow]) -> PastEarningsPage:
                 gap_filled=r.gap_filled,
                 vol_ratio=r.vol_ratio,
                 pnl=r.pnl,
+                spot=_resolve_spot(r.ticker, snapshots, latest_close),
             )
             continue
 
@@ -302,6 +332,11 @@ def ticker_page(
         stats=stats,
         prices=prices or [],
     )
+    # A snapshot-less (or stale-snapshot) ticker still has a price — `prices`
+    # is fetched unconditionally from yfinance, so the header shouldn't show
+    # an em dash for a number that's sitting right there in the chart data.
+    # Overwritten below by the snapshot's own spot when one exists.
+    page.spot = _latest_close(page.prices)
 
     if snap is None:
         return page
@@ -315,7 +350,7 @@ def ticker_page(
     )
     page.company_name = snap.company_name
     page.company_domain = snap.company_domain
-    page.spot = snap.spot
+    page.spot = snap.spot if snap.spot is not None else page.spot
     page.next_report_date = snap.next_report_date
     page.next_report_session = snap.next_report_session
     page.days_until_report = (
@@ -329,6 +364,17 @@ def ticker_page(
     page.ai_summary = _ai_summary(snap)
 
     return page
+
+
+def _latest_close(prices: list[PricePoint]) -> float | None:
+    """Most recent daily close, as a free stand-in for a live spot price.
+
+    `prices` is already sorted oldest-first (quotes.price_series' contract),
+    so the last element is the newest. An empty series — a ticker yfinance
+    has never heard of — has no fallback either; that's a genuine unknown,
+    not a bug in this function.
+    """
+    return prices[-1].close if prices else None
 
 
 def _aware(dt: datetime) -> datetime:
@@ -372,6 +418,7 @@ def calendar_page(
                 implied_move=snap.implied_move if snap else None,
                 hist_avg_move=snap.hist_avg_move if snap else None,
                 edge_score=snap.edge_score if snap else None,
+                spot=snap.spot if snap else None,
             )
             continue
 
@@ -385,7 +432,13 @@ def calendar_page(
     return CalendarPage(as_of=as_of, window_days=window_days, entries=list(merged.values()))
 
 
-def signals_page(rows: list[SignalFeedRow]) -> SignalsPage:
+def signals_page(
+    rows: list[SignalFeedRow],
+    snapshots: dict[str, DashboardSnapshot] | None = None,
+    latest_close: dict[str, float] | None = None,
+) -> SignalsPage:
+    snapshots = snapshots or {}
+    latest_close = latest_close or {}
     return SignalsPage(
         rows=[
             SignalRow(
@@ -398,6 +451,9 @@ def signals_page(rows: list[SignalFeedRow]) -> SignalsPage:
                 implied_move=r.implied_move,
                 edge_score=r.edge_score,
                 confidence=r.confidence,
+                spot=_resolve_spot(r.ticker, snapshots, latest_close),
+                beat_implied=r.beat_implied,
+                correct_direction=r.correct_direction,
             )
             for r in rows
         ]

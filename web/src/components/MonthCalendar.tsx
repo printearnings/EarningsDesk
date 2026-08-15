@@ -4,19 +4,34 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import type { CalendarEntry } from "@/lib/api";
-import { pctRange } from "@/lib/format";
+import {
+  DIRECTION_DOT,
+  DIRECTIONS,
+  FilterGroup,
+  VERDICT_DOT,
+  VERDICTS,
+  toggleInSet,
+} from "@/components/FilterGroup";
+import { money, pctRange } from "@/lib/format";
 
 const MONTH_NAMES = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const MAX_VISIBLE_PER_DAY = 3;
-
-const VERDICTS = ["RICH", "CHEAP", "FAIR"] as const;
-const DIRECTIONS = ["BULLISH", "BEARISH", "NEUTRAL"] as const;
 
 interface DayCell {
   iso: string;
@@ -52,13 +67,6 @@ export function MonthCalendar({ entries }: { entries: CalendarEntry[] }) {
   const [directions, setDirections] = useState<Set<string>>(() => new Set());
   const filtersActive = verdicts.size > 0 || directions.size > 0;
 
-  function toggle(set: Set<string>, setSet: (s: Set<string>) => void, value: string) {
-    const next = new Set(set);
-    if (next.has(value)) next.delete(value);
-    else next.add(value);
-    setSet(next);
-  }
-
   function clearFilters() {
     setVerdicts(new Set());
     setDirections(new Set());
@@ -84,11 +92,10 @@ export function MonthCalendar({ entries }: { entries: CalendarEntry[] }) {
     return map;
   }, [filtered]);
 
-  const weeks = useMemo(() => buildGrid(cursor.year, cursor.month, byDate, todayIso), [
-    cursor,
-    byDate,
-    todayIso,
-  ]);
+  const weeks = useMemo(
+    () => buildGrid(cursor.year, cursor.month, byDate, todayIso),
+    [cursor, byDate, todayIso],
+  );
 
   function shift(delta: number) {
     setCursor((c) => {
@@ -141,14 +148,14 @@ export function MonthCalendar({ entries }: { entries: CalendarEntry[] }) {
           options={VERDICTS}
           active={verdicts}
           dotClass={VERDICT_DOT}
-          onToggle={(v) => toggle(verdicts, setVerdicts, v)}
+          onToggle={(v) => toggleInSet(verdicts, setVerdicts, v)}
         />
         <FilterGroup
           label="Direction"
           options={DIRECTIONS}
           active={directions}
           dotClass={DIRECTION_DOT}
-          onToggle={(v) => toggle(directions, setDirections, v)}
+          onToggle={(v) => toggleInSet(directions, setDirections, v)}
         />
         {filtersActive && (
           <button
@@ -188,7 +195,7 @@ function DayCellView({ cell }: { cell: DayCell }) {
 
   return (
     <div
-      className={`min-h-24 border-b border-r border-[var(--color-border-subtle)] p-1.5 [&:nth-child(7n)]:border-r-0 ${
+      className={`min-h-24 border-r border-b border-[var(--color-border-subtle)] p-1.5 [&:nth-child(7n)]:border-r-0 ${
         cell.inMonth ? "bg-[var(--color-panel)]" : "bg-[var(--color-panel-soft)]"
       }`}
     >
@@ -209,8 +216,8 @@ function DayCellView({ cell }: { cell: DayCell }) {
           <Link
             key={e.ticker}
             href={`/t/${e.ticker}/`}
-            title={`${e.ticker} — implied ${pctRange(e.implied_move)}`}
-            className="pressable flex items-center gap-1 rounded-[3px] px-1 py-0.5 text-2xs transition-colors hover:bg-[var(--color-panel-soft)]"
+            title={`${e.ticker}${e.spot != null ? ` — ${money(e.spot)}` : ""} — implied ${pctRange(e.implied_move)}`}
+            className="pressable text-2xs flex items-center gap-1 rounded-[3px] px-1 py-0.5 transition-colors hover:bg-[var(--color-panel-soft)]"
           >
             <VerdictDot verdict={e.verdict} />
             <span className="truncate font-mono font-medium text-[var(--color-heading)]">
@@ -219,18 +226,12 @@ function DayCellView({ cell }: { cell: DayCell }) {
           </Link>
         ))}
         {overflow > 0 && (
-          <p className="px-1 text-2xs text-[var(--color-muted)]">+{overflow} more</p>
+          <p className="text-2xs px-1 text-[var(--color-muted)]">+{overflow} more</p>
         )}
       </div>
     </div>
   );
 }
-
-const VERDICT_DOT: Record<string, string> = {
-  RICH: "bg-[var(--color-verdict-rich)]",
-  CHEAP: "bg-[var(--color-verdict-cheap)]",
-  FAIR: "bg-[var(--color-verdict-fair)]",
-};
 
 function VerdictDot({ verdict }: { verdict?: string | null }) {
   return (
@@ -280,12 +281,24 @@ function buildGrid(
     const day = daysInPrevMonth - startOffset + i + 1;
     const [y, m] = month === 0 ? [year - 1, 11] : [year, month - 1];
     const dateIso = iso(y, m, day);
-    cells.push({ iso: dateIso, day, inMonth: false, isToday: dateIso === todayIso, entries: byDate.get(dateIso) ?? [] });
+    cells.push({
+      iso: dateIso,
+      day,
+      inMonth: false,
+      isToday: dateIso === todayIso,
+      entries: byDate.get(dateIso) ?? [],
+    });
   }
 
   for (let day = 1; day <= daysInMonth; day++) {
     const dateIso = iso(year, month, day);
-    cells.push({ iso: dateIso, day, inMonth: true, isToday: dateIso === todayIso, entries: byDate.get(dateIso) ?? [] });
+    cells.push({
+      iso: dateIso,
+      day,
+      inMonth: true,
+      isToday: dateIso === todayIso,
+      entries: byDate.get(dateIso) ?? [],
+    });
   }
 
   let nextDay = 1;

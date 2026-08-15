@@ -12,6 +12,7 @@ from datetime import date, timedelta
 
 from earnings.core.clock import market_today
 from earnings.store import repo
+from earnings.store.models import DashboardSnapshot
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
@@ -104,15 +105,34 @@ def get_past_earnings(session: Session = Depends(get_session)) -> PastEarningsPa
     return _past_earnings(session)
 
 
+def _missing_spot_tickers(tickers: set[str], snapshots: dict[str, DashboardSnapshot]) -> set[str]:
+    """Only fetch a fallback close for tickers the snapshot table can't
+    already answer — most rows are for currently- or recently-tracked
+    tickers, so this keeps the free-but-slow yfinance fallback rare rather
+    than paid for every row on every request."""
+    return {t for t in tickers if not (snapshots.get(t) and snapshots[t].spot is not None)}
+
+
 def _past_earnings(session: Session, *, before: date | None = None) -> PastEarningsPage:
     before = before or market_today()
     rows = repo.past_earnings(session, before=before, limit=PAST_EARNINGS_LIMIT)
-    return pages.past_earnings_page(rows)
+    snapshots = {s.ticker: s for s in repo.latest_dashboard_snapshots(session)}
+    missing = _missing_spot_tickers({r.ticker for r in rows}, snapshots)
+    latest_close = quotes.latest_closes(missing)
+    return pages.past_earnings_page(rows, snapshots, latest_close)
 
 
 @router.get("/signals", response_model=SignalsPage, tags=["signals"])
 def get_signals(session: Session = Depends(get_session)) -> SignalsPage:
-    return pages.signals_page(repo.recent_signals(session, limit=SIGNAL_FEED_LIMIT))
+    return _signals(session)
+
+
+def _signals(session: Session) -> SignalsPage:
+    rows = repo.recent_signals(session, limit=SIGNAL_FEED_LIMIT)
+    snapshots = {s.ticker: s for s in repo.latest_dashboard_snapshots(session)}
+    missing = _missing_spot_tickers({r.ticker for r in rows}, snapshots)
+    latest_close = quotes.latest_closes(missing)
+    return pages.signals_page(rows, snapshots, latest_close)
 
 
 @router.get("/track-record", response_model=TrackRecordPage, tags=["track-record"])
