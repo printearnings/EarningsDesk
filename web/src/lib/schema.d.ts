@@ -130,6 +130,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/dashboard-news": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Dashboard News */
+    get: operations["get_dashboard_news_api_dashboard_news_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/index": {
     parameters: {
       query?: never;
@@ -222,6 +239,35 @@ export interface components {
        * @default []
        */
       entries: components["schemas"]["CalendarEntry"][];
+    };
+    /**
+     * DashboardNewsItem
+     * @description A `NewsItem` plus which tracked company it's about — the ticker page's
+     *     news list needs no such field (it's implicitly the page's own ticker),
+     *     but a feed spanning the whole universe has to say whose story this is.
+     */
+    DashboardNewsItem: {
+      /** Title */
+      title: string;
+      /** Url */
+      url?: string | null;
+      /** Publisher */
+      publisher?: string | null;
+      /** Published At */
+      published_at?: string | null;
+      /** Thumbnail Url */
+      thumbnail_url?: string | null;
+      /** Ticker */
+      ticker: string;
+      /** Company Name */
+      company_name?: string | null;
+      /** Company Domain */
+      company_domain?: string | null;
+    };
+    /** DashboardNewsPage */
+    DashboardNewsPage: {
+      /** Items */
+      items: components["schemas"]["DashboardNewsItem"][];
     };
     /**
      * EarningsHistoryRow
@@ -826,6 +872,26 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["TrackRecordPage"];
+        };
+      };
+    };
+  };
+  get_dashboard_news_api_dashboard_news_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DashboardNewsPage"];
         };
       };
     };

@@ -28,6 +28,7 @@ from app.routers import (
     DEFAULT_WINDOW_DAYS,
     _calendar,
     _calendar_full,
+    _dashboard_news,
     _index,
     _past_earnings,
     _signals,
@@ -76,6 +77,9 @@ def dump(out_dir: Path, *, with_prices: bool = True) -> dict[str, int]:
         )
 
         written["signals.json"] = _write(out_dir / "signals.json", _signals(session))
+        written["dashboard-news.json"] = _write(
+            out_dir / "dashboard-news.json", _dashboard_news(session)
+        )
         written["track-record.json"] = _write(
             out_dir / "track-record.json",
             pages.track_record_page(repo.track_record(session)),

@@ -30,3 +30,5 @@ export type HistoryStats = S["HistoryStats"];
 export type AiSummary = S["AiSummary"];
 export type PricePoint = S["PricePoint"];
 export type NewsItem = S["NewsItem"];
+export type DashboardNewsPage = S["DashboardNewsPage"];
+export type DashboardNewsItem = S["DashboardNewsItem"];

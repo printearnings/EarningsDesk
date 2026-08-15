@@ -23,6 +23,7 @@
 
 import type {
   CalendarPage,
+  DashboardNewsPage,
   PastEarningsPage,
   SignalsPage,
   SiteIndex,
@@ -97,4 +98,8 @@ export function getSignals(): Promise<SignalsPage> {
 
 export function getTrackRecord(): Promise<TrackRecordPage> {
   return get<TrackRecordPage>("/api/track-record", "track-record.json");
+}
+
+export function getDashboardNews(): Promise<DashboardNewsPage> {
+  return get<DashboardNewsPage>("/api/dashboard-news", "dashboard-news.json");
 }

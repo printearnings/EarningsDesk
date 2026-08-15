@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 from app.deps import get_session, require_db
 from app.schemas import (
     CalendarPage,
+    DashboardNewsPage,
     PastEarningsPage,
     SignalsPage,
     SiteIndex,
@@ -138,6 +139,15 @@ def _signals(session: Session) -> SignalsPage:
 @router.get("/track-record", response_model=TrackRecordPage, tags=["track-record"])
 def get_track_record(session: Session = Depends(get_session)) -> TrackRecordPage:
     return pages.track_record_page(repo.track_record(session))
+
+
+@router.get("/dashboard-news", response_model=DashboardNewsPage, tags=["dashboard"])
+def get_dashboard_news(session: Session = Depends(get_session)) -> DashboardNewsPage:
+    return _dashboard_news(session)
+
+
+def _dashboard_news(session: Session) -> DashboardNewsPage:
+    return pages.dashboard_news(repo.latest_dashboard_snapshots(session))
 
 
 @router.get("/index", response_model=SiteIndex, tags=["meta"])

@@ -66,6 +66,20 @@ class NewsItem(BaseModel):
     thumbnail_url: str | None = None
 
 
+class DashboardNewsItem(NewsItem):
+    """A `NewsItem` plus which tracked company it's about — the ticker page's
+    news list needs no such field (it's implicitly the page's own ticker),
+    but a feed spanning the whole universe has to say whose story this is."""
+
+    ticker: str
+    company_name: str | None = None
+    company_domain: str | None = None
+
+
+class DashboardNewsPage(BaseModel):
+    items: list[DashboardNewsItem]
+
+
 class HistoryStats(BaseModel):
     """Aggregates over the earnings history. Mirrors core.llm_context.TickerContext.
 

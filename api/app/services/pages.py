@@ -27,6 +27,8 @@ from app.schemas import (
     AiSummary,
     CalendarEntry,
     CalendarPage,
+    DashboardNewsItem,
+    DashboardNewsPage,
     EarningsHistoryRow,
     HistoryStats,
     NewsItem,
@@ -295,6 +297,39 @@ def _news(snap: DashboardSnapshot) -> list[NewsItem] | None:
                 )
             )
     return items
+
+
+def dashboard_news(snapshots: list[DashboardSnapshot], *, limit: int = 16) -> DashboardNewsPage:
+    """Recent headlines across every tracked ticker, newest first.
+
+    Reuses `_news`'s tolerant per-snapshot parsing, then merges across the
+    whole universe. Dedupes by URL (falling back to title for the rare
+    linkless story) since a wire story about two related companies can
+    legitimately show up in both snapshots' news_json.
+    """
+    seen: set[str] = set()
+    items: list[DashboardNewsItem] = []
+    for snap in snapshots:
+        stories = _news(snap)
+        if not stories:
+            continue
+        for story in stories:
+            dedupe_key = story.url or story.title
+            if dedupe_key in seen:
+                continue
+            seen.add(dedupe_key)
+            items.append(
+                DashboardNewsItem(
+                    **story.model_dump(),
+                    ticker=snap.ticker,
+                    company_name=snap.company_name,
+                    company_domain=snap.company_domain,
+                )
+            )
+    # Missing published_at sorts last: "" is less than any real ISO string in
+    # ascending order, so it lands at the end once reversed to descending.
+    items.sort(key=lambda i: i.published_at or "", reverse=True)
+    return DashboardNewsPage(items=items[:limit])
 
 
 def ticker_page(

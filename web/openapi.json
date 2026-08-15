@@ -213,6 +213,27 @@
         }
       }
     },
+    "/api/dashboard-news": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Get Dashboard News",
+        "operationId": "get_dashboard_news_api_dashboard_news_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardNewsPage"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/index": {
       "get": {
         "tags": [
@@ -414,6 +435,107 @@
           "window_days"
         ],
         "title": "CalendarPage"
+      },
+      "DashboardNewsItem": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          },
+          "publisher": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publisher"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "thumbnail_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thumbnail Url"
+          },
+          "ticker": {
+            "type": "string",
+            "title": "Ticker"
+          },
+          "company_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company Name"
+          },
+          "company_domain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company Domain"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "ticker"
+        ],
+        "title": "DashboardNewsItem",
+        "description": "A `NewsItem` plus which tracked company it's about \u2014 the ticker page's\nnews list needs no such field (it's implicitly the page's own ticker),\nbut a feed spanning the whole universe has to say whose story this is."
+      },
+      "DashboardNewsPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DashboardNewsItem"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "DashboardNewsPage"
       },
       "EarningsHistoryRow": {
         "properties": {

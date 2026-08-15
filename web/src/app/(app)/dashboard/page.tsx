@@ -1,10 +1,18 @@
 import Link from "next/link";
 
 import { DirectionChip, SessionChip, VerdictChip } from "@/components/Chip";
+import { CompanyLogo } from "@/components/CompanyLogo";
+import { NewsThumbnail } from "@/components/NewsThumbnail";
 import { Panel, StatCard } from "@/components/Panel";
 import { TopBar } from "@/components/TopBar";
-import { getCalendar, getIndex, getSignals, getTrackRecord } from "@/lib/api";
-import { formatDateShort, pct, pctRange, relativeDays } from "@/lib/format";
+import { getCalendar, getDashboardNews, getIndex, getSignals, getTrackRecord } from "@/lib/api";
+import {
+  formatDateShort,
+  pct,
+  pctRange,
+  relativeDays,
+  relativeDaysFromDate,
+} from "@/lib/format";
 
 export const metadata = { title: "Dashboard — EarningsDesk" };
 
@@ -15,11 +23,12 @@ export const metadata = { title: "Dashboard — EarningsDesk" };
  * detail.
  */
 export default async function DashboardPage() {
-  const [index, calendar, signals, record] = await Promise.all([
+  const [index, calendar, signals, record, news] = await Promise.all([
     getIndex(),
     getCalendar(14),
     getSignals(),
     getTrackRecord(),
+    getDashboardNews(),
   ]);
 
   const priced = calendar.entries.filter((e) => typeof e.implied_move === "number");
@@ -183,6 +192,60 @@ export default async function DashboardPage() {
             </Panel>
           </div>
         </div>
+
+        <Panel
+          title="Recent news"
+          subtitle="Latest headlines across the tracked universe"
+          bodyClassName="px-0 py-0"
+          empty={news.items.length === 0 ? "No recent headlines." : undefined}
+        >
+          <ul>
+            {news.items.slice(0, 10).map((item) => (
+              <li
+                key={item.url ?? `${item.ticker}-${item.title}`}
+                className="border-b border-[var(--color-border-subtle)] px-5 py-3 last:border-b-0"
+              >
+                <div className="flex gap-3">
+                  {item.thumbnail_url && <NewsThumbnail src={item.thumbnail_url} alt="" />}
+                  <div className="min-w-0">
+                    <div className="mb-1 flex items-center gap-1.5">
+                      <CompanyLogo
+                        ticker={item.ticker}
+                        domain={item.company_domain}
+                        size={16}
+                      />
+                      <Link
+                        href={`/t/${item.ticker}/`}
+                        className="font-mono text-sm font-medium text-[var(--color-heading)] hover:underline"
+                      >
+                        {item.ticker}
+                      </Link>
+                    </div>
+                    {item.url ? (
+                      // Third-party link: no `noopener` would let the destination
+                      // page reach back via `window.opener` into this tab.
+                      <a
+                        href={item.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-[var(--color-body)] underline-offset-4 hover:text-[var(--color-heading)] hover:underline"
+                      >
+                        {item.title}
+                      </a>
+                    ) : (
+                      <span className="text-sm text-[var(--color-body)]">{item.title}</span>
+                    )}
+                    <div className="text-2xs mt-0.5 text-[var(--color-muted)]">
+                      {[item.publisher, relativeDaysFromDate(item.published_at)]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </div>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Panel>
       </div>
     </>
   );

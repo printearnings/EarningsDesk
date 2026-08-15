@@ -178,6 +178,56 @@ def test_malformed_news_json_degrades_to_none(s):
     assert pages._news(_snap(s, news_json="{not json")) is None
 
 
+# ---- dashboard news feed -----------------------------------------------------
+
+
+def _story(title: str, **kw) -> dict:
+    return {"title": title, "url": None, "publisher": None, "published_at": None, **kw}
+
+
+def test_dashboard_news_merges_and_sorts_across_tickers(s):
+    nvda = _snap(
+        s,
+        ticker="NVDA",
+        company_name="NVIDIA",
+        news_json=json.dumps([_story("NVDA older", published_at="2026-08-01T00:00:00Z")]),
+    )
+    amd = _snap(
+        s,
+        ticker="AMD",
+        company_name="AMD",
+        news_json=json.dumps([_story("AMD newer", published_at="2026-08-05T00:00:00Z")]),
+    )
+    page = pages.dashboard_news([nvda, amd])
+    assert [i.title for i in page.items] == ["AMD newer", "NVDA older"]
+    assert page.items[0].ticker == "AMD"
+    assert page.items[0].company_name == "AMD"
+
+
+def test_dashboard_news_skips_snapshots_with_no_news(s):
+    ok = _snap(s, ticker="NVDA", news_json=json.dumps([_story("Has news")]))
+    failed = _snap(s, ticker="AMD", news_json=None)
+    empty = _snap(s, ticker="MU", news_json=json.dumps([]))
+    page = pages.dashboard_news([ok, failed, empty])
+    assert [i.title for i in page.items] == ["Has news"]
+
+
+def test_dashboard_news_dedupes_a_story_shared_by_two_tickers(s):
+    shared = _story("Chips for everyone", url="https://example.com/chips")
+    a = _snap(s, ticker="NVDA", news_json=json.dumps([shared]))
+    b = _snap(s, ticker="AMD", news_json=json.dumps([shared]))
+    page = pages.dashboard_news([a, b])
+    assert len(page.items) == 1
+
+
+def test_dashboard_news_respects_the_limit(s):
+    snaps = [
+        _snap(s, ticker=f"T{i}", news_json=json.dumps([_story(f"story {i}")])) for i in range(5)
+    ]
+    page = pages.dashboard_news(snaps, limit=2)
+    assert len(page.items) == 2
+
+
 def test_ai_summary_parses_and_backfills_the_model(s):
     snap = _snap(
         s,
