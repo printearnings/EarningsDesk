@@ -23,6 +23,7 @@ class PricePoint(BaseModel):
     open: float | None = None
     high: float | None = None
     low: float | None = None
+    volume: float | None = None
 
 
 class EarningsHistoryRow(BaseModel):

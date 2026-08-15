@@ -7,6 +7,7 @@ import { DirectionChip, SessionChip, VerdictChip } from "@/components/Chip";
 import {
   DIRECTION_DOT,
   DIRECTIONS,
+  FilterDivider,
   FilterGroup,
   VERDICT_DOT,
   VERDICTS,
@@ -75,7 +76,7 @@ export function PastEarningsTable({ rows }: { rows: PastEarningsRow[] }) {
 
   return (
     <>
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-[var(--color-border)] px-5 py-3">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-[var(--color-border)] px-5 py-4">
         <FilterGroup
           label="Verdict"
           options={VERDICTS}
@@ -83,6 +84,7 @@ export function PastEarningsTable({ rows }: { rows: PastEarningsRow[] }) {
           dotClass={VERDICT_DOT}
           onToggle={(v) => toggleInSet(verdicts, setVerdicts, v)}
         />
+        <FilterDivider />
         <FilterGroup
           label="Direction"
           options={DIRECTIONS}
@@ -90,6 +92,7 @@ export function PastEarningsTable({ rows }: { rows: PastEarningsRow[] }) {
           dotClass={DIRECTION_DOT}
           onToggle={(v) => toggleInSet(directions, setDirections, v)}
         />
+        <FilterDivider />
         <div className="flex items-center gap-1.5">
           <span className="eyebrow text-[var(--color-muted)]">Ticker</span>
           <input

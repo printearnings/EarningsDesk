@@ -17,6 +17,7 @@ export interface IntradayPoint {
   open: number;
   high: number;
   low: number;
+  volume: number;
 }
 
 interface ChartResponse {

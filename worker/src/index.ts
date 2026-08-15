@@ -196,6 +196,7 @@ export interface ChartPoint {
   open: number;
   high: number;
   low: number;
+  volume: number;
 }
 
 export interface ChartResponse {
@@ -223,6 +224,7 @@ interface MassiveAggBar {
   h: number; // high
   l: number; // low
   c: number; // close
+  v?: number; // volume — absent on some sparse/OTC bars, never assume present
 }
 
 async function fetchMassiveAggs(
@@ -325,6 +327,7 @@ async function handleChart(request: Request, env: Env, ctx: ExecutionContext): P
     open: b.o,
     high: b.h,
     low: b.l,
+    volume: b.v ?? 0,
   }));
 
   const payload: ChartResponse = {
@@ -353,10 +356,19 @@ export interface IndicatorPoint {
   value: number;
 }
 
+export interface MACDPoint {
+  date: string; // ISO date
+  macd: number;
+  signal: number;
+  histogram: number;
+}
+
 export interface IndicatorsResponse {
   ticker: string;
   sma20: IndicatorPoint[];
   ema50: IndicatorPoint[];
+  rsi14: IndicatorPoint[];
+  macd: MACDPoint[];
 }
 
 const INDICATOR_CACHE_SECONDS = 3_600; // daily indicators only change once a day, at the close.
@@ -365,7 +377,7 @@ const INDICATOR_LIMIT = 5000; // comfortably above a year of daily values (~252)
 async function fetchMassiveIndicator(
   env: Env,
   ticker: string,
-  kind: "sma" | "ema",
+  kind: "sma" | "ema" | "rsi",
   window: number,
 ): Promise<IndicatorPoint[]> {
   try {
@@ -393,33 +405,240 @@ async function fetchMassiveIndicator(
   }
 }
 
+async function fetchMassiveMACD(env: Env, ticker: string): Promise<MACDPoint[]> {
+  try {
+    const url = new URL(`${MASSIVE_BASE}/v1/indicators/macd/${ticker}`);
+    url.searchParams.set("timespan", "day");
+    url.searchParams.set("short_window", "12");
+    url.searchParams.set("long_window", "26");
+    url.searchParams.set("signal_window", "9");
+    url.searchParams.set("series_type", "close");
+    url.searchParams.set("order", "asc");
+    url.searchParams.set("limit", String(INDICATOR_LIMIT));
+    url.searchParams.set("apiKey", env.MASSIVE_API_KEY);
+
+    const res = await fetch(url.toString(), { signal: AbortSignal.timeout(10_000) });
+    if (!res.ok) return [];
+    const body = (await res.json()) as {
+      results?: {
+        values?: Array<{ timestamp?: number; value?: number; signal?: number; histogram?: number }>;
+      };
+    };
+    return (body.results?.values ?? [])
+      .filter(
+        (v): v is { timestamp: number; value: number; signal: number; histogram: number } =>
+          typeof v.timestamp === "number" &&
+          typeof v.value === "number" &&
+          typeof v.signal === "number" &&
+          typeof v.histogram === "number",
+      )
+      .map((v) => ({
+        date: etDateString(new Date(v.timestamp)),
+        macd: v.value,
+        signal: v.signal,
+        histogram: v.histogram,
+      }));
+  } catch (err) {
+    console.error("macd fetch failed", { ticker, err: String(err) });
+    return [];
+  }
+}
+
+/** Rolling mean over `bars`, keyed by each bar's own ISO timestamp so it
+ * lines up exactly with the chart's own points — no separate fetch to
+ * possibly disagree with. Skips the first `window - 1` bars (standard
+ * warm-up; overlayPath already draws that as a gap, not a flat run-in). */
+function computeSMA(bars: MassiveAggBar[], window: number): IndicatorPoint[] {
+  const out: IndicatorPoint[] = [];
+  let sum = 0;
+  for (let i = 0; i < bars.length; i++) {
+    sum += bars[i].c;
+    if (i >= window) sum -= bars[i - window].c;
+    if (i >= window - 1) out.push({ date: new Date(bars[i].t).toISOString(), value: sum / window });
+  }
+  return out;
+}
+
+/** Exponential moving average over `bars`, seeded with the plain average of
+ * the first `window` bars (the standard EMA warm-up), then keyed the same
+ * way as computeSMA. */
+function computeEMA(bars: MassiveAggBar[], window: number): IndicatorPoint[] {
+  if (bars.length < window) return [];
+  const k = 2 / (window + 1);
+  let seed = 0;
+  for (let i = 0; i < window; i++) seed += bars[i].c;
+  let ema = seed / window;
+  const out: IndicatorPoint[] = [{ date: new Date(bars[window - 1].t).toISOString(), value: ema }];
+  for (let i = window; i < bars.length; i++) {
+    ema = bars[i].c * k + ema * (1 - k);
+    out.push({ date: new Date(bars[i].t).toISOString(), value: ema });
+  }
+  return out;
+}
+
+/** Wilder's RSI over `bars`. Seeded with the plain average gain/loss over
+ * the first `window` price changes, then smoothed the same way every bar
+ * after. A window with zero movement in both directions reads as neutral
+ * (50) rather than the divide-by-zero "100" a naive gain/loss ratio would
+ * give a flat line. */
+function computeRSI(bars: MassiveAggBar[], window: number): IndicatorPoint[] {
+  if (bars.length <= window) return [];
+  const rsiFrom = (avgGain: number, avgLoss: number) => {
+    if (avgGain === 0 && avgLoss === 0) return 50;
+    if (avgLoss === 0) return 100;
+    return 100 - 100 / (1 + avgGain / avgLoss);
+  };
+
+  let gainSum = 0;
+  let lossSum = 0;
+  for (let i = 1; i <= window; i++) {
+    const diff = bars[i].c - bars[i - 1].c;
+    if (diff > 0) gainSum += diff;
+    else lossSum -= diff;
+  }
+  let avgGain = gainSum / window;
+  let avgLoss = lossSum / window;
+  const out: IndicatorPoint[] = [
+    { date: new Date(bars[window].t).toISOString(), value: rsiFrom(avgGain, avgLoss) },
+  ];
+  for (let i = window + 1; i < bars.length; i++) {
+    const diff = bars[i].c - bars[i - 1].c;
+    const gain = diff > 0 ? diff : 0;
+    const loss = diff < 0 ? -diff : 0;
+    avgGain = (avgGain * (window - 1) + gain) / window;
+    avgLoss = (avgLoss * (window - 1) + loss) / window;
+    out.push({ date: new Date(bars[i].t).toISOString(), value: rsiFrom(avgGain, avgLoss) });
+  }
+  return out;
+}
+
+/** EMA over raw closes, returned index-aligned with `closes` (null before
+ * warm-up) — the building block computeMACD needs twice (once per leg) and
+ * once more over the MACD line itself for the signal, which computeEMA's
+ * own IndicatorPoint-keyed shape isn't set up for. */
+function emaSeries(values: number[], window: number): (number | null)[] {
+  const out: (number | null)[] = new Array(values.length).fill(null);
+  if (values.length < window) return out;
+  const k = 2 / (window + 1);
+  let seed = 0;
+  for (let i = 0; i < window; i++) seed += values[i];
+  let ema = seed / window;
+  out[window - 1] = ema;
+  for (let i = window; i < values.length; i++) {
+    ema = values[i] * k + ema * (1 - k);
+    out[i] = ema;
+  }
+  return out;
+}
+
+/** MACD line (12-EMA − 26-EMA), its 9-EMA signal line, and the histogram
+ * between them — the standard 12/26/9 windows, over `bars`' own closes. */
+function computeMACD(
+  bars: MassiveAggBar[],
+  shortWindow: number,
+  longWindow: number,
+  signalWindow: number,
+): MACDPoint[] {
+  if (bars.length < longWindow + signalWindow) return [];
+  const closes = bars.map((b) => b.c);
+  const emaShort = emaSeries(closes, shortWindow);
+  const emaLong = emaSeries(closes, longWindow);
+
+  // MACD is defined from longWindow-1 onward — emaLong's warm-up is the
+  // longer of the two, so emaShort is always already available by then.
+  const macd: number[] = [];
+  for (let i = longWindow - 1; i < bars.length; i++) {
+    macd.push((emaShort[i] as number) - (emaLong[i] as number));
+  }
+
+  // The signal is an EMA of the MACD line itself, computed over that
+  // compact array; map its indices back to bar indices via the offset the
+  // MACD line started at.
+  const signalOverMacd = emaSeries(macd, signalWindow);
+  const out: MACDPoint[] = [];
+  for (let j = signalWindow - 1; j < macd.length; j++) {
+    const barIdx = j + (longWindow - 1);
+    const macdVal = macd[j];
+    const signalVal = signalOverMacd[j] as number;
+    out.push({
+      date: new Date(bars[barIdx].t).toISOString(),
+      macd: macdVal,
+      signal: signalVal,
+      histogram: macdVal - signalVal,
+    });
+  }
+  return out;
+}
+
 /**
- * 20-day SMA and 50-day EMA overlays for the 1Y daily price chart — computed
- * server-side by Massive itself rather than in the Worker, so there's no
- * rolling-window math to get subtly wrong here. Daily-only: an intraday
- * moving average over a few hours of 1-minute bars isn't a signal anyone
- * reads, so 1D/5D don't call this.
+ * 20-period SMA, 50-period EMA, 14-period RSI, and 12/26/9 MACD for the
+ * price chart, in whatever bar granularity that range's own chart uses (1m
+ * for 1D, 5m for 5D, daily for 1Y) — an overlay computed on a coarser
+ * timespan than what's on screen wouldn't line up with it. All four are
+ * fetched unconditionally; the frontend decides which to render (default:
+ * none — these are opt-in via the chart's settings menu, not a page-load
+ * cost anyone pays for free).
+ *
+ * 1Y: Massive computes this server-side, so there's no rolling-window math
+ * to get subtly wrong here. 1D/5D: computed locally from the same minute
+ * aggregates the chart itself fetches (fetchMassiveAggs) — a second call to
+ * Massive's own indicator endpoint would risk its bars not lining up with
+ * the chart's, since they'd be two independent fetches.
  */
 async function handleIndicators(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const url = new URL(request.url);
   const ticker = parseTicker(url.searchParams.get("ticker"));
+  const range = url.searchParams.get("range") ?? "1y";
   if (!ticker) return json({ error: "Missing or malformed `ticker`." }, 400);
+  if (range !== "1y" && !RANGE_BAR_MINUTES[range]) {
+    return json(
+      { error: `Unsupported range. Use one of: 1y, ${Object.keys(RANGE_BAR_MINUTES).join(", ")}.` },
+      400,
+    );
+  }
   if (!env.MASSIVE_API_KEY) return json({ error: "Indicators are not configured." }, 503);
 
   const cache = caches.default;
-  const cacheKey = new Request(`https://cache.internal/indicators/${ticker}`, { method: "GET" });
+  const cacheKey = new Request(`https://cache.internal/indicators/${ticker}/${range}`, {
+    method: "GET",
+  });
   const cached = await cache.match(cacheKey);
   if (cached) return cached;
 
-  const [sma20, ema50] = await Promise.all([
-    fetchMassiveIndicator(env, ticker, "sma", 20),
-    fetchMassiveIndicator(env, ticker, "ema", 50),
-  ]);
+  let sma20: IndicatorPoint[];
+  let ema50: IndicatorPoint[];
+  let rsi14: IndicatorPoint[];
+  let macd: MACDPoint[];
+  let cacheSeconds: number;
 
-  const payload: IndicatorsResponse = { ticker, sma20, ema50 };
-  const response = json(payload, 200, {
-    "cache-control": `public, max-age=${INDICATOR_CACHE_SECONDS}`,
-  });
+  if (range === "1y") {
+    [sma20, ema50, rsi14, macd] = await Promise.all([
+      fetchMassiveIndicator(env, ticker, "sma", 20),
+      fetchMassiveIndicator(env, ticker, "ema", 50),
+      fetchMassiveIndicator(env, ticker, "rsi", 14),
+      fetchMassiveMACD(env, ticker),
+    ]);
+    cacheSeconds = INDICATOR_CACHE_SECONDS;
+  } else {
+    const barMinutes = RANGE_BAR_MINUTES[range];
+    const now = new Date();
+    const to = etDateString(now);
+    const from = etDateString(new Date(now.getTime() - RANGE_LOOKBACK_DAYS[range] * 86_400_000));
+    let bars: MassiveAggBar[] = [];
+    try {
+      bars = await fetchMassiveAggs(env, ticker, barMinutes, "minute", from, to);
+    } catch (err) {
+      console.error("indicator aggs fetch failed", { ticker, range, err: String(err) });
+    }
+    sma20 = computeSMA(bars, 20);
+    ema50 = computeEMA(bars, 50);
+    rsi14 = computeRSI(bars, 14);
+    macd = computeMACD(bars, 12, 26, 9);
+    cacheSeconds = CHART_CACHE_SECONDS;
+  }
+
+  const payload: IndicatorsResponse = { ticker, sma20, ema50, rsi14, macd };
+  const response = json(payload, 200, { "cache-control": `public, max-age=${cacheSeconds}` });
   ctx.waitUntil(cache.put(cacheKey, response.clone()));
   return response;
 }

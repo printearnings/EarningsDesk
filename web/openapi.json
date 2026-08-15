@@ -1141,6 +1141,17 @@
               }
             ],
             "title": "Low"
+          },
+          "volume": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Volume"
           }
         },
         "type": "object",

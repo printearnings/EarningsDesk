@@ -7,6 +7,7 @@ import type { CalendarEntry } from "@/lib/api";
 import {
   DIRECTION_DOT,
   DIRECTIONS,
+  FilterDivider,
   FilterGroup,
   VERDICT_DOT,
   VERDICTS,
@@ -142,7 +143,7 @@ export function MonthCalendar({ entries }: { entries: CalendarEntry[] }) {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-[var(--color-border)] px-5 py-3">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-3 border-b border-[var(--color-border)] px-5 py-4">
         <FilterGroup
           label="Verdict"
           options={VERDICTS}
@@ -150,6 +151,7 @@ export function MonthCalendar({ entries }: { entries: CalendarEntry[] }) {
           dotClass={VERDICT_DOT}
           onToggle={(v) => toggleInSet(verdicts, setVerdicts, v)}
         />
+        <FilterDivider />
         <FilterGroup
           label="Direction"
           options={DIRECTIONS}
@@ -167,7 +169,7 @@ export function MonthCalendar({ entries }: { entries: CalendarEntry[] }) {
           </button>
         )}
         {filtersActive && (
-          <span className="text-2xs text-[var(--color-muted)]">
+          <span className="text-2xs ml-auto text-[var(--color-muted)]">
             {filtered.length} of {entries.length} events
           </span>
         )}

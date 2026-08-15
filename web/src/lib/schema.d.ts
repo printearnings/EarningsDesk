@@ -450,6 +450,8 @@ export interface components {
       high?: number | null;
       /** Low */
       low?: number | null;
+      /** Volume */
+      volume?: number | null;
     };
     /** SignalRow */
     SignalRow: {

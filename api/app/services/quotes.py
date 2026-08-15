@@ -9,6 +9,7 @@ memoises it per process.
 from __future__ import annotations
 
 import logging
+import math
 from collections.abc import Iterable
 from datetime import date, timedelta
 
@@ -49,6 +50,7 @@ def price_series(ticker: str, *, days: int = DEFAULT_DAYS) -> list[PricePoint]:
             open=round(float(row.Open), 4),
             high=round(float(row.High), 4),
             low=round(float(row.Low), 4),
+            volume=None if math.isnan(row.Volume) else round(float(row.Volume)),
         )
         for idx, row in bars.iterrows()
         if idx.date() >= cutoff

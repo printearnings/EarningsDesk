@@ -68,6 +68,16 @@ export function FilterGroup({
   );
 }
 
+/** Hairline separator between filter groups in a toolbar row — depth from a
+ * border, not a gap alone, matching Vertical's "no shadows" rule. Hidden
+ * below `sm` since flex-wrap is more likely to break a row there, and a
+ * divider stranded at the start of a wrapped line reads as a stray mark. */
+export function FilterDivider() {
+  return (
+    <div className="hidden h-4 w-px shrink-0 bg-[var(--color-border)] sm:block" aria-hidden />
+  );
+}
+
 export function toggleInSet(set: Set<string>, setSet: (s: Set<string>) => void, value: string) {
   const next = new Set(set);
   if (next.has(value)) next.delete(value);
