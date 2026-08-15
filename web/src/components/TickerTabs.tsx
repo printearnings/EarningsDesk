@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion } from "motion/react";
 
 import { DirectionChip, SessionChip, VerdictChip } from "@/components/Chip";
 import { FinancialsPanel } from "@/components/FinancialsPanel";
@@ -28,10 +29,10 @@ type TabId = "price" | "options" | "news" | "history" | "financials";
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "price", label: "Price" },
-  { id: "options", label: "What options are pricing" },
-  { id: "news", label: "Recent news" },
-  { id: "history", label: "Earnings history" },
-  { id: "financials", label: "Quarterly financials" },
+  { id: "options", label: "Options" },
+  { id: "news", label: "News" },
+  { id: "history", label: "History" },
+  { id: "financials", label: "Financials" },
 ];
 
 /**
@@ -55,8 +56,16 @@ export function TickerTabs({ data }: { data: TickerData }) {
 
   return (
     <div>
-      <div className="border-b border-[var(--color-border)]">
-        <nav className="-mb-px flex gap-1 overflow-x-auto" role="tablist">
+      {/* A bordered segmented control, not underlined text — the same shape
+          as the Range/Line-Candles/Quarterly-Annual toggles this page already
+          uses, so it reads unambiguously as "a control that switches views"
+          rather than as another row of nav links (which is exactly what the
+          plain-text underline version it replaced could be mistaken for). */}
+      <div className="overflow-x-auto">
+        <div
+          className="inline-flex gap-0.5 rounded-[var(--radius-sm)] border border-[var(--color-border)] p-0.5"
+          role="tablist"
+        >
           {TABS.map((t) => (
             <button
               key={t.id}
@@ -64,16 +73,23 @@ export function TickerTabs({ data }: { data: TickerData }) {
               role="tab"
               aria-selected={active === t.id}
               onClick={() => selectTab(t.id)}
-              className={`pressable shrink-0 border-b-2 px-3 py-2.5 text-sm font-medium whitespace-nowrap transition-colors ${
+              className={`pressable relative shrink-0 rounded-[3px] px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors ${
                 active === t.id
-                  ? "border-[var(--color-heading)] text-[var(--color-heading)]"
-                  : "border-transparent text-[var(--color-muted)] hover:text-[var(--color-body)]"
+                  ? "text-[var(--color-heading)]"
+                  : "text-[var(--color-muted)] hover:text-[var(--color-body)]"
               }`}
             >
-              {t.label}
+              {active === t.id && (
+                <motion.div
+                  layoutId="ticker-tab-pill"
+                  className="absolute inset-0 rounded-[3px] bg-[var(--color-panel-soft)]"
+                  transition={{ type: "spring", stiffness: 500, damping: 40 }}
+                />
+              )}
+              <span className="relative">{t.label}</span>
             </button>
           ))}
-        </nav>
+        </div>
       </div>
 
       <div className="pt-6">

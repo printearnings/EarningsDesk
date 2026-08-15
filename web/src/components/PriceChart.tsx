@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import NumberFlow from "@number-flow/react";
 
 import type { EarningsHistoryRow, PricePoint } from "@/lib/api";
 import { compact, formatDate, money } from "@/lib/format";
@@ -190,6 +191,18 @@ export function PriceChart({
         </div>
 
         <div className="flex items-center gap-3">
+          {range === "1d" && points.length > 0 && (
+            // Digit-roll animation only matters when the value can actually
+            // change on its own — a live 30s poll, not a static daily close
+            // the reader loaded once and will never see move.
+            <span className="tnum text-sm font-medium text-[var(--color-heading)]">
+              <NumberFlow
+                value={points[points.length - 1].close}
+                format={{ style: "currency", currency: "USD" }}
+              />
+            </span>
+          )}
+
           {range === "1d" && (
             <button
               type="button"

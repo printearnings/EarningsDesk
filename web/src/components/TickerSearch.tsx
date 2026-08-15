@@ -44,11 +44,17 @@ export function TickerSearch({
   placeholder = "Search a ticker",
   size = "md",
   autoFocus = false,
+  compact = false,
 }: {
   tickers: TickerIndexEntry[];
   placeholder?: string;
   size?: "md" | "lg";
   autoFocus?: boolean;
+  /** Collapse to just the search icon below the `sm` breakpoint, expanding
+   * to the full input on focus — the top bar is too narrow there to spend
+   * on a placeholder nobody can finish reading anyway. Ignored at `sm` and
+   * up, where there's room for the real thing. */
+  compact?: boolean;
 }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -207,7 +213,12 @@ export function TickerSearch({
   const input = size === "lg" ? "h-14 pl-12 pr-4 text-lg" : "h-9 pl-9 pr-3 text-sm";
 
   return (
-    <div ref={containerRef} className="relative w-full">
+    <div
+      ref={containerRef}
+      className={`relative transition-[width] duration-[var(--duration-base)] ease-[var(--ease-out)] ${
+        compact ? "w-9 focus-within:w-full sm:w-full" : "w-full"
+      }`}
+    >
       <SearchIcon large={size === "lg"} />
       <input
         type="search"

@@ -15,6 +15,8 @@
     "gen:data": "cd ../api && python -m app.dump_json --out ../web/public/data"
   },
   "dependencies": {
+    "@number-flow/react": "^0.6.2",
+    "motion": "^13.1.0",
     "next": "16.3.0",
     "react": "19.2.8",
     "react-dom": "19.2.8"

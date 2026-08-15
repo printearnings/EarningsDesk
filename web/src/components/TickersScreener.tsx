@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { motion } from "motion/react";
 
 import { SessionChip, VerdictChip } from "@/components/Chip";
 import { CompanyLogo } from "@/components/CompanyLogo";
@@ -169,8 +170,10 @@ export function TickersScreener({ tickers }: { tickers: TickerIndexEntry[] }) {
               {rows.map((t) => {
                 const days = daysUntilFromDate(t.next_report_date);
                 return (
-                  <tr
+                  <motion.tr
                     key={t.ticker}
+                    layout="position"
+                    transition={{ type: "spring", stiffness: 500, damping: 40 }}
                     className="border-b border-[var(--color-border-subtle)] last:border-b-0"
                   >
                     <td className="px-4 py-2.5">
@@ -206,7 +209,7 @@ export function TickersScreener({ tickers }: { tickers: TickerIndexEntry[] }) {
                     <td className="px-4 py-2.5">
                       <VerdictChip verdict={t.verdict} />
                     </td>
-                  </tr>
+                  </motion.tr>
                 );
               })}
             </tbody>
