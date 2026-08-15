@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { EarningsHistoryRow, PricePoint } from "@/lib/api";
-import { formatDate, money } from "@/lib/format";
+import { compact, formatDate, money } from "@/lib/format";
 import type { MACDPoint } from "@/lib/useIndicators";
 import { useIndicators } from "@/lib/useIndicators";
 import { useIntradayChart } from "@/lib/useIntradayChart";
@@ -69,7 +69,7 @@ const W = 800;
 // same x-scale, so their bars and lines land exactly under the candle above
 // them — but are their own short SVGs with their own top/bottom padding and
 // y-scale, since none of the three share the price axis.
-const VOLUME_H = 64;
+const VOLUME_H = 110;
 const RSI_H = 84;
 const MACD_H = 96;
 const SUB_PAD = { top: 10, bottom: 18 };
@@ -491,21 +491,24 @@ function ChartBody({
     const max = Math.max(...vols, 1);
     const plotH = VOLUME_H - SUB_PAD.top - SUB_PAD.bottom;
     const baseline = SUB_PAD.top + plotH;
+    // Bars grow up from the baseline (0), unlike every other panel's y() —
+    // keep the same "value -> pixel" shape anyway so the axis-label loop
+    // below can treat it like the others.
+    const y = (v: number) => baseline - (v / max) * plotH;
     const barW = Math.min(8, Math.max(1, (chart.plotW / visible.length) * 0.6));
     const bars = visible.map((p, i) => {
       const v = p.volume ?? 0;
-      const barH = (v / max) * plotH;
       const up = p.open === undefined || p.close >= p.open;
       return {
         key: p.key,
         x: chart.x(i) - barW / 2,
-        y: baseline - barH,
+        y: y(v),
         width: barW,
-        height: barH,
+        height: baseline - y(v),
         up,
       };
     });
-    return { bars, baseline };
+    return { bars, baseline, max, y };
   }, [chart, visible, enabledIndicators]);
 
   const rsiPanel = useMemo(() => {
@@ -834,10 +837,37 @@ function ChartBody({
 
       {volumePanel && (
         <div className="mt-3">
-          <div className="text-2xs mb-1 font-mono tracking-[0.06em] text-[var(--color-muted)] uppercase">
-            Volume
+          <div className="text-2xs mb-1 flex items-center justify-between font-mono tracking-[0.06em] text-[var(--color-muted)] uppercase">
+            <span>Volume</span>
+            {hover !== null && !pan && hover < visible.length && (
+              <span className="tnum text-[var(--color-heading)] normal-case">
+                {compact(visible[hover].volume ?? 0)}
+              </span>
+            )}
           </div>
           <svg viewBox={`0 0 ${W} ${VOLUME_H}`} className="w-full">
+            {[volumePanel.max, volumePanel.max / 2].map((level) => (
+              <g key={level}>
+                <line
+                  x1={PAD.left}
+                  x2={W - PAD.right}
+                  y1={volumePanel.y(level)}
+                  y2={volumePanel.y(level)}
+                  stroke="var(--color-viz-grid)"
+                  strokeWidth={1}
+                />
+                <text
+                  x={PAD.left - 8}
+                  y={volumePanel.y(level) + 3}
+                  textAnchor="end"
+                  className="tnum"
+                  fontSize={9}
+                  fill="var(--color-viz-axis)"
+                >
+                  {compact(level)}
+                </text>
+              </g>
+            ))}
             {volumePanel.bars.map((b) => (
               <rect
                 key={b.key}
