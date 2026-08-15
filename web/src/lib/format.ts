@@ -51,6 +51,14 @@ export function compact(value: Num): string {
   return new Intl.NumberFormat("en-US", { notation: "compact" }).format(value);
 }
 
+/** A dollar figure too large for `money`'s two decimals to read at a glance —
+ * revenue, net income. "$94.0B", not "$94,036,000,000.00". */
+export function moneyCompact(value: Num): string {
+  if (!isNum(value)) return EMPTY;
+  const sign = value < 0 ? "-" : "";
+  return `${sign}$${compact(Math.abs(value))}`;
+}
+
 /** EPS figures are quoted to the cent and shouldn't be abbreviated. */
 export function eps(value: Num): string {
   return isNum(value) ? `$${value.toFixed(2)}` : EMPTY;

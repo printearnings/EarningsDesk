@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 
 import { DirectionChip, SessionChip, VerdictChip } from "@/components/Chip";
 import { CompanyLogo } from "@/components/CompanyLogo";
+import { FinancialsPanel } from "@/components/FinancialsPanel";
 import { ImpliedVsRealized } from "@/components/ImpliedVsRealized";
 import { NewsThumbnail } from "@/components/NewsThumbnail";
 import { Eyebrow, Panel, Stat, StatCard } from "@/components/Panel";
@@ -86,6 +87,8 @@ export default async function TickerPage({ params }: { params: Promise<{ ticker:
         </Panel>
 
         <HistoryTable data={data} />
+
+        <FinancialsPanel ticker={data.ticker} />
       </div>
     </>
   );

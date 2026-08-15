@@ -643,6 +643,120 @@ async function handleIndicators(request: Request, env: Env, ctx: ExecutionContex
   return response;
 }
 
+export interface FinancialsQuarter {
+  fiscal_year: number;
+  fiscal_quarter: number;
+  period_end: string; // ISO date
+  revenue: number | null;
+  gross_profit: number | null;
+  operating_income: number | null;
+  net_income: number | null;
+  diluted_eps: number | null;
+}
+
+export interface FinancialsResponse {
+  ticker: string;
+  quarters: FinancialsQuarter[];
+}
+
+const FINANCIALS_CACHE_SECONDS = 86_400; // a company files a new 10-Q/10-K a few times a year at most.
+const FINANCIALS_LIMIT = 8; // two years — matches the earnings-history panel's own window.
+
+/**
+ * Last two years of quarterly income-statement figures — revenue, margins,
+ * net income, diluted EPS — from SEC filings via Massive's financials API.
+ * Fetched on demand rather than baked into the nightly snapshot: a company
+ * only re-files a handful of times a year, so a 24h edge cache already
+ * removes almost all of the metered-call cost without needing a DB column.
+ */
+async function handleFinancials(
+  request: Request,
+  env: Env,
+  ctx: ExecutionContext,
+): Promise<Response> {
+  const url = new URL(request.url);
+  const ticker = parseTicker(url.searchParams.get("ticker"));
+  if (!ticker) return json({ error: "Missing or malformed `ticker`." }, 400);
+  if (!env.MASSIVE_API_KEY) return json({ error: "Financials are not configured." }, 503);
+
+  const cache = caches.default;
+  const cacheKey = new Request(`https://cache.internal/financials/${ticker}`, { method: "GET" });
+  const cached = await cache.match(cacheKey);
+  if (cached) return cached;
+
+  let quarters: FinancialsQuarter[] = [];
+  try {
+    // The newer /stocks/financials/v1/* family isn't included in this
+    // account's plan (confirmed: NOT_AUTHORIZED) — this older,
+    // Polygon-shaped endpoint is. Its XBRL-derived shape nests every line
+    // item as `{value, unit, label, order}` rather than flat fields, and
+    // `fiscal_period` is a string ("Q1") rather than a number.
+    const apiUrl = new URL(`${MASSIVE_BASE}/vX/reference/financials`);
+    apiUrl.searchParams.set("ticker", ticker);
+    apiUrl.searchParams.set("timeframe", "quarterly");
+    apiUrl.searchParams.set("limit", String(FINANCIALS_LIMIT));
+    apiUrl.searchParams.set("order", "desc");
+    apiUrl.searchParams.set("sort", "period_of_report_date");
+    apiUrl.searchParams.set("apiKey", env.MASSIVE_API_KEY);
+
+    const res = await fetch(apiUrl.toString(), { signal: AbortSignal.timeout(10_000) });
+    if (res.ok) {
+      interface LineItem {
+        value?: number;
+      }
+      const body = (await res.json()) as {
+        results?: Array<{
+          fiscal_year?: string;
+          fiscal_period?: string;
+          end_date?: string;
+          financials?: {
+            income_statement?: {
+              revenues?: LineItem;
+              gross_profit?: LineItem;
+              operating_income_loss?: LineItem;
+              net_income_loss?: LineItem;
+              diluted_earnings_per_share?: LineItem;
+            };
+          };
+        }>;
+      };
+      quarters = (body.results ?? [])
+        .map((r) => {
+          const inc = r.financials?.income_statement;
+          const fiscalQuarter = Number((r.fiscal_period ?? "").replace(/^Q/, ""));
+          return {
+            fiscal_year: Number(r.fiscal_year),
+            fiscal_quarter: fiscalQuarter,
+            period_end: r.end_date,
+            revenue: inc?.revenues?.value ?? null,
+            gross_profit: inc?.gross_profit?.value ?? null,
+            operating_income: inc?.operating_income_loss?.value ?? null,
+            net_income: inc?.net_income_loss?.value ?? null,
+            diluted_eps: inc?.diluted_earnings_per_share?.value ?? null,
+          };
+        })
+        .filter(
+          (q): q is FinancialsQuarter =>
+            Number.isFinite(q.fiscal_year) &&
+            Number.isFinite(q.fiscal_quarter) &&
+            typeof q.period_end === "string",
+        )
+        // Server-side sort/order is honored (verified), but re-sorting
+        // defensively costs nothing and guards against a future change.
+        .sort((a, b) => b.period_end.localeCompare(a.period_end));
+    }
+  } catch (err) {
+    console.error("financials fetch failed", { ticker, err: String(err) });
+  }
+
+  const payload: FinancialsResponse = { ticker, quarters };
+  const response = json(payload, 200, {
+    "cache-control": `public, max-age=${FINANCIALS_CACHE_SECONDS}`,
+  });
+  ctx.waitUntil(cache.put(cacheKey, response.clone()));
+  return response;
+}
+
 export interface LookupPricePoint {
   date: string; // ISO date
   close: number;
@@ -1124,6 +1238,10 @@ export default {
 
     if (url.pathname === "/api/search") {
       return handleSearch(request, env, ctx);
+    }
+
+    if (url.pathname === "/api/financials") {
+      return handleFinancials(request, env, ctx);
     }
 
     if (url.pathname === "/api/health") {
