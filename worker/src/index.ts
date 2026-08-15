@@ -647,11 +647,29 @@ export interface FinancialsQuarter {
   fiscal_year: number;
   fiscal_quarter: number;
   period_end: string; // ISO date
+  filing_date: string | null;
+  filing_url: string | null;
   revenue: number | null;
   gross_profit: number | null;
   operating_income: number | null;
   net_income: number | null;
   diluted_eps: number | null;
+}
+
+/**
+ * The real, public SEC EDGAR filing-index page for one quarter's 10-Q/10-K —
+ * built from the CIK and accession number Massive's response carries.
+ * `source_filing_url` is Polygon's own API URL (auth-required, not something
+ * a reader can open), but its last path segment IS the actual SEC accession
+ * number, which is all EDGAR's public URL scheme needs.
+ */
+function edgarFilingUrl(cik: string | undefined, sourceFilingUrl: string | undefined): string | null {
+  if (!cik || !sourceFilingUrl) return null;
+  const accession = sourceFilingUrl.split("/").pop();
+  if (!accession || !/^\d{10}-\d{2}-\d{6}$/.test(accession)) return null;
+  const cikInt = String(Number(cik));
+  const accessionNoDash = accession.replace(/-/g, "");
+  return `https://www.sec.gov/Archives/edgar/data/${cikInt}/${accessionNoDash}/${accession}-index.htm`;
 }
 
 export interface FinancialsResponse {
@@ -709,6 +727,9 @@ async function handleFinancials(
           fiscal_year?: string;
           fiscal_period?: string;
           end_date?: string;
+          filing_date?: string;
+          cik?: string;
+          source_filing_url?: string;
           financials?: {
             income_statement?: {
               revenues?: LineItem;
@@ -728,6 +749,8 @@ async function handleFinancials(
             fiscal_year: Number(r.fiscal_year),
             fiscal_quarter: fiscalQuarter,
             period_end: r.end_date,
+            filing_date: r.filing_date ?? null,
+            filing_url: edgarFilingUrl(r.cik, r.source_filing_url),
             revenue: inc?.revenues?.value ?? null,
             gross_profit: inc?.gross_profit?.value ?? null,
             operating_income: inc?.operating_income_loss?.value ?? null,

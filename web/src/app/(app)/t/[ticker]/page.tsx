@@ -1,31 +1,20 @@
 import { notFound } from "next/navigation";
 
-import { DirectionChip, SessionChip, VerdictChip } from "@/components/Chip";
+import { VerdictChip } from "@/components/Chip";
 import { CompanyLogo } from "@/components/CompanyLogo";
-import { FinancialsPanel } from "@/components/FinancialsPanel";
-import { ImpliedVsRealized } from "@/components/ImpliedVsRealized";
-import { NewsThumbnail } from "@/components/NewsThumbnail";
-import { Eyebrow, Panel, Stat, StatCard } from "@/components/Panel";
-import { PriceChart } from "@/components/PriceChart";
+import { Eyebrow, Panel, StatCard } from "@/components/Panel";
+import { TickerTabs } from "@/components/TickerTabs";
 import { TopBar } from "@/components/TopBar";
 import { getIndex, getTicker } from "@/lib/api";
 import type { TickerPage as TickerData } from "@/lib/api";
 import {
   EMPTY,
-  compact,
-  eps,
   formatAge,
   formatDate,
-  formatDateShort,
   money,
   num,
-  pct,
   pctRange,
-  pctRaw,
-  pctSigned,
-  ratio,
   relativeDays,
-  sentimentLabel,
   sessionLabel,
 } from "@/lib/format";
 
@@ -67,28 +56,7 @@ export default async function TickerPage({ params }: { params: Promise<{ ticker:
 
         {data.ai_summary && <AiPanel data={data} />}
 
-        <Panel
-          title="Price"
-          subtitle="Past year of daily closes, with each earnings date marked"
-        >
-          <PriceChart prices={data.prices} events={data.history} ticker={data.ticker} />
-        </Panel>
-
-        <div className="grid gap-6 lg:grid-cols-2">
-          <OptionsPanelCard data={data} />
-          <NewsPanel data={data} />
-        </div>
-
-        <Panel
-          title="Implied vs realized"
-          subtitle="What options priced in each quarter, against what the stock actually did"
-        >
-          <ImpliedVsRealized rows={data.history} />
-        </Panel>
-
-        <HistoryTable data={data} />
-
-        <FinancialsPanel ticker={data.ticker} />
+        <TickerTabs data={data} />
       </div>
     </>
   );
@@ -208,281 +176,6 @@ function AiPanel({ data }: { data: TickerData }) {
         )}
 
         <p className="eyebrow">Confidence: {s.confidence}</p>
-      </div>
-    </Panel>
-  );
-}
-
-function OptionsPanelCard({ data }: { data: TickerData }) {
-  const o = data.options;
-
-  if (!o) {
-    return (
-      <Panel
-        title="Options"
-        empty={
-          // `as_of` only gets set once a snapshot exists — a symbol that's
-          // never been captured hasn't been checked for a chain at all,
-          // which reads very differently from "checked, found none."
-          data.as_of
-            ? "No listed options chain for this symbol, so there's no implied move to report."
-            : "Options data hasn't been captured for this symbol yet."
-        }
-      />
-    );
-  }
-
-  const tone = o.verdict === "RICH" ? "rich" : o.verdict === "CHEAP" ? "cheap" : "default";
-
-  return (
-    <Panel
-      title="What options are pricing"
-      subtitle={
-        typeof o.richness === "number"
-          ? `${pct(Math.abs(o.richness), 0)} ${
-              o.richness > 0 ? "above" : "below"
-            } this stock's typical post-earnings move`
-          : undefined
-      }
-    >
-      <dl className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-3">
-        <Stat
-          label="Edge score"
-          value={num(o.edge_score, 1)}
-          tone={tone}
-          hint="0-10. How far implied has diverged from the historical average."
-        />
-        <Stat
-          label="ATM open interest"
-          value={compact(o.atm_open_interest)}
-          hint="Contracts held at the at-the-money strike. Low numbers mean wide spreads."
-        />
-        <Stat
-          label="IV term"
-          value={
-            o.iv_inverted === null || o.iv_inverted === undefined
-              ? EMPTY
-              : o.iv_inverted
-                ? "Inverted"
-                : "Normal"
-          }
-          tone={o.iv_inverted ? "rich" : "default"}
-          hint="Inverted means near-dated options cost more than later ones — the earnings premium."
-        />
-        <Stat
-          label="Front IV"
-          value={pct(o.iv_front)}
-          hint="Implied volatility on the nearest expiry."
-        />
-        <Stat
-          label="Back IV"
-          value={pct(o.iv_back)}
-          hint="Implied volatility on the next expiry out."
-        />
-        <Stat
-          label="Verdict"
-          value={o.verdict ?? EMPTY}
-          tone={tone}
-          hint="Whether the premium looks rich, cheap, or fair versus this stock's own history."
-        />
-      </dl>
-
-      {o.atm_strike && o.atm_expiry && (
-        <p className="mt-5 border-t border-[var(--color-border-subtle)] pt-4 text-sm text-[var(--color-muted)]">
-          Measured from the {money(o.atm_strike, 0)} straddle expiring{" "}
-          {formatDateShort(o.atm_expiry)}.
-        </p>
-      )}
-    </Panel>
-  );
-}
-
-function NewsPanel({ data }: { data: TickerData }) {
-  if (data.news === null || data.news === undefined) {
-    return (
-      <Panel title="News" empty="Couldn't load headlines for this symbol on the last update." />
-    );
-  }
-
-  return (
-    <Panel
-      title="Recent news"
-      subtitle={
-        typeof data.news_sentiment === "number"
-          ? `Overall tone: ${sentimentLabel(data.news_sentiment).toLowerCase()}`
-          : undefined
-      }
-      empty={data.news.length === 0 ? "No recent headlines." : undefined}
-    >
-      <ul className="space-y-3">
-        {data.news.map((item) => (
-          <li
-            key={item.url ?? item.title}
-            className="flex gap-3 border-b border-[var(--color-border-subtle)] pb-3 last:border-b-0 last:pb-0"
-          >
-            {item.thumbnail_url && <NewsThumbnail src={item.thumbnail_url} alt="" />}
-            <div className="min-w-0">
-              {item.url ? (
-                // Third-party link: no `noopener` would let the destination
-                // page reach back via `window.opener` into this tab.
-                <a
-                  href={item.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-[var(--color-body)] underline-offset-4 hover:text-[var(--color-heading)] hover:underline"
-                >
-                  {item.title}
-                </a>
-              ) : (
-                <span className="text-sm text-[var(--color-body)]">{item.title}</span>
-              )}
-              {item.publisher && (
-                <span className="text-2xs mt-0.5 block text-[var(--color-muted)]">
-                  {item.publisher}
-                </span>
-              )}
-            </div>
-          </li>
-        ))}
-      </ul>
-
-      {typeof data.analyst_rating_raw === "number" && (
-        <p className="mt-5 border-t border-[var(--color-border-subtle)] pt-4 text-sm text-[var(--color-muted)]">
-          Analyst rating {num(data.analyst_rating_raw, 1)} / 5
-        </p>
-      )}
-    </Panel>
-  );
-}
-
-function HistoryTable({ data }: { data: TickerData }) {
-  const rows = data.history;
-  const stats = data.stats;
-  // Baked at build time. The site regenerates nightly, so at worst this is a
-  // few hours stale — and the only thing it drives is whether an EPS cell
-  // reads "pending" or an em dash.
-  const today = new Date().toISOString().slice(0, 10);
-
-  return (
-    <Panel
-      title="Earnings history"
-      subtitle="The last eight reports"
-      bodyClassName="px-0 py-0"
-      empty={
-        rows.length === 0 ? "No earnings history recorded for this symbol yet." : undefined
-      }
-    >
-      {stats && (
-        <dl className="grid grid-cols-2 gap-5 border-b border-[var(--color-border)] px-5 py-5 sm:grid-cols-4">
-          <Stat
-            label="Reports scored"
-            value={String(stats.n_events)}
-            hint="Events with both a signal and a scored outcome."
-          />
-          <Stat
-            label="Hit rate"
-            value={stats.hit_rate === null ? "Not enough data" : pct(stats.hit_rate, 0)}
-            tone={stats.hit_rate === null ? "muted" : "default"}
-            /* Withheld below four scored calls: one correct verdict reads as
-               100% accuracy, and that number would get screenshotted. */
-            hint="Share of rich/cheap calls that were borne out. Withheld below four scored reports."
-          />
-          <Stat
-            label="Avg implied"
-            value={pctRange(stats.avg_implied_move)}
-            hint="What options typically priced in."
-          />
-          <Stat
-            label="Avg realized"
-            value={pctRange(stats.avg_realized_move)}
-            hint="What the stock typically did."
-          />
-        </dl>
-      )}
-
-      <div className="overflow-x-auto">
-        <table className="tnum w-full min-w-[48rem] text-sm">
-          <thead>
-            <tr className="border-b border-[var(--color-border)] bg-[var(--color-panel-soft)] text-left">
-              {[
-                "Date",
-                "EPS est",
-                "EPS actual",
-                "Surprise",
-                "Implied",
-                "Actual",
-                "Gap",
-                "Volume",
-                "Call",
-              ].map((h) => (
-                <th key={h} className="eyebrow px-3 py-2.5 font-medium">
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => {
-              // "Upcoming" is a fact about the calendar, not about our data
-              // coverage. Deriving it from `realized_move` (as an earlier cut
-              // did) mislabels every past quarter as pending whenever the
-              // engine hasn't scored that ticker's outcomes yet — which is the
-              // common case today.
-              const upcoming = r.report_date >= today;
-              return (
-                <tr
-                  key={r.report_date}
-                  className={`border-b border-[var(--color-border-subtle)] last:border-b-0 ${
-                    upcoming ? "bg-[var(--color-panel-soft)]" : ""
-                  }`}
-                >
-                  <td className="px-3 py-2.5 whitespace-nowrap">
-                    <span className="inline-flex items-center gap-2 text-[var(--color-heading)]">
-                      {formatDateShort(r.report_date)}
-                      <SessionChip session={r.session} />
-                    </span>
-                  </td>
-                  <td className="px-3 py-2.5">{eps(r.eps_estimate)}</td>
-                  <td className="px-3 py-2.5">
-                    {upcoming && r.eps_actual === null ? (
-                      <span className="text-[var(--color-muted)]">pending</span>
-                    ) : (
-                      eps(r.eps_actual)
-                    )}
-                  </td>
-                  <td
-                    className={`px-3 py-2.5 ${
-                      typeof r.eps_surprise === "number"
-                        ? r.eps_surprise >= 0
-                          ? "text-[var(--color-positive)]"
-                          : "text-[var(--color-negative)]"
-                        : ""
-                    }`}
-                  >
-                    {pctRaw(r.eps_surprise)}
-                  </td>
-                  <td className="px-3 py-2.5">{pctRange(r.implied_move)}</td>
-                  <td className="px-3 py-2.5">{pctSigned(r.realized_move)}</td>
-                  <td className="px-3 py-2.5">
-                    {pctSigned(r.gap_open_pct)}
-                    {r.gap_filled === true && (
-                      <span className="ml-1.5 font-mono tracking-[0.06em] text-[var(--color-muted)] text-[var(--text-2xs)] uppercase">
-                        filled
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2.5">{ratio(r.vol_ratio, 1)}</td>
-                  <td className="px-3 py-2.5">
-                    <span className="flex gap-1.5">
-                      <VerdictChip verdict={r.verdict} />
-                      <DirectionChip direction={r.direction} />
-                    </span>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
       </div>
     </Panel>
   );

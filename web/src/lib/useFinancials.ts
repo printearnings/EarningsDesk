@@ -13,6 +13,8 @@ export interface FinancialsQuarter {
   fiscal_year: number;
   fiscal_quarter: number;
   period_end: string;
+  filing_date: string | null;
+  filing_url: string | null;
   revenue: number | null;
   gross_profit: number | null;
   operating_income: number | null;
