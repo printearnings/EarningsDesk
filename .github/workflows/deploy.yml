@@ -14,6 +14,11 @@ name: Deploy
 #   CLOUDFLARE_API_TOKEN   — Workers Scripts:Edit permission.
 #   CLOUDFLARE_ACCOUNT_ID  — wrangler.jsonc has no account_id, so this env var
 #                            is how `wrangler deploy` knows which account.
+#   GH_PAT_TOKEN           — patkhai/Earnings is private, so the default
+#                            GITHUB_TOKEN (scoped to this repo only) can't
+#                            check it out. Needs `repo` read access to
+#                            patkhai/Earnings. Same secret name the Earnings
+#                            repo itself already uses for cross-repo access.
 
 on:
   push:
@@ -49,6 +54,7 @@ jobs:
         with:
           repository: patkhai/Earnings
           path: Earnings
+          token: ${{ secrets.GH_PAT_TOKEN }}
 
       - uses: actions/setup-python@v5
         with:
