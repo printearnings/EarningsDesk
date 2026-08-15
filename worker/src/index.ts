@@ -645,7 +645,7 @@ async function handleIndicators(request: Request, env: Env, ctx: ExecutionContex
 
 export interface FinancialsQuarter {
   fiscal_year: number;
-  fiscal_quarter: number;
+  fiscal_period: string; // "Q1".."Q4" for quarterly, "FY" for annual
   period_end: string; // ISO date
   filing_date: string | null;
   filing_url: string | null;
@@ -678,11 +678,16 @@ export interface FinancialsResponse {
 }
 
 const FINANCIALS_CACHE_SECONDS = 86_400; // a company files a new 10-Q/10-K a few times a year at most.
-const FINANCIALS_LIMIT = 8; // two years — matches the earnings-history panel's own window.
+// SEC XBRL data generally starts ~2009 (the mandate's rollout), so these caps
+// are "give me everything reasonable to ask for," not an arbitrary window —
+// verified against AAPL, which has 17 annual and 60+ quarterly periods on
+// file. Same Massive plan, zero extra cost; we were just under-asking.
+const QUARTERLY_LIMIT = 40; // ~10 years
+const ANNUAL_LIMIT = 20; // ~20 years
 
 /**
- * Last two years of quarterly income-statement figures — revenue, margins,
- * net income, diluted EPS — from SEC filings via Massive's financials API.
+ * Quarterly or annual income-statement figures — revenue, margins, net
+ * income, diluted EPS — from SEC filings via Massive's financials API.
  * Fetched on demand rather than baked into the nightly snapshot: a company
  * only re-files a handful of times a year, so a 24h edge cache already
  * removes almost all of the metered-call cost without needing a DB column.
@@ -697,8 +702,12 @@ async function handleFinancials(
   if (!ticker) return json({ error: "Missing or malformed `ticker`." }, 400);
   if (!env.MASSIVE_API_KEY) return json({ error: "Financials are not configured." }, 503);
 
+  const timeframe = url.searchParams.get("timeframe") === "annual" ? "annual" : "quarterly";
+
   const cache = caches.default;
-  const cacheKey = new Request(`https://cache.internal/financials/${ticker}`, { method: "GET" });
+  const cacheKey = new Request(`https://cache.internal/financials/${ticker}/${timeframe}`, {
+    method: "GET",
+  });
   const cached = await cache.match(cacheKey);
   if (cached) return cached;
 
@@ -707,12 +716,14 @@ async function handleFinancials(
     // The newer /stocks/financials/v1/* family isn't included in this
     // account's plan (confirmed: NOT_AUTHORIZED) — this older,
     // Polygon-shaped endpoint is. Its XBRL-derived shape nests every line
-    // item as `{value, unit, label, order}` rather than flat fields, and
-    // `fiscal_period` is a string ("Q1") rather than a number.
+    // item as `{value, unit, label, order}` rather than flat fields.
     const apiUrl = new URL(`${MASSIVE_BASE}/vX/reference/financials`);
     apiUrl.searchParams.set("ticker", ticker);
-    apiUrl.searchParams.set("timeframe", "quarterly");
-    apiUrl.searchParams.set("limit", String(FINANCIALS_LIMIT));
+    apiUrl.searchParams.set("timeframe", timeframe);
+    apiUrl.searchParams.set(
+      "limit",
+      String(timeframe === "annual" ? ANNUAL_LIMIT : QUARTERLY_LIMIT),
+    );
     apiUrl.searchParams.set("order", "desc");
     apiUrl.searchParams.set("sort", "period_of_report_date");
     apiUrl.searchParams.set("apiKey", env.MASSIVE_API_KEY);
@@ -744,10 +755,9 @@ async function handleFinancials(
       quarters = (body.results ?? [])
         .map((r) => {
           const inc = r.financials?.income_statement;
-          const fiscalQuarter = Number((r.fiscal_period ?? "").replace(/^Q/, ""));
           return {
             fiscal_year: Number(r.fiscal_year),
-            fiscal_quarter: fiscalQuarter,
+            fiscal_period: r.fiscal_period ?? "",
             period_end: r.end_date,
             filing_date: r.filing_date ?? null,
             filing_url: edgarFilingUrl(r.cik, r.source_filing_url),
@@ -761,7 +771,7 @@ async function handleFinancials(
         .filter(
           (q): q is FinancialsQuarter =>
             Number.isFinite(q.fiscal_year) &&
-            Number.isFinite(q.fiscal_quarter) &&
+            q.fiscal_period !== "" &&
             typeof q.period_end === "string",
         )
         // Server-side sort/order is honored (verified), but re-sorting

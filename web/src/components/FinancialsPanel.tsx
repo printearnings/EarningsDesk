@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
+
 import { FinancialsChart } from "@/components/FinancialsChart";
 import { Panel } from "@/components/Panel";
-import { useFinancials } from "@/lib/useFinancials";
+import { type FinancialsTimeframe, periodLabel, useFinancials } from "@/lib/useFinancials";
 import { EMPTY, eps, moneyCompact, pct } from "@/lib/format";
 
 /** margin = numerator / revenue — null whenever revenue is missing or zero,
@@ -12,11 +14,16 @@ function margin(numerator: number | null, revenue: number | null): number | null
   return numerator / revenue;
 }
 
+const TIMEFRAMES: { key: FinancialsTimeframe; label: string }[] = [
+  { key: "quarterly", label: "Quarterly" },
+  { key: "annual", label: "Annual" },
+];
+
 /**
- * Quarterly income-statement history — the fundamentals context an earnings
- * call sits on top of. The options panel says what the market is pricing for
- * the print; this says what the last two years of prints actually did to the
- * business, which is the other half of "is that a reasonable price."
+ * Quarterly or annual income-statement history — the fundamentals context an
+ * earnings call sits on top of. The options panel says what the market is
+ * pricing for the print; this says what the business's actual results have
+ * done, which is the other half of "is that a reasonable price."
  *
  * Client-fetched (like the price chart's intraday/indicator data) rather than
  * baked into the nightly snapshot — a company only refiles a handful of times
@@ -25,20 +32,43 @@ function margin(numerator: number | null, revenue: number | null): number | null
  * cost negligible.
  */
 export function FinancialsPanel({ ticker }: { ticker: string }) {
-  const { data, loading } = useFinancials(ticker);
+  const [timeframe, setTimeframe] = useState<FinancialsTimeframe>("quarterly");
+  const { data, loading } = useFinancials(ticker, timeframe);
 
   return (
     <Panel
-      title="Quarterly financials"
-      subtitle="Revenue, margins, and earnings from the last eight reports"
+      subtitle={
+        timeframe === "annual"
+          ? "Revenue, margins, and earnings by fiscal year"
+          : "Revenue, margins, and earnings by quarter"
+      }
       bodyClassName="px-0 py-0"
+      action={
+        <div className="inline-flex rounded-[var(--radius-sm)] border border-[var(--color-border)] p-0.5">
+          {TIMEFRAMES.map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setTimeframe(t.key)}
+              aria-pressed={timeframe === t.key}
+              className={`pressable rounded-[3px] px-2.5 py-1 text-sm font-medium transition-colors ${
+                timeframe === t.key
+                  ? "bg-[var(--color-panel-soft)] text-[var(--color-heading)]"
+                  : "text-[var(--color-muted)] hover:bg-[var(--color-panel-soft)]"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      }
       empty={
-        // Not necessarily a data gap on our end — SEC XBRL quarterly figures
-        // only exist for domestic filers. A foreign private issuer (most
-        // ADRs) files an annual 20-F instead of quarterly 10-Qs, so there is
-        // no quarterly filing for this endpoint to have ever found.
+        // Not necessarily a data gap on our end — SEC XBRL figures only
+        // exist for domestic filers. A foreign private issuer (most ADRs)
+        // files an annual 20-F instead of quarterly/annual 10-Q/10-K
+        // filings, so there is no filing for this endpoint to have found.
         !loading && (!data || data.quarters.length === 0)
-          ? "No quarterly SEC filings found for this symbol — common for foreign-domiciled companies, which file an annual 20-F instead of a 10-Q each quarter."
+          ? "No SEC filings found for this symbol — common for foreign-domiciled companies, which file an annual 20-F instead."
           : undefined
       }
     >
@@ -56,7 +86,7 @@ export function FinancialsPanel({ ticker }: { ticker: string }) {
                 <thead>
                   <tr className="border-b border-[var(--color-border)] bg-[var(--color-panel-soft)] text-left">
                     {[
-                      "Quarter",
+                      "Period",
                       "Revenue",
                       "Gross margin",
                       "Op margin",
@@ -82,7 +112,7 @@ export function FinancialsPanel({ ticker }: { ticker: string }) {
                         className="border-b border-[var(--color-border-subtle)] last:border-b-0"
                       >
                         <td className="px-3 py-2.5 whitespace-nowrap text-[var(--color-body)]">
-                          Q{q.fiscal_quarter} FY{String(q.fiscal_year).slice(-2)}
+                          {periodLabel(q)}
                         </td>
                         <td className="px-3 py-2.5">
                           <div className="flex items-center gap-2">

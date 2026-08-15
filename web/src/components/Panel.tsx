@@ -13,7 +13,13 @@ export function Panel({
   children,
   bodyClassName = "px-5 py-5",
 }: {
-  title: string;
+  /**
+   * Optional: a panel living inside a tab whose tab label already names it
+   * (the "Recent news" tab holding a "Recent news" panel) should omit this
+   * rather than repeat the label as a heading right below it. Pass it when
+   * the panel needs its own name — most panels outside a tab context do.
+   */
+  title?: string;
   subtitle?: ReactNode;
   action?: ReactNode;
   /**
@@ -27,13 +33,17 @@ export function Panel({
 }) {
   return (
     <section className="rounded-[var(--radius-panel)] border border-[var(--color-border)] bg-[var(--color-panel)]">
-      <header className="flex flex-wrap items-baseline justify-between gap-3 border-b border-[var(--color-border)] px-5 py-4">
-        <div>
-          <h2 className="text-[15px] font-medium text-[var(--color-heading)]">{title}</h2>
-          {subtitle && <p className="mt-1 text-sm text-[var(--color-body)]">{subtitle}</p>}
-        </div>
-        {action}
-      </header>
+      {(title || subtitle || action) && (
+        <header className="flex flex-wrap items-baseline justify-between gap-3 border-b border-[var(--color-border)] px-5 py-4">
+          <div>
+            {title && (
+              <h2 className="text-[15px] font-medium text-[var(--color-heading)]">{title}</h2>
+            )}
+            {subtitle && <p className="mt-1 text-sm text-[var(--color-body)]">{subtitle}</p>}
+          </div>
+          {action}
+        </header>
+      )}
 
       {empty ? (
         <p className="px-5 py-8 text-sm text-[var(--color-muted)]">{empty}</p>

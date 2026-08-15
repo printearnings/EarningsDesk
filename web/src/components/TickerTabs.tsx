@@ -79,10 +79,7 @@ export function TickerTabs({ data }: { data: TickerData }) {
       <div className="pt-6">
         {visited.has("price") && (
           <div hidden={active !== "price"}>
-            <Panel
-              title="Price"
-              subtitle="Daily and intraday prices — earnings dates are marked on the 1Y view"
-            >
+            <Panel subtitle="Daily and intraday prices — earnings dates are marked on the 1Y view">
               <PriceChart prices={data.prices} events={data.history} ticker={data.ticker} />
             </Panel>
           </div>
@@ -128,7 +125,6 @@ function OptionsPanelCard({ data }: { data: TickerData }) {
   if (!o) {
     return (
       <Panel
-        title="Options"
         empty={
           // `as_of` only gets set once a snapshot exists — a symbol that's
           // never been captured hasn't been checked for a chain at all,
@@ -145,7 +141,6 @@ function OptionsPanelCard({ data }: { data: TickerData }) {
 
   return (
     <Panel
-      title="What options are pricing"
       subtitle={
         typeof o.richness === "number"
           ? `${pct(Math.abs(o.richness), 0)} ${
@@ -208,14 +203,11 @@ function OptionsPanelCard({ data }: { data: TickerData }) {
 
 function NewsPanel({ data }: { data: TickerData }) {
   if (data.news === null || data.news === undefined) {
-    return (
-      <Panel title="News" empty="Couldn't load headlines for this symbol on the last update." />
-    );
+    return <Panel empty="Couldn't load headlines for this symbol on the last update." />;
   }
 
   return (
     <Panel
-      title="Recent news"
       subtitle={
         typeof data.news_sentiment === "number"
           ? `Overall tone: ${sentimentLabel(data.news_sentiment).toLowerCase()}`
@@ -274,7 +266,6 @@ function HistoryTable({ data }: { data: TickerData }) {
 
   return (
     <Panel
-      title="Earnings history"
       subtitle="The last eight reports"
       bodyClassName="px-0 py-0"
       empty={

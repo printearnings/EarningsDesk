@@ -2,8 +2,14 @@
 
 import { useState } from "react";
 
-import type { FinancialsQuarter } from "@/lib/useFinancials";
+import { type FinancialsQuarter, periodLabel } from "@/lib/useFinancials";
 import { formatDate, moneyCompact } from "@/lib/format";
+
+// However many periods the table shows, the chart stays readable by only
+// plotting the most recent slice — past this, paired bars get too thin to
+// read (verified: 40 quarterly bars at this chart's width compress each bar
+// under 5px).
+const MAX_CHART_POINTS = 16;
 
 /**
  * Paired columns: revenue against what actually reached the bottom line.
@@ -37,9 +43,10 @@ export function FinancialsChart({ quarters }: { quarters: FinancialsQuarter[] })
 
   const data: Point[] = quarters
     .filter((q) => q.revenue !== null || q.net_income !== null)
+    .slice(0, MAX_CHART_POINTS) // quarters/annual arrive newest-first
     .map((q) => ({
       key: q.period_end,
-      label: `Q${q.fiscal_quarter} FY${String(q.fiscal_year).slice(-2)}`,
+      label: periodLabel(q),
       date: q.period_end,
       revenue: q.revenue,
       netIncome: q.net_income,
