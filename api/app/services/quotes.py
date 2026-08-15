@@ -33,18 +33,24 @@ def price_series(ticker: str, *, days: int = DEFAULT_DAYS) -> list[PricePoint]:
         return _cache[key]
 
     try:
-        closes = prices.daily_closes(ticker)
+        bars = prices.daily_ohlcv(ticker)
     except Exception as exc:
         log.warning("price_series (%s): %s", ticker, exc)
         return []
 
-    if closes is None or closes.empty:
+    if bars is None or bars.empty:
         return []
 
     cutoff = date.today() - timedelta(days=days)
     series = [
-        PricePoint(date=idx.date(), close=round(float(value), 4))
-        for idx, value in closes.items()
+        PricePoint(
+            date=idx.date(),
+            close=round(float(row.Close), 4),
+            open=round(float(row.Open), 4),
+            high=round(float(row.High), 4),
+            low=round(float(row.Low), 4),
+        )
+        for idx, row in bars.iterrows()
         if idx.date() >= cutoff
     ]
 

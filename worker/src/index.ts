@@ -193,6 +193,9 @@ async function handleRefresh(request: Request, env: Env): Promise<Response> {
 export interface ChartPoint {
   t: string; // ISO timestamp
   close: number;
+  open: number;
+  high: number;
+  low: number;
 }
 
 export interface ChartResponse {
@@ -216,6 +219,9 @@ const MASSIVE_AGGS_LIMIT = 5000; // comfortably above a day's worth of 1m bars (
 
 interface MassiveAggBar {
   t: number; // epoch ms
+  o: number; // open
+  h: number; // high
+  l: number; // low
   c: number; // close
 }
 
@@ -316,6 +322,9 @@ async function handleChart(request: Request, env: Env, ctx: ExecutionContext): P
   const points: ChartPoint[] = trimmed.map((b) => ({
     t: new Date(b.t).toISOString(),
     close: b.c,
+    open: b.o,
+    high: b.h,
+    low: b.l,
   }));
 
   const payload: ChartResponse = {

@@ -444,6 +444,12 @@ export interface components {
       date: string;
       /** Close */
       close: number;
+      /** Open */
+      open?: number | null;
+      /** High */
+      high?: number | null;
+      /** Low */
+      low?: number | null;
     };
     /** SignalRow */
     SignalRow: {

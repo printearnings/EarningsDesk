@@ -20,6 +20,9 @@ from pydantic import BaseModel, Field
 class PricePoint(BaseModel):
     date: date
     close: float
+    open: float | None = None
+    high: float | None = None
+    low: float | None = None
 
 
 class EarningsHistoryRow(BaseModel):

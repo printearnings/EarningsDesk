@@ -29,6 +29,8 @@ const HEADERS = [
   "Call",
 ];
 
+type SortDir = "asc" | "desc";
+
 /**
  * Verdict/direction toggles (shared with the calendar) plus a ticker filter
  * — 281+ rows is a lot to scan for one name, and the global search box
@@ -38,6 +40,10 @@ export function PastEarningsTable({ rows }: { rows: PastEarningsRow[] }) {
   const [verdicts, setVerdicts] = useState<Set<string>>(() => new Set());
   const [directions, setDirections] = useState<Set<string>>(() => new Set());
   const [tickerQuery, setTickerQuery] = useState("");
+  // Newest-first matches the order the API already returns (and the order
+  // every other date-bearing table in the app uses) — "asc" is the one a
+  // reader has to opt into.
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
   const filtersActive = verdicts.size > 0 || directions.size > 0 || tickerQuery.trim() !== "";
 
   function clearFilters() {
@@ -47,16 +53,25 @@ export function PastEarningsTable({ rows }: { rows: PastEarningsRow[] }) {
   }
 
   const filtered = useMemo(() => {
-    if (!filtersActive) return rows;
     const q = tickerQuery.trim().toUpperCase();
-    return rows.filter((r) => {
-      const verdictOk = verdicts.size === 0 || (r.verdict != null && verdicts.has(r.verdict));
-      const directionOk =
-        directions.size === 0 || (r.direction != null && directions.has(r.direction));
-      const tickerOk = q === "" || r.ticker.includes(q);
-      return verdictOk && directionOk && tickerOk;
-    });
-  }, [rows, verdicts, directions, tickerQuery, filtersActive]);
+    const matched = filtersActive
+      ? rows.filter((r) => {
+          const verdictOk =
+            verdicts.size === 0 || (r.verdict != null && verdicts.has(r.verdict));
+          const directionOk =
+            directions.size === 0 || (r.direction != null && directions.has(r.direction));
+          const tickerOk = q === "" || r.ticker.includes(q);
+          return verdictOk && directionOk && tickerOk;
+        })
+      : rows;
+    // report_date is an ISO "YYYY-MM-DD" string, so lexical comparison sorts
+    // chronologically without a Date parse.
+    return [...matched].sort((a, b) =>
+      sortDir === "asc"
+        ? a.report_date.localeCompare(b.report_date)
+        : b.report_date.localeCompare(a.report_date),
+    );
+  }, [rows, verdicts, directions, tickerQuery, filtersActive, sortDir]);
 
   return (
     <>
@@ -110,11 +125,25 @@ export function PastEarningsTable({ rows }: { rows: PastEarningsRow[] }) {
           <table className="tnum w-full min-w-[54rem] text-sm">
             <thead>
               <tr className="border-b border-[var(--color-border)] bg-[var(--color-panel-soft)] text-left">
-                {HEADERS.map((h) => (
-                  <th key={h} className="eyebrow px-4 py-2.5 font-medium">
-                    {h}
-                  </th>
-                ))}
+                {HEADERS.map((h) =>
+                  h === "Date" ? (
+                    <th key={h} className="eyebrow px-4 py-2.5 font-medium">
+                      <button
+                        type="button"
+                        onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+                        className="pressable inline-flex items-center gap-1 hover:text-[var(--color-heading)]"
+                        aria-label={`Sort by date, currently ${sortDir === "asc" ? "oldest first" : "newest first"}`}
+                      >
+                        {h}
+                        <span aria-hidden>{sortDir === "asc" ? "↑" : "↓"}</span>
+                      </button>
+                    </th>
+                  ) : (
+                    <th key={h} className="eyebrow px-4 py-2.5 font-medium">
+                      {h}
+                    </th>
+                  ),
+                )}
               </tr>
             </thead>
             <tbody>

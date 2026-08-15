@@ -14,6 +14,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 export interface IntradayPoint {
   t: string; // ISO timestamp
   close: number;
+  open: number;
+  high: number;
+  low: number;
 }
 
 interface ChartResponse {

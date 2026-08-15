@@ -9,8 +9,9 @@ import { useIntradayChart } from "@/lib/useIntradayChart";
 
 /**
  * Price chart with range tabs: 1D, 5D (intraday, via the Worker's
- * `/api/chart` proxy to Yahoo) and 1Y (the static daily series already baked
- * into the page).
+ * `/api/chart` proxy to Massive) and 1Y (the static daily series already
+ * baked into the page). A Line/Candle toggle switches the mark — both modes
+ * share the same x/y scale and hover crosshair.
  *
  * Earnings markers only make sense on the 1Y view — a single intraday bar
  * can't meaningfully carry "this is where the stock gapped," and on a day
@@ -22,11 +23,17 @@ import { useIntradayChart } from "@/lib/useIntradayChart";
  */
 
 type Range = "1d" | "5d" | "1y";
+type ChartType = "line" | "candle";
 
 const RANGES: { key: Range; label: string }[] = [
   { key: "1d", label: "1D" },
   { key: "5d", label: "5D" },
   { key: "1y", label: "1Y" },
+];
+
+const CHART_TYPES: { key: ChartType; label: string }[] = [
+  { key: "line", label: "Line" },
+  { key: "candle", label: "Candles" },
 ];
 
 // The viewBox ratio IS the rendered aspect ratio (the SVG scales to the
@@ -41,6 +48,9 @@ interface Point {
   key: string;
   label: string;
   close: number;
+  open?: number;
+  high?: number;
+  low?: number;
 }
 
 export function PriceChart({
@@ -52,7 +62,8 @@ export function PriceChart({
   events: EarningsHistoryRow[];
   ticker: string;
 }) {
-  const [range, setRange] = useState<Range>("1y");
+  const [range, setRange] = useState<Range>("1d");
+  const [chartType, setChartType] = useState<ChartType>("line");
   const [live, setLive] = useState(false);
 
   const intraday = useIntradayChart(ticker, range === "5d" ? "5d" : "1d", {
@@ -64,7 +75,14 @@ export function PriceChart({
 
   const points: Point[] = useMemo(() => {
     if (range === "1y") {
-      return prices.map((p) => ({ key: p.date, label: formatDate(p.date), close: p.close }));
+      return prices.map((p) => ({
+        key: p.date,
+        label: formatDate(p.date),
+        close: p.close,
+        open: p.open ?? undefined,
+        high: p.high ?? undefined,
+        low: p.low ?? undefined,
+      }));
     }
     if (!intraday.data) return [];
     return intraday.data.points.map((p) => ({
@@ -74,6 +92,9 @@ export function PriceChart({
         minute: "2-digit",
       }),
       close: p.close,
+      open: p.open,
+      high: p.high,
+      low: p.low,
     }));
   }, [range, prices, intraday.data]);
 
@@ -111,21 +132,41 @@ export function PriceChart({
           ))}
         </div>
 
-        {range === "1d" && (
-          <button
-            type="button"
-            onClick={() => setLive((v) => !v)}
-            className="pressable flex items-center gap-1.5 text-sm text-[var(--color-body)]"
-          >
-            <span
-              className={`h-1.5 w-1.5 rounded-full ${
-                live ? "live-dot bg-[var(--color-positive)]" : "bg-[var(--color-border)]"
-              }`}
-              aria-hidden
-            />
-            {live ? "Live · updates every 30s" : "Go live"}
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {range === "1d" && (
+            <button
+              type="button"
+              onClick={() => setLive((v) => !v)}
+              className="pressable flex items-center gap-1.5 text-sm text-[var(--color-body)]"
+            >
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${
+                  live ? "live-dot bg-[var(--color-positive)]" : "bg-[var(--color-border)]"
+                }`}
+                aria-hidden
+              />
+              {live ? "Live · updates every 30s" : "Go live"}
+            </button>
+          )}
+
+          <div className="inline-flex rounded-[var(--radius-sm)] border border-[var(--color-border)] p-0.5">
+            {CHART_TYPES.map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setChartType(t.key)}
+                aria-pressed={chartType === t.key}
+                className={`pressable rounded-[3px] px-2.5 py-1 text-sm font-medium transition-colors ${
+                  chartType === t.key
+                    ? "bg-[var(--color-panel-soft)] text-[var(--color-heading)]"
+                    : "text-[var(--color-muted)] hover:bg-[var(--color-panel-soft)]"
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {range !== "1y" && intraday.loading ? (
@@ -139,6 +180,7 @@ export function PriceChart({
           points={points}
           markerDates={markerDates}
           intraday={range !== "1y"}
+          chartType={chartType}
           sma20={indicators?.sma20}
           ema50={indicators?.ema50}
         />
@@ -171,16 +213,29 @@ function overlayPath(
   return d.trim();
 }
 
+interface Candle {
+  key: string;
+  cx: number;
+  bodyTop: number;
+  bodyBottom: number;
+  wickTop: number;
+  wickBottom: number;
+  up: boolean;
+  width: number;
+}
+
 function ChartBody({
   points,
   markerDates,
   intraday,
+  chartType,
   sma20,
   ema50,
 }: {
   points: Point[];
   markerDates: Set<string>;
   intraday: boolean;
+  chartType: ChartType;
   sma20?: { date: string; value: number }[];
   ema50?: { date: string; value: number }[];
 }) {
@@ -189,9 +244,13 @@ function ChartBody({
   const chart = useMemo(() => {
     if (points.length < 2) return null;
 
-    const closes = points.map((p) => p.close);
-    const min = Math.min(...closes);
-    const max = Math.max(...closes);
+    // Scale off high/low (falling back to close) rather than close alone, so
+    // switching to candles never clips a wick and the axis doesn't jump when
+    // toggling chart type.
+    const highs = points.map((p) => p.high ?? p.close);
+    const lows = points.map((p) => p.low ?? p.close);
+    const min = Math.min(...lows);
+    const max = Math.max(...highs);
     // A flat series would divide by zero; pad so it renders as a centered
     // horizontal line rather than vanishing.
     const span = max - min || Math.max(max * 0.02, 0.01);
@@ -205,6 +264,29 @@ function ChartBody({
     const y = (v: number) => PAD.top + (1 - (v - lo) / (hi - lo)) * plotH;
 
     const line = points.map((p, i) => `${i === 0 ? "M" : "L"}${x(i)} ${y(p.close)}`).join(" ");
+
+    // Body/wick width shrinks with density; clamped so a 1Y chart (~252
+    // candles) still reads and a 1D chart (~390 1m bars) doesn't overlap.
+    const candleW = Math.min(8, Math.max(1, (plotW / points.length) * 0.6));
+    const candles: Candle[] = points
+      .map((p, i) => ({ p, i }))
+      .filter(({ p }) => p.open !== undefined && p.high !== undefined && p.low !== undefined)
+      .map(({ p, i }) => {
+        const open = p.open!;
+        const high = p.high!;
+        const low = p.low!;
+        const up = p.close >= open;
+        return {
+          key: p.key,
+          cx: x(i),
+          bodyTop: y(Math.max(open, p.close)),
+          bodyBottom: y(Math.min(open, p.close)),
+          wickTop: y(high),
+          wickBottom: y(low),
+          up,
+          width: candleW,
+        };
+      });
 
     const markers = intraday
       ? []
@@ -225,7 +307,7 @@ function ChartBody({
 
     const ticks = [lo + (hi - lo) * 0.08, (lo + hi) / 2, hi - (hi - lo) * 0.08];
 
-    return { x, y, line, markers, smaLine, emaLine, ticks, plotW, plotH, min, max };
+    return { x, y, line, candles, markers, smaLine, emaLine, ticks, plotW, plotH, min, max };
   }, [points, markerDates, intraday, sma20, ema50]);
 
   if (!chart) {
@@ -306,15 +388,41 @@ function ChartBody({
             />
           )}
 
-          {/* No area fill — Vertical draws the line alone. */}
-          <path
-            d={chart.line}
-            fill="none"
-            stroke="var(--color-viz-price)"
-            strokeWidth={2}
-            strokeLinejoin="round"
-            strokeLinecap="round"
-          />
+          {chartType === "candle" && chart.candles.length > 0 ? (
+            <g>
+              {chart.candles.map((c) => (
+                <g key={c.key}>
+                  <line
+                    x1={c.cx}
+                    x2={c.cx}
+                    y1={c.wickTop}
+                    y2={c.wickBottom}
+                    stroke={c.up ? "var(--color-positive)" : "var(--color-negative)"}
+                    strokeWidth={1}
+                  />
+                  <rect
+                    x={c.cx - c.width / 2}
+                    y={c.bodyTop}
+                    width={c.width}
+                    // A doji (open == close) would render a 0-height rect and
+                    // vanish; floor it at 1px so every bar stays visible.
+                    height={Math.max(1, c.bodyBottom - c.bodyTop)}
+                    fill={c.up ? "var(--color-positive)" : "var(--color-negative)"}
+                  />
+                </g>
+              ))}
+            </g>
+          ) : (
+            // No area fill — Vertical draws the line alone.
+            <path
+              d={chart.line}
+              fill="none"
+              stroke="var(--color-viz-price)"
+              strokeWidth={2}
+              strokeLinejoin="round"
+              strokeLinecap="round"
+            />
+          )}
 
           {/* Earnings markers, 1Y view only. The 2px surface ring keeps them
               legible where they sit on the line. */}
@@ -347,10 +455,23 @@ function ChartBody({
             className="pointer-events-none absolute top-0 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-panel)] px-2 py-1.5 text-xs"
             style={{ left: `${(chart.x(hover!) / W) * 100}%`, transform: "translateX(-50%)" }}
           >
-            <div className="tnum font-semibold text-[var(--color-heading)]">
-              {money(point.close)}
-            </div>
-            <div className="text-[var(--color-muted)]">{point.label}</div>
+            {chartType === "candle" && point.open !== undefined ? (
+              <div className="tnum grid grid-cols-2 gap-x-2 gap-y-0.5 font-semibold text-[var(--color-heading)]">
+                <span className="text-[var(--color-muted)]">O</span>
+                <span>{money(point.open)}</span>
+                <span className="text-[var(--color-muted)]">H</span>
+                <span>{money(point.high)}</span>
+                <span className="text-[var(--color-muted)]">L</span>
+                <span>{money(point.low)}</span>
+                <span className="text-[var(--color-muted)]">C</span>
+                <span>{money(point.close)}</span>
+              </div>
+            ) : (
+              <div className="tnum font-semibold text-[var(--color-heading)]">
+                {money(point.close)}
+              </div>
+            )}
+            <div className="mt-0.5 text-[var(--color-muted)]">{point.label}</div>
             {onMarker && (
               <div className="mt-0.5 font-mono tracking-[0.06em] text-[var(--color-viz-realized)] text-[var(--text-2xs)] uppercase">
                 Earnings
