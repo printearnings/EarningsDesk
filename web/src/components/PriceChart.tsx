@@ -381,6 +381,18 @@ function ChartBody({
   const [pan, setPan] = useState<{ anchorLocal: number; anchorOffset: number } | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
+  // A pan that ends with the mouse released outside the SVG (dragged past
+  // its edge, or off the browser window entirely) never fires the SVG's own
+  // onMouseUp — the drag would stay "stuck" active until the next stray
+  // mousemove over the chart. A window-level listener, live only while a
+  // pan is actually in progress, guarantees it always clears.
+  useEffect(() => {
+    if (!pan) return;
+    const onUp = () => setPan(null);
+    window.addEventListener("mouseup", onUp);
+    return () => window.removeEventListener("mouseup", onUp);
+  }, [pan]);
+
   // Reset zoom/hover whenever the range switches to a different series —
   // done during render (React's documented pattern for "reset state when a
   // prop changes"), the same idiom this file's hooks already use for
