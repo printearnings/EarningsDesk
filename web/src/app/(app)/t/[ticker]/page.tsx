@@ -220,7 +220,14 @@ function OptionsPanelCard({ data }: { data: TickerData }) {
     return (
       <Panel
         title="Options"
-        empty="No listed options chain for this symbol, so there's no implied move to report."
+        empty={
+          // `as_of` only gets set once a snapshot exists — a symbol that's
+          // never been captured hasn't been checked for a chain at all,
+          // which reads very differently from "checked, found none."
+          data.as_of
+            ? "No listed options chain for this symbol, so there's no implied move to report."
+            : "Options data hasn't been captured for this symbol yet."
+        }
       />
     );
   }

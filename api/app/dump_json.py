@@ -89,6 +89,13 @@ def dump(out_dir: Path, *, with_prices: bool = True) -> dict[str, int]:
             ticker = entry.ticker
             series = quotes.price_series(ticker) if with_prices else []
             page = pages.ticker_page(session, ticker, prices=series)
+            # News costs nothing to fetch fresh (unlike options), so a
+            # missing snapshot — or a snapshot whose own news fetch
+            # specifically failed that night — shouldn't ship a permanently
+            # empty panel to a static site that won't regenerate until
+            # tomorrow night.
+            if page.news is None:
+                page.news = quotes.live_news(ticker)
             name = f"ticker/{ticker}.json"
             written[name] = _write(out_dir / "ticker" / f"{ticker}.json", page)
             log.info("%s: %d bytes (%d price points)", ticker, written[name], len(series))

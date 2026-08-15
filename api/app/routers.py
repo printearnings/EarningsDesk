@@ -77,6 +77,12 @@ def get_ticker(
     if not page.is_tracked and not page.prices:
         raise HTTPException(status_code=404, detail=f"No data for {ticker}")
 
+    # News costs nothing to fetch fresh (unlike options), so a missing
+    # snapshot — or a snapshot whose own news fetch specifically failed that
+    # night — shouldn't leave the panel permanently empty.
+    if page.news is None:
+        page.news = quotes.live_news(ticker)
+
     return page
 
 

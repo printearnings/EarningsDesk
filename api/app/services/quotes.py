@@ -1,4 +1,5 @@
-"""Daily price series for the ticker page chart.
+"""Daily prices and news for the ticker page — the two things free/unmetered
+yfinance can answer without a dashboard_snapshot to read from.
 
 The one read path that leaves Postgres. yfinance is free and unmetered, so
 unlike the options data this doesn't need pre-computing — but it is slow
@@ -13,9 +14,10 @@ import math
 from collections.abc import Iterable
 from datetime import date, timedelta
 
+from earnings.data import news as news_data
 from earnings.data import prices
 
-from app.schemas import PricePoint
+from app.schemas import NewsItem, PricePoint
 
 log = logging.getLogger("quotes")
 
@@ -72,6 +74,26 @@ def latest_closes(tickers: Iterable[str]) -> dict[str, float]:
         if series:
             result[ticker] = series[-1].close
     return result
+
+
+def live_news(ticker: str, *, limit: int = 12) -> list[NewsItem] | None:
+    """Live headlines, for a ticker page whose `news` came back None —
+    whether because there's no snapshot at all (untracked, or tracked but
+    never yet captured by the nightly job) or because the snapshot exists
+    but that night's news fetch specifically failed. Either way, news itself
+    costs nothing to fetch fresh (unlike options), so there's no reason a
+    reader should see a permanently empty panel over it.
+
+    None on failure — same "couldn't load" contract as the snapshot-parsed
+    path (`app.services.pages._news`), so the frontend's existing null
+    handling doesn't need to know which path produced the answer.
+    """
+    try:
+        stories = news_data.stories_or_raise(ticker, limit=limit)
+    except news_data.NewsFetchError as exc:
+        log.warning("live_news (%s): %s", ticker, exc)
+        return None
+    return [NewsItem(**s.as_dict()) for s in stories]
 
 
 def clear_cache() -> None:
