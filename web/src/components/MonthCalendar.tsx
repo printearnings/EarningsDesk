@@ -175,19 +175,82 @@ export function MonthCalendar({ entries }: { entries: CalendarEntry[] }) {
         )}
       </div>
 
-      <div className="grid grid-cols-7 border-b border-[var(--color-border)]">
-        {WEEKDAYS.map((w) => (
-          <div key={w} className="eyebrow px-2 py-2 text-center">
-            {w}
-          </div>
-        ))}
+      {/* The 7-column grid needs real column width to read at all — a phone
+          screen crushes each ticker to 1-2 illegible letters. Below `sm`,
+          an agenda list (one row per day that actually has something)
+          replaces it; the grid returns once there's room for it. */}
+      <div className="hidden sm:block">
+        <div className="grid grid-cols-7 border-b border-[var(--color-border)]">
+          {WEEKDAYS.map((w) => (
+            <div key={w} className="eyebrow px-2 py-2 text-center">
+              {w}
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-7">
+          {weeks.flat().map((cell) => (
+            <DayCellView key={cell.iso} cell={cell} />
+          ))}
+        </div>
       </div>
 
-      <div className="grid grid-cols-7">
-        {weeks.flat().map((cell) => (
-          <DayCellView key={cell.iso} cell={cell} />
-        ))}
-      </div>
+      <AgendaView cells={weeks.flat()} />
+    </div>
+  );
+}
+
+/** Mobile fallback for the month grid: every in-month day with at least one
+ * report, one row each, full ticker symbols instead of a truncated grid
+ * cell. Days with nothing to report simply don't get a row — a list of
+ * blank days would be scrolling for the sake of it. */
+function AgendaView({ cells }: { cells: DayCell[] }) {
+  const days = cells.filter((c) => c.inMonth && c.entries.length > 0);
+
+  return (
+    <div className="divide-y divide-[var(--color-border-subtle)] sm:hidden">
+      {days.length === 0 ? (
+        <p className="px-5 py-8 text-sm text-[var(--color-muted)]">
+          No reports match the current filters this month.
+        </p>
+      ) : (
+        days.map((cell) => (
+          <div key={cell.iso} className="px-5 py-3">
+            <div className="mb-2 flex items-center gap-2">
+              <span
+                className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs ${
+                  cell.isToday
+                    ? "bg-[var(--color-brand)] font-medium text-[var(--color-on-brand)]"
+                    : "text-[var(--color-body)]"
+                }`}
+              >
+                {cell.day}
+              </span>
+              <span className="text-sm text-[var(--color-muted)]">
+                {cell.entries.length} report{cell.entries.length === 1 ? "" : "s"}
+              </span>
+            </div>
+            <ul className="space-y-1.5 pl-8">
+              {cell.entries.map((e) => (
+                <li key={e.ticker}>
+                  <Link
+                    href={`/t/${e.ticker}/`}
+                    className="pressable flex items-center gap-2 rounded-[3px] py-0.5 text-sm transition-colors hover:bg-[var(--color-panel-soft)]"
+                  >
+                    <VerdictDot verdict={e.verdict} />
+                    <span className="font-mono font-medium text-[var(--color-heading)]">
+                      {e.ticker}
+                    </span>
+                    <span className="ml-auto shrink-0 text-[var(--color-muted)]">
+                      {pctRange(e.implied_move)}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))
+      )}
     </div>
   );
 }

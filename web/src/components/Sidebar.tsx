@@ -17,7 +17,11 @@ import { useEffect, useState } from "react";
  * bundle that otherwise has no runtime deps.
  */
 
-const MAIN = [
+// Exported so MobileNav's drawer lists the exact same destinations as the
+// desktop rail — the mobile nav row this replaced only had room for 4 of the
+// app's 8 pages and silently dropped Tickers, Past earnings, and
+// Methodology, which had no other way to reach them.
+export const MAIN = [
   { href: "/dashboard/", label: "Dashboard", icon: GridIcon },
   { href: "/tickers/", label: "Tickers", icon: TickerIcon },
   { href: "/calendar/", label: "Calendar", icon: CalendarIcon },
@@ -25,7 +29,7 @@ const MAIN = [
   { href: "/track-record/", label: "Track record", icon: TargetIcon },
 ];
 
-const OTHER = [
+export const OTHER = [
   { href: "/past-earnings/", label: "Past earnings", icon: HistoryIcon },
   { href: "/methodology/", label: "Methodology", icon: BookIcon },
 ];
