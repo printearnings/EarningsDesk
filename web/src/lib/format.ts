@@ -109,23 +109,32 @@ export function relativeDays(days: number | null | undefined): string {
   return days > 0 ? `in ${days} days` : `${Math.abs(days)} days ago`;
 }
 
-/** Same as relativeDays, but computed from an ISO date string against
- * "today" — for surfaces that only have a date, not a precomputed day count
- * (the API's `days_until` field belongs to CalendarEntry, not every schema
- * that carries a date). Parsed as calendar-local, matching formatDate's
- * timezone-safety rationale. */
-export function relativeDaysFromDate(iso: string | null | undefined): string {
-  if (!iso) return EMPTY;
+/** Calendar-day distance from "today" to an ISO date — negative for the
+ * past, null when unparseable. Parsed as calendar-local, matching
+ * formatDate's timezone-safety rationale. The numeric building block behind
+ * relativeDaysFromDate, exported separately for surfaces that need to sort
+ * by it (a screener ordering "soonest report first") rather than just
+ * display it. */
+export function daysUntilFromDate(iso: string | null | undefined): number | null {
+  if (!iso) return null;
   const [y, m, d] = iso.slice(0, 10).split("-").map(Number);
-  if (!y || !m || !d) return EMPTY;
+  if (!y || !m || !d) return null;
 
   const target = new Date(y, m - 1, d);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   target.setHours(0, 0, 0, 0);
 
-  const days = Math.round((target.getTime() - today.getTime()) / 86_400_000);
-  return relativeDays(days);
+  return Math.round((target.getTime() - today.getTime()) / 86_400_000);
+}
+
+/** Same as relativeDays, but computed from an ISO date string against
+ * "today" — for surfaces that only have a date, not a precomputed day count
+ * (the API's `days_until` field belongs to CalendarEntry, not every schema
+ * that carries a date). */
+export function relativeDaysFromDate(iso: string | null | undefined): string {
+  const days = daysUntilFromDate(iso);
+  return days === null ? EMPTY : relativeDays(days);
 }
 
 /** How old the snapshot is, for the freshness label. */
