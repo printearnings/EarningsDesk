@@ -59,8 +59,8 @@ export default async function TickerPage({ params }: { params: Promise<{ ticker:
 
         {data.is_stale && (
           <p className="rounded-[var(--radius-sm)] border border-[var(--color-warning)]/30 bg-[var(--color-warning-bg)] px-4 py-3 text-sm text-[var(--color-warning)]">
-            Data is {formatAge(data.snapshot_age_hours)} old and may be out of date. The nightly
-            update appears to have been missed.
+            Last updated {formatAge(data.snapshot_age_hours)}, longer than usual for this page.
+            Treat the numbers below with extra caution.
           </p>
         )}
 

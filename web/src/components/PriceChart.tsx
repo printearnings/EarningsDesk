@@ -171,8 +171,11 @@ export function PriceChart({
 
   return (
     <figure className="m-0">
-      <div className="mb-3 flex items-center justify-between">
-        <div className="inline-flex rounded-[var(--radius-sm)] border border-[var(--color-border)] p-0.5">
+      {/* flex-wrap: the right-hand group (live indicator, line/candle toggle,
+          settings) doesn't fit next to the range toggle below ~400px wide —
+          without wrap it doesn't shrink to fit, it overflows the card. */}
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-y-2">
+        <div className="inline-flex shrink-0 rounded-[var(--radius-sm)] border border-[var(--color-border)] p-0.5">
           {RANGES.map((r) => (
             <button
               key={r.key}
@@ -190,12 +193,12 @@ export function PriceChart({
           ))}
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 flex-wrap items-center gap-3">
           {range === "1d" && points.length > 0 && (
             // Digit-roll animation only matters when the value can actually
             // change on its own — a live 30s poll, not a static daily close
             // the reader loaded once and will never see move.
-            <span className="tnum text-sm font-medium text-[var(--color-heading)]">
+            <span className="tnum shrink-0 text-sm font-medium text-[var(--color-heading)]">
               <NumberFlow
                 value={points[points.length - 1].close}
                 format={{ style: "currency", currency: "USD" }}
@@ -207,7 +210,7 @@ export function PriceChart({
             <button
               type="button"
               onClick={() => setLive((v) => !v)}
-              className="pressable flex items-center gap-1.5 text-sm text-[var(--color-body)]"
+              className="pressable flex shrink-0 items-center gap-1.5 text-sm whitespace-nowrap text-[var(--color-body)]"
             >
               <span
                 className={`h-1.5 w-1.5 rounded-full ${
@@ -219,7 +222,7 @@ export function PriceChart({
             </button>
           )}
 
-          <div className="inline-flex rounded-[var(--radius-sm)] border border-[var(--color-border)] p-0.5">
+          <div className="inline-flex shrink-0 rounded-[var(--radius-sm)] border border-[var(--color-border)] p-0.5">
             {CHART_TYPES.map((t) => (
               <button
                 key={t.key}
@@ -237,7 +240,7 @@ export function PriceChart({
             ))}
           </div>
 
-          <div ref={settingsRef} className="relative">
+          <div ref={settingsRef} className="relative shrink-0">
             <button
               type="button"
               onClick={() => setSettingsOpen((v) => !v)}
@@ -1026,7 +1029,7 @@ function ChartBody({
         </div>
       )}
 
-      <figcaption className="mt-2 flex items-center gap-4 text-sm text-[var(--color-muted)]">
+      <figcaption className="mt-2 flex flex-wrap items-center gap-4 text-sm text-[var(--color-muted)]">
         {chartType === "candle" ? (
           <>
             <span className="inline-flex items-center gap-2">
