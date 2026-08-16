@@ -44,7 +44,6 @@ export function SupportForm() {
   const [category, setCategory] = useState<(typeof CATEGORIES)[number]["value"]>("feedback");
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
-  const [email, setEmail] = useState("");
   const [turnstileToken, setTurnstileToken] = useState("");
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const turnstileRef = useRef<HTMLDivElement>(null);
@@ -86,7 +85,6 @@ export function SupportForm() {
           category,
           subject,
           description,
-          email: email || undefined,
           page: window.location.href,
           turnstileToken,
         }),
@@ -115,16 +113,13 @@ export function SupportForm() {
       <div className="px-5 py-8 text-center">
         <p className="text-sm font-medium text-[var(--color-heading)]">Thanks — we got it.</p>
         <p className="mt-1 text-sm text-[var(--color-muted)]">
-          {email
-            ? "We'll reply to the address you gave us if it needs a response."
-            : "We read every submission, though not every one gets a reply."}
+          We read every submission, though not every one gets a reply.
         </p>
         <button
           type="button"
           onClick={() => {
             setSubject("");
             setDescription("");
-            setEmail("");
             setState({ status: "idle" });
           }}
           className="pressable text-2xs mt-4 text-[var(--color-muted)] underline decoration-dotted underline-offset-2 hover:text-[var(--color-body)]"
@@ -205,24 +200,6 @@ export function SupportForm() {
                 : "Tell us what you think"
             }
             className={`${fieldClass} resize-y`}
-          />
-        </div>
-
-        <div>
-          <label
-            htmlFor="support-email"
-            className="eyebrow mb-1.5 block text-[var(--color-muted)]"
-          >
-            Your email (optional)
-          </label>
-          <input
-            id="support-email"
-            type="email"
-            maxLength={200}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Only if you want a reply"
-            className={fieldClass}
           />
         </div>
 

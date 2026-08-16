@@ -95,6 +95,17 @@ const DEFAULT_GLOBAL_FINANCIALS_PER_HOUR = 1000;
 // a Massive budget.
 const DEFAULT_GLOBAL_SUPPORT_PER_HOUR = 50;
 
+// /api/* bypasses static-asset serving entirely (run_worker_first), so the
+// _headers file in web/public — which carries HSTS/CSP/etc. for every page —
+// never applies here. Mirror the baseline headers that still make sense for
+// a JSON response; CSP itself is a no-op on non-HTML responses, so it's not
+// worth carrying here.
+const API_SECURITY_HEADERS: HeadersInit = {
+  "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+  "x-content-type-options": "nosniff",
+  "referrer-policy": "strict-origin-when-cross-origin",
+};
+
 function json(body: unknown, status = 200, extra: HeadersInit = {}): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -103,6 +114,7 @@ function json(body: unknown, status = 200, extra: HeadersInit = {}): Response {
       // This is live, per-request data — never let a cache serve it as if it
       // were the nightly snapshot.
       "cache-control": "no-store",
+      ...API_SECURITY_HEADERS,
       ...extra,
     },
   });
@@ -280,7 +292,6 @@ const SUPPORT_CATEGORY_LABEL: Record<SupportCategory, string> = {
 
 const SUPPORT_MAX_SUBJECT = 200;
 const SUPPORT_MAX_DESCRIPTION = 5000;
-const SUPPORT_MAX_EMAIL = 200;
 const SUPPORT_FROM_ADDRESS = "support@printearnings.com";
 // Fixed at deploy time via the `send_email` binding's own `destination_address`
 // (wrangler.jsonc) — the binding refuses to send anywhere else, so this only
@@ -346,8 +357,8 @@ async function handleSupport(request: Request, env: Env): Promise<Response> {
   } catch {
     return json({ error: "Malformed JSON body." }, 400);
   }
-  const { category, subject, description, email, page, turnstileToken } =
-    (body ?? {}) as Record<string, unknown>;
+  const { category, subject, description, page, turnstileToken } = (body ??
+    {}) as Record<string, unknown>;
 
   if (
     typeof category !== "string" ||
@@ -371,14 +382,6 @@ async function handleSupport(request: Request, env: Env): Promise<Response> {
       },
       400,
     );
-  }
-  const emailText = typeof email === "string" ? email.trim() : "";
-  if (
-    emailText &&
-    (emailText.length > SUPPORT_MAX_EMAIL ||
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailText))
-  ) {
-    return json({ error: "`email` doesn't look valid." }, 400);
   }
   // Free-text context only, never trusted as a real URL — just interpolated
   // into the email body for "what page were they on".
@@ -441,13 +444,11 @@ async function handleSupport(request: Request, env: Env): Promise<Response> {
       addr: SUPPORT_FROM_ADDRESS,
     });
     msg.setRecipient(SUPPORT_TO_ADDRESS);
-    if (emailText) msg.setHeader("Reply-To", emailText);
     msg.setSubject(
       `[${SUPPORT_CATEGORY_LABEL[category as SupportCategory]}] ${subjectText}`,
     );
     const headerLines = [
       `Category: ${SUPPORT_CATEGORY_LABEL[category as SupportCategory]}`,
-      `From: ${emailText || "(not provided)"}`,
     ];
     if (pageText) headerLines.push(`Page: ${pageText}`);
 

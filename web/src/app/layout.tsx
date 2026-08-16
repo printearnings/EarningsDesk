@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { EB_Garamond, Geist_Mono, Inter } from "next/font/google";
+import Script from "next/script";
 
 import "./globals.css";
 
@@ -35,26 +36,6 @@ export const metadata: Metadata = {
     "What the options market is pricing into an earnings print, and what actually happened the last eight quarters.",
 };
 
-// Applies a saved explicit theme choice before the browser paints. Without
-// this, an explicit dark choice would flash light on every load: the server
-// has no localStorage, so the first paint is always the light default, and a
-// useEffect (React's usual "read after mount" idiom, used for the sidebar's
-// collapse state) only fixes that up after hydration — fine for a layout
-// shift, too jarring for a full theme flip. No system-preference branch here
-// on purpose: an unset preference is already handled by pure CSS
-// (@media (prefers-color-scheme: dark) in tokens.css), so this script has
-// nothing to do in that case and stays this small.
-const THEME_INIT_SCRIPT = `
-(function () {
-  try {
-    var v = localStorage.getItem("printearnings:theme");
-    if (v === "light" || v === "dark") {
-      document.documentElement.setAttribute("data-theme", v);
-    }
-  } catch (e) {}
-})();
-`;
-
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
@@ -72,7 +53,25 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         nothing else, so a genuine mismatch inside the page still surfaces.
       */}
       <body className="min-h-screen" suppressHydrationWarning>
-        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        {/*
+          Applies a saved explicit theme choice before the browser paints.
+          Without this, an explicit dark choice would flash light on every
+          load: the server has no localStorage, so the first paint is always
+          the light default, and a useEffect only fixes that up after
+          hydration — fine for a layout shift, too jarring for a full theme
+          flip. No system-preference branch on purpose: an unset preference
+          is already handled by pure CSS (tokens.css), so this script has
+          nothing to do in that case and stays this small.
+
+          A real static file at /theme-init.js, not an inline
+          dangerouslySetInnerHTML script — a strict CSP (script-src 'self')
+          can allow this without an 'unsafe-inline' carve-out or a hash that
+          silently goes stale the next time this script's contents change.
+          `beforeInteractive` is next/script's own sanctioned way to inject a
+          blocking pre-hydration script, so this doesn't need the raw <script>
+          tag @next/next/no-sync-scripts would otherwise flag.
+        */}
+        <Script src="/theme-init.js" strategy="beforeInteractive" />
         {children}
       </body>
     </html>
