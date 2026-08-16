@@ -33,6 +33,7 @@ export const MAIN = [
 
 export const OTHER = [
   { href: "/past-earnings/", label: "Past earnings", icon: HistoryIcon },
+  { href: "/macro-calendar/", label: "Macro calendar", icon: LandmarkIcon },
   { href: "/methodology/", label: "Methodology", icon: BookIcon },
   { href: "/faq/", label: "FAQ", icon: QuestionIcon },
 ];
@@ -234,6 +235,17 @@ function HistoryIcon() {
       <path d="M2 8a6 6 0 1 0 1.8-4.3" />
       <path d="M2 2.5V6h3.5" />
       <path d="M8 5v3.2l2.2 1.3" />
+    </svg>
+  );
+}
+
+function LandmarkIcon() {
+  return (
+    <svg {...svg}>
+      <path d="M8 1.5 14 5H2z" />
+      <path d="M2.5 5v8M13.5 5v8" />
+      <path d="M5 7v4.5M8 7v4.5M11 7v4.5" />
+      <path d="M1.5 13.5h13" />
     </svg>
   );
 }

@@ -161,6 +161,19 @@ export function SessionChip({ session }: { session?: string | null }) {
   );
 }
 
+const MACRO_EVENT_STYLE: Record<string, string> = {
+  // Reuses the SMA/EMA overlay pair from the price chart rather than
+  // inventing a new pair — those two were already run through the CVD
+  // validator for both light and dark surfaces, so borrowing them here is
+  // free instead of re-earning a colorblind-safe pair from scratch.
+  FOMC: "border-[var(--color-viz-sma)]/25 bg-[var(--color-viz-sma)]/10 text-[var(--color-viz-sma)]",
+  CPI: "border-[var(--color-viz-ema)]/25 bg-[var(--color-viz-ema)]/10 text-[var(--color-viz-ema)]",
+};
+
+export function MacroEventChip({ type }: { type: "FOMC" | "CPI" }) {
+  return <span className={`${BASE} ${MACRO_EVENT_STYLE[type]}`}>{type}</span>;
+}
+
 /**
  * The small signed figure under a stat — Vertical's KPI delta treatment.
  * The arrow is a second channel so the meaning doesn't rest on colour alone.
