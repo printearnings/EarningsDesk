@@ -55,7 +55,7 @@ export function DisclaimerGate() {
         className="relative w-full max-w-md origin-center rounded-[var(--radius-panel)] border border-[var(--color-border)] bg-[var(--color-panel)] p-6 opacity-100 shadow-lg transition-[opacity,transform] duration-[var(--duration-base)] ease-[var(--ease-out)] starting:scale-95 starting:opacity-0"
       >
         <h2 id="disclaimer-title" className="display text-xl">
-          Before you dive in
+          Read before continuing
         </h2>
 
         <div className="mt-3 space-y-3 text-sm text-[var(--color-body)]">
@@ -69,7 +69,7 @@ export function DisclaimerGate() {
           onClick={accept}
           className="pressable mt-5 w-full rounded-[var(--radius-sm)] bg-[var(--color-brand)] px-4 py-2.5 text-sm font-medium text-[var(--color-on-brand)] transition-colors hover:opacity-90"
         >
-          I understand, continue
+          Acknowledge and continue
         </button>
 
         <p className="mt-3 text-center text-xs text-[var(--color-muted)]">

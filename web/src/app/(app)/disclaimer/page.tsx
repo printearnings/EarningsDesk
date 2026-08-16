@@ -21,17 +21,17 @@ export default async function DisclaimerPage() {
           </div>
         </Panel>
 
-        <Panel title="What the numbers actually are">
+        <Panel title="What the numbers are">
           <p className="max-w-3xl text-[var(--color-body)]">
-            The implied-move verdict (RICH/CHEAP/FAIR) describes options pricing against this
-            stock&rsquo;s own history. It is not a signal to buy or sell. The directional read
+            The implied-move verdict (RICH/CHEAP/FAIR) measures options pricing against this
+            stock&rsquo;s own history. Not a buy/sell signal. The directional read
             (BULLISH/BEARISH/NEUTRAL) blends options flow and sentiment into a lean, refined
-            daily as a report approaches. It is a probabilistic read to size around, not a
+            daily as the report approaches. A probabilistic read to size around, not a
             prediction. See{" "}
             <a href="/methodology/" className="underline underline-offset-2">
               Methodology
             </a>{" "}
-            for exactly how each is computed.
+            for the computation behind each.
           </p>
         </Panel>
 
@@ -39,7 +39,7 @@ export default async function DisclaimerPage() {
           <p className="max-w-3xl text-[var(--color-body)]">
             Prices, options, and financials come from third-party data providers and can be
             delayed, incomplete, or wrong. Most ticker pages are served from a snapshot rebuilt
-            once nightly, not live on page load. The page always states how old the data is.
+            once nightly, not live on page load. Every page states the age of its data.
           </p>
         </Panel>
       </div>

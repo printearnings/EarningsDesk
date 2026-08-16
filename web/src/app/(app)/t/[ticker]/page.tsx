@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { DirectionChip, VerdictChip } from "@/components/Chip";
@@ -5,8 +6,8 @@ import { CompanyLogo } from "@/components/CompanyLogo";
 import { Eyebrow, Panel, StatCard } from "@/components/Panel";
 import { TickerTabs } from "@/components/TickerTabs";
 import { TopBar } from "@/components/TopBar";
-import { getIndex, getTicker } from "@/lib/api";
-import type { TickerPage as TickerData } from "@/lib/api";
+import { getIndex, getTicker, getTrackRecord } from "@/lib/api";
+import type { TickerPage as TickerData, TrackRecordPage } from "@/lib/api";
 import {
   EMPTY,
   formatAge,
@@ -38,7 +39,11 @@ export async function generateMetadata({ params }: { params: Promise<{ ticker: s
 
 export default async function TickerPage({ params }: { params: Promise<{ ticker: string }> }) {
   const { ticker } = await params;
-  const [index, data] = await Promise.all([getIndex(), getTicker(ticker)]);
+  const [index, data, record] = await Promise.all([
+    getIndex(),
+    getTicker(ticker),
+    getTrackRecord(),
+  ]);
   if (!data) notFound();
 
   return (
@@ -50,12 +55,12 @@ export default async function TickerPage({ params }: { params: Promise<{ ticker:
       />
 
       <div className="space-y-6 px-6 py-6">
-        <SubHeader data={data} />
+        <SubHeader data={data} record={record} />
 
         {data.is_stale && (
           <p className="rounded-[var(--radius-sm)] border border-[var(--color-warning)]/30 bg-[var(--color-warning-bg)] px-4 py-3 text-sm text-[var(--color-warning)]">
-            This data is {formatAge(data.snapshot_age_hours)} and may be out of date. The
-            nightly update looks to have been missed.
+            Data is {formatAge(data.snapshot_age_hours)} old and may be out of date. The nightly
+            update appears to have been missed.
           </p>
         )}
 
@@ -69,8 +74,10 @@ export default async function TickerPage({ params }: { params: Promise<{ ticker:
   );
 }
 
-function SubHeader({ data }: { data: TickerData }) {
+function SubHeader({ data, record }: { data: TickerData; record: TrackRecordPage }) {
   const session = sessionLabel(data.next_report_session);
+  const showVerdictRecord = Boolean(data.options?.verdict);
+  const showDirectionRecord = Boolean(data.direction);
 
   return (
     <header className="flex flex-wrap items-start justify-between gap-4">
@@ -124,6 +131,36 @@ function SubHeader({ data }: { data: TickerData }) {
             </p>
           )
         )}
+
+        {/* The credibility check for the chip(s) above: how often this exact
+            kind of call has been right, site-wide. Shown next to the call
+            itself, not only on the standalone Track Record page, since that
+            is the moment the number is actually useful for a decision. */}
+        {(showVerdictRecord || showDirectionRecord) && (
+          <p className="mt-1 text-sm text-[var(--color-muted)]">
+            {showVerdictRecord && (
+              <>
+                Verdict calls:{" "}
+                {record.accuracy === null
+                  ? "not enough scored history"
+                  : `${pct(record.accuracy, 0)} right (${record.correct}/${record.scored})`}
+              </>
+            )}
+            {showVerdictRecord && showDirectionRecord && " · "}
+            {showDirectionRecord && (
+              <>
+                Direction calls:{" "}
+                {record.dir_accuracy === null
+                  ? "not enough scored history"
+                  : `${pct(record.dir_accuracy, 0)} right (${record.dir_correct}/${record.dir_scored})`}
+              </>
+            )}
+            {" · "}
+            <Link href="/track-record/" className="underline underline-offset-2">
+              Track record
+            </Link>
+          </p>
+        )}
       </div>
 
       <div className="text-right">
@@ -153,24 +190,24 @@ function KpiRow({ data }: { data: TickerData }) {
         label="Implied move"
         value={pctRange(o?.implied_move)}
         tone={o?.verdict === "RICH" ? "rich" : o?.verdict === "CHEAP" ? "cheap" : "default"}
-        hint="The move the at-the-money straddle is pricing in for this earnings date."
+        hint="At-the-money straddle price for this earnings date."
       />
       <StatCard
         label="Typical move"
         value={pctRange(o?.hist_avg_move)}
-        hint="Average absolute move after the last eight earnings reports."
+        hint="Average absolute move, last eight earnings reports."
       />
       <StatCard
         label="Put/call ratio"
         value={num(o?.put_call_ratio)}
-        hint="Below 1 means more call volume than put volume."
+        hint="Below 1: more call volume than put volume."
       />
       <StatCard
         label="Days to report"
         value={
           typeof data.days_until_report === "number" ? String(data.days_until_report) : EMPTY
         }
-        hint="Calendar days until the next scheduled print."
+        hint="Calendar days to the next scheduled print."
       />
     </div>
   );

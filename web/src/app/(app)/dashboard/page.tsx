@@ -52,18 +52,18 @@ export default async function DashboardPage() {
           <StatCard
             label="Avg implied move"
             value={pctRange(avgImplied)}
-            hint="Across the upcoming events we currently have pricing for."
+            hint="Across upcoming events with pricing available."
           />
           <StatCard
             label="Rich verdicts"
             value={String(rich)}
             tone={rich > 0 ? "rich" : "muted"}
-            hint="Options pricing a bigger move than the stock typically makes."
+            hint="Options pricing a bigger move than typical for the stock."
           />
           <StatCard
             label="Calls scored"
             value={String(record.scored)}
-            hint="Signals checked against what actually happened."
+            hint="Signals checked against the outcome."
           />
         </div>
 
@@ -148,9 +148,9 @@ export default async function DashboardPage() {
               </dl>
 
               <p className="mt-5 border-t border-[var(--color-border-subtle)] pt-4 text-sm text-[var(--color-muted)]">
-                Verdict and direction are separate claims — &ldquo;the market overpriced this
-                move&rdquo; and &ldquo;the stock went up&rdquo; are not the same bet, so they
-                are scored apart.
+                Verdict and direction are separate claims. &ldquo;The market overpriced this
+                move&rdquo; and &ldquo;the stock went up&rdquo; are not the same bet. Scored
+                apart.
               </p>
             </Panel>
 

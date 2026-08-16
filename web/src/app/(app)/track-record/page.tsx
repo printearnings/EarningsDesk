@@ -19,10 +19,7 @@ export default async function TrackRecordPage() {
       <TopBar title="Track record" eyebrow="Scored against reality" tickers={index.tickers} />
 
       <div className="space-y-6 px-6 py-6">
-        <Panel
-          title="Vol rich/cheap calls"
-          subtitle="Did the market's pricing turn out to be right?"
-        >
+        <Panel title="Vol rich/cheap calls" subtitle="Accuracy of the market-pricing verdict">
           <dl className="grid grid-cols-2 gap-5 sm:grid-cols-4">
             <StatCard label="Scored events" value={String(record.scored)} />
             <StatCard label="Directional calls" value={String(record.directional)} />
@@ -31,7 +28,7 @@ export default async function TrackRecordPage() {
               label="Accuracy"
               value={record.accuracy === null ? "Not enough data" : pct(record.accuracy, 0)}
               tone={record.accuracy === null ? "muted" : "default"}
-              hint="Withheld below four scored calls — a single correct verdict reads as 100%."
+              hint="Withheld below four scored calls. A single correct verdict reads as 100%."
             />
           </dl>
 
@@ -65,9 +62,9 @@ export default async function TrackRecordPage() {
 
         <p className="max-w-3xl text-sm text-[var(--color-muted)]">
           Verdict and direction are independent claims. &ldquo;The market overpriced this
-          move&rdquo; and &ldquo;the stock went up&rdquo; are not the same bet, and a correct
-          call on one says nothing about the other — so they are tracked and scored separately
-          rather than folded into a single win rate.
+          move&rdquo; and &ldquo;the stock went up&rdquo; are not the same bet. A correct call
+          on one says nothing about the other, so both are tracked and scored separately rather
+          than folded into a single win rate.
         </p>
       </div>
     </>

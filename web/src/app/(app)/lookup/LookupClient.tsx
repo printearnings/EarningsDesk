@@ -133,9 +133,8 @@ export function LookupClient({ trackedTickers }: { trackedTickers: string[] }) {
         <div className="text-right">
           <Eyebrow>Not pre-computed</Eyebrow>
           <p className="mt-1 max-w-xs text-sm text-[var(--color-body)]">
-            Price and news are live, fetched just now. This ticker isn&rsquo;t in the nightly
-            universe, so there&rsquo;s no options history or scored track record — price options
-            on demand below.
+            Price and news are live, fetched just now. This ticker is not in the nightly
+            universe: no options history, no scored track record. Price options on demand below.
           </p>
         </div>
       </header>
@@ -180,7 +179,7 @@ export function LookupClient({ trackedTickers }: { trackedTickers: string[] }) {
           {result.earnings_history.length > 0 && (
             <Panel
               title="Earnings history"
-              subtitle="By fiscal quarter end — not the announcement date, which the tracked universe carries but this lookup doesn't"
+              subtitle="By fiscal quarter end, not announcement date (the tracked universe carries the announcement date; this lookup does not)"
               bodyClassName="px-0 py-0"
             >
               <div className="overflow-x-auto">
@@ -296,7 +295,7 @@ function RefreshPanel({
     return (
       <Panel
         title="Options pricing"
-        empty="No confirmed earnings date — nothing to price yet."
+        empty="No confirmed earnings date. Nothing to price yet."
       />
     );
   }
@@ -323,7 +322,7 @@ function RefreshPanel({
   return (
     <Panel
       title="Options pricing"
-      subtitle="Not pre-computed for this ticker — price the at-the-money straddle right now"
+      subtitle="Not pre-computed for this ticker. Price the at-the-money straddle now."
       action={
         <button
           type="button"
@@ -353,8 +352,8 @@ function RefreshPanel({
       )}
       {(state.status === "idle" || state.status === "loading") && (
         <p className="text-sm text-[var(--color-muted)]">
-          One click, one live options-chain fetch — rate limited, so use it when you actually
-          need current numbers.
+          One click, one live options-chain fetch. Rate limited: use it when you need current
+          numbers.
         </p>
       )}
     </Panel>

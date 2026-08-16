@@ -19,14 +19,14 @@
  */
 
 const VERDICT_MEANING: Record<string, string> = {
-  RICH: "Options are pricing a bigger move than this stock typically makes after earnings.",
-  CHEAP: "Options are pricing a smaller move than this stock typically makes after earnings.",
-  FAIR: "Options are pricing roughly this stock's typical post-earnings move.",
+  RICH: "Pricing a bigger move than this stock typically makes after earnings.",
+  CHEAP: "Pricing a smaller move than this stock typically makes after earnings.",
+  FAIR: "Pricing roughly this stock's typical post-earnings move.",
 };
 
 const DIRECTION_MEANING: Record<string, string> = {
-  BULLISH: "Options flow and sentiment lean to the upside.",
-  BEARISH: "Options flow and sentiment lean to the downside.",
+  BULLISH: "Options flow and sentiment lean upside.",
+  BEARISH: "Options flow and sentiment lean downside.",
   NEUTRAL: "No clear lean in flow or sentiment.",
 };
 
@@ -75,8 +75,8 @@ export function DirectionChip({ direction }: { direction?: string | null }) {
 
 const WORKFLOW_LABEL: Record<string, string> = { A: "VOL", B: "DIR" };
 const WORKFLOW_MEANING: Record<string, string> = {
-  A: "Workflow A — the vol rich/cheap read.",
-  B: "Workflow B — the directional (bullish/bearish) read.",
+  A: "Workflow A: the vol rich/cheap read.",
+  B: "Workflow B: the directional (bullish/bearish) read.",
 };
 const WORKFLOW_STYLE: Record<string, string> = {
   A: "border-[var(--color-brand)]/30 bg-[var(--color-panel-soft)] text-[var(--color-brand)]",
@@ -134,8 +134,8 @@ export function ResultChip({
       }`}
       title={
         workflow === "A"
-          ? "Did the realized move beat the priced-in implied move?"
-          : "Did the stock move the direction called?"
+          ? "Realized move vs. priced-in implied move."
+          : "Stock move vs. called direction."
       }
     >
       {hit ? "Hit" : "Miss"}

@@ -96,7 +96,7 @@ export function TickerTabs({ data }: { data: TickerData }) {
       <div className="pt-6">
         {visited.has("price") && (
           <div hidden={active !== "price"}>
-            <Panel subtitle="Daily and intraday prices, earnings dates are marked on the 1Y view">
+            <Panel subtitle="Daily and intraday prices. Earnings dates marked on the 1Y view.">
               <PriceChart prices={data.prices} events={data.history} ticker={data.ticker} />
             </Panel>
           </div>
@@ -118,7 +118,7 @@ export function TickerTabs({ data }: { data: TickerData }) {
           <div hidden={active !== "history"} className="space-y-6">
             <Panel
               title="Implied vs realized"
-              subtitle="What options priced in each quarter, against what the stock actually did"
+              subtitle="What options priced in each quarter, against what the stock did"
             >
               <ImpliedVsRealized rows={data.history} />
             </Panel>
@@ -147,8 +147,8 @@ function OptionsPanelCard({ data }: { data: TickerData }) {
           // never been captured hasn't been checked for a chain at all,
           // which reads very differently from "checked, found none."
           data.as_of
-            ? "No listed options chain for this symbol, so there's no implied move to report."
-            : "Options data hasn't been captured for this symbol yet."
+            ? "No listed options chain for this symbol. No implied move to report."
+            : "Options data not yet captured for this symbol."
         }
       />
     );
@@ -171,22 +171,22 @@ function OptionsPanelCard({ data }: { data: TickerData }) {
           label="Edge score"
           value={num(o.edge_score, 1)}
           tone={tone}
-          hint="0-10. How far implied has diverged from the historical average."
+          hint="0-10. Distance from the historical average."
         />
         <Stat
           label="ATM open interest"
           value={compact(o.atm_open_interest)}
-          hint="Contracts held at the at-the-money strike. Low numbers mean wide spreads."
+          hint="Contracts at the at-the-money strike. Low = wide spreads."
         />
         <Stat
           label="Call volume"
           value={compact(o.call_volume)}
-          hint="Total call contracts traded today, across every strike and expiry."
+          hint="Call contracts traded today, all strikes and expiries."
         />
         <Stat
           label="Put volume"
           value={compact(o.put_volume)}
-          hint="Total put contracts traded today, across every strike and expiry."
+          hint="Put contracts traded today, all strikes and expiries."
         />
         <Stat
           label="IV term"
@@ -198,23 +198,23 @@ function OptionsPanelCard({ data }: { data: TickerData }) {
                 : "Normal"
           }
           tone={o.iv_inverted ? "rich" : "default"}
-          hint="Inverted means near-dated options cost more than later ones, the earnings premium."
+          hint="Inverted: near-dated options cost more than later ones. The earnings premium."
         />
         <Stat
           label="Front IV"
           value={pct(o.iv_front)}
-          hint="Implied volatility on the nearest expiry."
+          hint="Implied volatility, nearest expiry."
         />
         <Stat
           label="Back IV"
           value={pct(o.iv_back)}
-          hint="Implied volatility on the next expiry out."
+          hint="Implied volatility, next expiry out."
         />
         <Stat
           label="Verdict"
           value={o.verdict ?? EMPTY}
           tone={tone}
-          hint="Whether the premium looks rich, cheap, or fair versus this stock's own history."
+          hint="Premium versus this stock's own history: rich, cheap, or fair."
         />
       </dl>
 
@@ -237,7 +237,7 @@ function OptionsPanelCard({ data }: { data: TickerData }) {
 
 function NewsPanel({ data }: { data: TickerData }) {
   if (data.news === null || data.news === undefined) {
-    return <Panel empty="Couldn't load headlines for this symbol on the last update." />;
+    return <Panel empty="Could not load headlines for this symbol on the last update." />;
   }
 
   return (
@@ -319,7 +319,7 @@ function HistoryTable({ data }: { data: TickerData }) {
             tone={stats.hit_rate === null ? "muted" : "default"}
             /* Withheld below four scored calls: one correct verdict reads as
                100% accuracy, and that number would get screenshotted. */
-            hint="Share of rich/cheap calls that were borne out. Withheld below four scored reports."
+            hint="Share of rich/cheap calls borne out. Withheld below four scored reports."
           />
           <Stat
             label="Avg implied"

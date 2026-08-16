@@ -29,7 +29,7 @@ export default async function SignalsPage() {
       <div className="px-6 py-6">
         <Panel
           title="All signals"
-          subtitle="What the engine called, and whether it was right — the log behind the Track Record numbers"
+          subtitle="Every call, and whether it was right. The log behind the Track Record numbers."
           bodyClassName="px-0 py-0"
           empty={signals.rows.length === 0 ? "No signals recorded yet." : undefined}
         >

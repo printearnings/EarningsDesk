@@ -5,7 +5,7 @@ import { getCalendar, getIndex } from "@/lib/api";
 import { formatDateShort, pctRange } from "@/lib/format";
 
 export const metadata = {
-  title: "EarningsDesk — what the options market is pricing in",
+  title: "EarningsDesk | Implied move vs. history",
 };
 
 /**
@@ -30,20 +30,20 @@ export default async function LandingPage() {
           <p className="eyebrow !text-[var(--color-on-brand-muted)]">EarningsDesk</p>
 
           <h1 className="display mt-4 max-w-3xl text-5xl !text-[var(--color-on-brand)] sm:text-6xl">
-            Know what&rsquo;s priced in
+            Implied move vs. history,
             <br />
             before the print.
           </h1>
 
           <p className="mt-5 max-w-xl text-lg text-[var(--color-on-brand-muted)]">
-            The move options are pricing into an earnings report, next to what the stock
-            actually did the last eight quarters.
+            The move options are pricing into an earnings report, against what the stock did the
+            last eight quarters.
           </p>
 
           <div className="mt-8 max-w-xl">
             <TickerSearch
               tickers={index.tickers}
-              placeholder="Search a ticker — try NVDA"
+              placeholder="Search a ticker, e.g. NVDA"
               size="lg"
             />
           </div>
@@ -90,15 +90,15 @@ export default async function LandingPage() {
         <div className="grid gap-10 sm:grid-cols-3">
           <Explainer
             label="Implied vs typical"
-            body="Every ticker page compares the move options are pricing against what this stock actually does after earnings — so you can see when the premium is unusual."
+            body="Every ticker page compares the priced-in move against what this stock does after earnings, flagging when the premium is unusual."
           />
           <Explainer
-            label="Eight quarters of receipts"
+            label="Eight quarters of history"
             body="EPS estimate against actual, the gap on the open and whether it filled, and the volume spike. The pattern, not just the last print."
           />
           <Explainer
             label="Scored, not asserted"
-            body="Every call the engine makes is checked against what happened and kept on a public track record. Accuracy is withheld until there's enough sample to mean anything."
+            body="Every call is checked against the outcome and kept on a public track record. Accuracy is withheld until the sample is large enough to mean anything."
           />
         </div>
 
@@ -106,9 +106,9 @@ export default async function LandingPage() {
           <strong className="font-medium text-[var(--color-body)]">
             Not financial advice.
           </strong>{" "}
-          EarningsDesk reports what the options market is currently pricing and what a stock has
-          historically done after earnings. It does not predict outcomes, and past behaviour
-          does not constrain the next print.
+          EarningsDesk reports current options pricing and a stock&rsquo;s historical
+          post-earnings behavior. It does not predict outcomes. Past behavior does not constrain
+          the next print.
         </p>
       </section>
     </main>
