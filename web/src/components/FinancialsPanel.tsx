@@ -68,7 +68,7 @@ export function FinancialsPanel({ ticker }: { ticker: string }) {
         // files an annual 20-F instead of quarterly/annual 10-Q/10-K
         // filings, so there is no filing for this endpoint to have found.
         !loading && (!data || data.quarters.length === 0)
-          ? "No SEC filings found for this symbol — common for foreign-domiciled companies, which file an annual 20-F instead."
+          ? "No SEC filings found for this symbol. Common for foreign-domiciled companies, which file an annual 20-F instead."
           : undefined
       }
     >

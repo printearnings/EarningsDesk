@@ -3,7 +3,7 @@ import { Panel } from "@/components/Panel";
 import { TopBar } from "@/components/TopBar";
 import { getIndex, getPastEarnings } from "@/lib/api";
 
-export const metadata = { title: "Past earnings — EarningsDesk" };
+export const metadata = { title: "Past earnings | EarningsDesk" };
 
 /**
  * Every past earnings report across the whole tracked universe, newest first

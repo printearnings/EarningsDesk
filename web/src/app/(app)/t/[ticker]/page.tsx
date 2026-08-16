@@ -33,7 +33,7 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: { params: Promise<{ ticker: string }> }) {
   const { ticker } = await params;
-  return { title: `${ticker.toUpperCase()} earnings — EarningsDesk` };
+  return { title: `${ticker.toUpperCase()} earnings | EarningsDesk` };
 }
 
 export default async function TickerPage({ params }: { params: Promise<{ ticker: string }> }) {
@@ -54,7 +54,7 @@ export default async function TickerPage({ params }: { params: Promise<{ ticker:
 
         {data.is_stale && (
           <p className="rounded-[var(--radius-sm)] border border-[var(--color-warning)]/30 bg-[var(--color-warning-bg)] px-4 py-3 text-sm text-[var(--color-warning)]">
-            This data is {formatAge(data.snapshot_age_hours)} and may be out of date — the
+            This data is {formatAge(data.snapshot_age_hours)} and may be out of date. The
             nightly update looks to have been missed.
           </p>
         )}
@@ -97,7 +97,7 @@ function SubHeader({ data }: { data: TickerData }) {
               <strong className="font-medium text-[var(--color-heading)]">
                 {formatDate(data.next_report_date)}
               </strong>
-              {session && `, ${session}`} — {relativeDays(data.days_until_report)}
+              {session && `, ${session}`} · {relativeDays(data.days_until_report)}
             </>
           ) : (
             "No confirmed earnings date."
@@ -120,7 +120,7 @@ function SubHeader({ data }: { data: TickerData }) {
           data.days_until_report >= 0 &&
           data.days_until_report <= DIRECTION_HEADS_UP_DAYS && (
             <p className="mt-1 text-sm text-[var(--color-muted)]">
-              Directional read not available yet — it starts a few days before the report.
+              Directional read not available yet. It starts a few days before the report.
             </p>
           )
         )}
@@ -135,7 +135,7 @@ function SubHeader({ data }: { data: TickerData }) {
         </p>
         {!data.is_tracked && (
           <p className="mt-1 text-sm text-[var(--color-warning)]">
-            Outside the tracked universe — no signal history
+            Outside the tracked universe, no signal history
           </p>
         )}
       </div>

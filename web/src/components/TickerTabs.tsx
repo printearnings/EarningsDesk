@@ -96,7 +96,7 @@ export function TickerTabs({ data }: { data: TickerData }) {
       <div className="pt-6">
         {visited.has("price") && (
           <div hidden={active !== "price"}>
-            <Panel subtitle="Daily and intraday prices — earnings dates are marked on the 1Y view">
+            <Panel subtitle="Daily and intraday prices, earnings dates are marked on the 1Y view">
               <PriceChart prices={data.prices} events={data.history} ticker={data.ticker} />
             </Panel>
           </div>
@@ -198,7 +198,7 @@ function OptionsPanelCard({ data }: { data: TickerData }) {
                 : "Normal"
           }
           tone={o.iv_inverted ? "rich" : "default"}
-          hint="Inverted means near-dated options cost more than later ones — the earnings premium."
+          hint="Inverted means near-dated options cost more than later ones, the earnings premium."
         />
         <Stat
           label="Front IV"

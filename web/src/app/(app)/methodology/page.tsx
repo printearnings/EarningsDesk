@@ -2,7 +2,7 @@ import { Panel } from "@/components/Panel";
 import { TopBar } from "@/components/TopBar";
 import { getIndex } from "@/lib/api";
 
-export const metadata = { title: "Methodology — EarningsDesk" };
+export const metadata = { title: "Methodology | EarningsDesk" };
 
 export default async function MethodologyPage() {
   const index = await getIndex();

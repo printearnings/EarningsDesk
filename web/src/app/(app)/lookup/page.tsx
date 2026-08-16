@@ -5,7 +5,7 @@ import { TopBar } from "@/components/TopBar";
 
 import { LookupClient } from "./LookupClient";
 
-export const metadata = { title: "Look up a ticker — EarningsDesk" };
+export const metadata = { title: "Look up a ticker | EarningsDesk" };
 
 /**
  * Cold-ticker lookup: server shell + client-fetched body.

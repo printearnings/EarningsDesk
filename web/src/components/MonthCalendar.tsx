@@ -281,7 +281,7 @@ function DayCellView({ cell }: { cell: DayCell }) {
           <Link
             key={e.ticker}
             href={`/t/${e.ticker}/`}
-            title={`${e.ticker}${e.spot != null ? ` — ${money(e.spot)}` : ""} — implied ${pctRange(e.implied_move)}`}
+            title={`${e.ticker}${e.spot != null ? ` · ${money(e.spot)}` : ""} · implied ${pctRange(e.implied_move)}`}
             className="pressable text-2xs flex items-center gap-1 rounded-[3px] px-1 py-0.5 transition-colors hover:bg-[var(--color-panel-soft)]"
           >
             <VerdictDot verdict={e.verdict} />
