@@ -90,11 +90,18 @@ export function FinancialsPanel({ ticker }: { ticker: string }) {
     if (timeframe === "quarterly" && quarters.size > 0) {
       return data.quarters.filter((q) => quarters.has(q.fiscal_period));
     }
-    if (timeframe === "annual" && year !== "") {
-      return data.quarters.filter((q) => String(q.fiscal_year) === year);
+    if (timeframe === "annual") {
+      // No single year picked: fall back to the same 5 years the dropdown
+      // offers, not the full history — the chart matching the filter's own
+      // cap is the whole point, otherwise "Last 5 years" would be a lie.
+      if (year !== "") {
+        return data.quarters.filter((q) => String(q.fiscal_year) === year);
+      }
+      const recent = new Set(availableYears);
+      return data.quarters.filter((q) => recent.has(q.fiscal_year));
     }
     return data.quarters;
-  }, [data, timeframe, quarters, year]);
+  }, [data, timeframe, quarters, year, availableYears]);
 
   const paged = useMemo(
     () => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
@@ -186,7 +193,7 @@ export function FinancialsPanel({ ticker }: { ticker: string }) {
                       aria-label="Fiscal year"
                       className="text-2xs rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-panel)] px-2 py-1 text-[var(--color-heading)] focus:border-[var(--color-brand)] focus:outline-none"
                     >
-                      <option value="">All years</option>
+                      <option value="">Last 5 years</option>
                       {availableYears.map((y) => (
                         <option key={y} value={String(y)}>
                           FY{String(y).slice(-2)}
@@ -206,7 +213,10 @@ export function FinancialsPanel({ ticker }: { ticker: string }) {
                 </button>
               )}
               <span className="text-2xs ml-auto text-[var(--color-muted)]">
-                {filtersActive
+                {/* Annual is always capped to the dropdown's own 5-year
+                    window, even at its default, so it always reads as a
+                    fraction — never claims to be showing everything. */}
+                {filtersActive || timeframe === "annual"
                   ? `${filtered.length} of ${data.quarters.length}`
                   : `${data.quarters.length} periods`}
               </span>
