@@ -313,6 +313,61 @@ def test_ticker_is_normalised(s):
     assert pages.ticker_page(s, "  nvda ", now=NOW).ticker == "NVDA"
 
 
+def test_direction_shown_when_the_signal_matches_the_next_report(s):
+    _snap(s, next_report_date=date(2026, 8, 26))
+    ev = repo.upsert_earnings_event(s, "NVDA", date(2026, 8, 26))
+    repo.save_signal(
+        s,
+        ticker="NVDA",
+        run_date=date(2026, 8, 24),
+        workflow="B",
+        event=ev,
+        implied_move=None,
+        hist_avg_move=None,
+        verdict=None,
+        edge_score=None,
+        direction="BULLISH",
+        confidence=0.7,
+    )
+    s.commit()
+
+    page = pages.ticker_page(s, "NVDA", now=NOW)
+    assert page.direction == "BULLISH"
+    assert page.direction_confidence == 0.7
+    assert page.direction_as_of == date(2026, 8, 24)
+
+
+def test_direction_hidden_when_the_only_signal_is_for_a_past_report(s):
+    """A ticker between its last print and the next one has a Workflow-B row
+    on file, but it isn't about the report `next_report_date` is pointing at
+    -- showing it would read as a live call it isn't."""
+    _snap(s, next_report_date=date(2026, 11, 25))
+    ev = repo.upsert_earnings_event(s, "NVDA", date(2026, 8, 26))
+    repo.save_signal(
+        s,
+        ticker="NVDA",
+        run_date=date(2026, 8, 24),
+        workflow="B",
+        event=ev,
+        implied_move=None,
+        hist_avg_move=None,
+        verdict=None,
+        edge_score=None,
+        direction="BULLISH",
+        confidence=0.7,
+    )
+    s.commit()
+
+    page = pages.ticker_page(s, "NVDA", now=NOW)
+    assert page.direction is None
+    assert page.direction_confidence is None
+
+
+def test_direction_none_when_never_computed(s):
+    _snap(s, next_report_date=date(2026, 8, 26))
+    assert pages.ticker_page(s, "NVDA", now=NOW).direction is None
+
+
 # ---- spot price fallback ----------------------------------------------------
 
 

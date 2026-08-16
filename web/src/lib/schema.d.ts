@@ -654,6 +654,21 @@ export interface components {
             next_report_session?: string | null;
             /** Days Until Report */
             days_until_report?: number | null;
+            /**
+             * Direction
+             * @description BULLISH | BEARISH | NEUTRAL — the validated options-flow + sentiment lean for the *next* report, refined daily starting a few days out. Absent (not NEUTRAL) until that window opens; describes what the market's flow suggests, not a recommendation.
+             */
+            direction?: string | null;
+            /**
+             * Direction Confidence
+             * @description 0-1
+             */
+            direction_confidence?: number | null;
+            /**
+             * Direction As Of
+             * @description the date this read was last refreshed, for an age/freshness label
+             */
+            direction_as_of?: string | null;
             options?: components["schemas"]["OptionsPanel"] | null;
             /**
              * History

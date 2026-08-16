@@ -361,6 +361,7 @@ def ticker_page(
     snap = repo.latest_dashboard_snapshot(session, ticker)
     timeline = repo.ticker_timeline(session, ticker, limit=HISTORY_LIMIT * 3)
     records = repo.ticker_earnings_history(session, ticker, limit=HISTORY_LIMIT)
+    direction_signal = repo.latest_direction_signal(session, ticker)
 
     from earnings.core.llm_context import build as build_ctx
 
@@ -400,6 +401,15 @@ def ticker_page(
     page.days_until_report = (
         (snap.next_report_date - now.date()).days if snap.next_report_date else None
     )
+    # Only surface the read when it's actually about the *next* report —
+    # latest_direction_signal returns whichever Workflow-B row is newest
+    # regardless of which print it was for, so a ticker that hasn't entered
+    # the lookahead window yet would otherwise show a stale call left over
+    # from its last (already-happened) event.
+    if direction_signal is not None and direction_signal.report_date == snap.next_report_date:
+        page.direction = direction_signal.direction
+        page.direction_confidence = direction_signal.confidence
+        page.direction_as_of = direction_signal.run_date
     page.options = options_panel(snap)
     page.news = _news(snap)
     page.news_sentiment = snap.news_sentiment

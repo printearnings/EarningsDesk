@@ -1716,6 +1716,43 @@
             ],
             "title": "Days Until Report"
           },
+          "direction": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Direction",
+            "description": "BULLISH | BEARISH | NEUTRAL \u2014 the validated options-flow + sentiment lean for the *next* report, refined daily starting a few days out. Absent (not NEUTRAL) until that window opens; describes what the market's flow suggests, not a recommendation."
+          },
+          "direction_confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Direction Confidence",
+            "description": "0-1"
+          },
+          "direction_as_of": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Direction As Of",
+            "description": "the date this read was last refreshed, for an age/freshness label"
+          },
           "options": {
             "anyOf": [
               {

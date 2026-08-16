@@ -175,6 +175,19 @@ class TickerPage(BaseModel):
     next_report_session: str | None = None
     days_until_report: int | None = None
 
+    direction: str | None = Field(
+        None,
+        description=(
+            "BULLISH | BEARISH | NEUTRAL — the validated options-flow + sentiment lean for the "
+            "*next* report, refined daily starting a few days out. Absent (not NEUTRAL) until "
+            "that window opens; describes what the market's flow suggests, not a recommendation."
+        ),
+    )
+    direction_confidence: float | None = Field(None, description="0-1")
+    direction_as_of: date | None = Field(
+        None, description="the date this read was last refreshed, for an age/freshness label"
+    )
+
     options: OptionsPanel | None = None
     history: list[EarningsHistoryRow] = []
     stats: HistoryStats | None = None

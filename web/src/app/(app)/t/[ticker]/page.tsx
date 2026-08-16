@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { VerdictChip } from "@/components/Chip";
+import { DirectionChip, VerdictChip } from "@/components/Chip";
 import { CompanyLogo } from "@/components/CompanyLogo";
 import { Eyebrow, Panel, StatCard } from "@/components/Panel";
 import { TickerTabs } from "@/components/TickerTabs";
@@ -11,12 +11,19 @@ import {
   EMPTY,
   formatAge,
   formatDate,
+  formatDateShort,
   money,
   num,
+  pct,
   pctRange,
   relativeDays,
   sessionLabel,
 } from "@/lib/format";
+
+// Wider than the engine's own DIRECTION_LOOKAHEAD_DAYS (3) on purpose: a
+// reader within this window but before the read exists should see "not yet"
+// rather than nothing, so the feature reads as upcoming, not missing.
+const DIRECTION_HEADS_UP_DAYS = 7;
 
 /** Static export needs the full route list at build time. */
 export async function generateStaticParams() {
@@ -80,6 +87,7 @@ function SubHeader({ data }: { data: TickerData }) {
             {money(data.spot)}
           </span>
           {data.options?.verdict && <VerdictChip verdict={data.options.verdict} />}
+          {data.direction && <DirectionChip direction={data.direction} />}
         </div>
 
         <p className="mt-2 text-[var(--color-body)]">
@@ -95,6 +103,27 @@ function SubHeader({ data }: { data: TickerData }) {
             "No confirmed earnings date."
           )}
         </p>
+
+        {/* The one number this whole feature lives or dies on, so its
+            freshness and confidence are never left implicit — same rule as
+            the snapshot-age label on the right. */}
+        {data.direction ? (
+          <p className="mt-1 text-sm text-[var(--color-muted)]">
+            {typeof data.direction_confidence === "number"
+              ? `${pct(data.direction_confidence, 0)} confidence`
+              : null}
+            {data.direction_as_of && ` · as of ${formatDateShort(data.direction_as_of)}`}
+            {" · options flow + sentiment, not a recommendation"}
+          </p>
+        ) : (
+          typeof data.days_until_report === "number" &&
+          data.days_until_report >= 0 &&
+          data.days_until_report <= DIRECTION_HEADS_UP_DAYS && (
+            <p className="mt-1 text-sm text-[var(--color-muted)]">
+              Directional read not available yet — it starts a few days before the report.
+            </p>
+          )
+        )}
       </div>
 
       <div className="text-right">
