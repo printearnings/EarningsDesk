@@ -992,6 +992,57 @@
             ],
             "title": "Atm Expiry"
           },
+          "call_volume": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Call Volume",
+            "description": "today's total call contracts traded"
+          },
+          "put_volume": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Put Volume",
+            "description": "today's total put contracts traded"
+          },
+          "atm_volume": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Atm Volume",
+            "description": "today's call+put volume at the ATM strike, vs. atm_open_interest"
+          },
+          "oi_by_strike": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/StrikeOpenInterest"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Oi By Strike",
+            "description": "a window of strikes around the ATM, for a liquidity chart"
+          },
           "iv_front": {
             "anyOf": [
               {
@@ -1441,6 +1492,30 @@
         ],
         "title": "SiteIndex",
         "description": "Everything the frontend needs to render search and build static routes."
+      },
+      "StrikeOpenInterest": {
+        "properties": {
+          "strike": {
+            "type": "number",
+            "title": "Strike"
+          },
+          "call_oi": {
+            "type": "integer",
+            "title": "Call Oi"
+          },
+          "put_oi": {
+            "type": "integer",
+            "title": "Put Oi"
+          }
+        },
+        "type": "object",
+        "required": [
+          "strike",
+          "call_oi",
+          "put_oi"
+        ],
+        "title": "StrikeOpenInterest",
+        "description": "Open interest at one strike, split by side \u2014 one bar of the\nopen-interest-by-strike chart."
       },
       "TickerIndexEntry": {
         "properties": {

@@ -38,6 +38,7 @@ from app.schemas import (
     PricePoint,
     SignalRow,
     SignalsPage,
+    StrikeOpenInterest,
     TickerPage,
     TrackRecordPage,
 )
@@ -78,6 +79,14 @@ def options_panel(snap: DashboardSnapshot) -> OptionsPanel | None:
         atm_open_interest=snap.atm_open_interest,
         atm_strike=snap.atm_strike,
         atm_expiry=snap.atm_expiry,
+        call_volume=snap.call_volume,
+        put_volume=snap.put_volume,
+        atm_volume=snap.atm_volume,
+        oi_by_strike=(
+            [StrikeOpenInterest(**row) for row in json.loads(snap.oi_by_strike_json)]
+            if snap.oi_by_strike_json
+            else None
+        ),
         iv_front=snap.iv_front,
         iv_back=snap.iv_back,
         iv_inverted=None if snap.iv_inverted is None else bool(snap.iv_inverted),

@@ -101,6 +101,15 @@ class HistoryStats(BaseModel):
     avg_vol_ratio: float | None = None
 
 
+class StrikeOpenInterest(BaseModel):
+    """Open interest at one strike, split by side — one bar of the
+    open-interest-by-strike chart."""
+
+    strike: float
+    call_oi: int
+    put_oi: int
+
+
 class OptionsPanel(BaseModel):
     """What the options market is pricing right now (as of the snapshot)."""
 
@@ -116,6 +125,15 @@ class OptionsPanel(BaseModel):
     atm_open_interest: int | None = None
     atm_strike: float | None = None
     atm_expiry: date | None = None
+
+    call_volume: int | None = Field(None, description="today's total call contracts traded")
+    put_volume: int | None = Field(None, description="today's total put contracts traded")
+    atm_volume: int | None = Field(
+        None, description="today's call+put volume at the ATM strike, vs. atm_open_interest"
+    )
+    oi_by_strike: list[StrikeOpenInterest] | None = Field(
+        None, description="a window of strikes around the ATM, for a liquidity chart"
+    )
 
     iv_front: float | None = None
     iv_back: float | None = None

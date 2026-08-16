@@ -17,6 +17,7 @@ from earnings.store.repo import TimelineEvent
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
+from app.schemas import StrikeOpenInterest
 from app.services import pages
 
 NOW = datetime(2026, 8, 8, 12, 0, tzinfo=UTC)
@@ -86,6 +87,15 @@ def test_options_panel_maps_and_derives(s):
         iv_front=0.4264,
         iv_back=0.4143,
         iv_inverted=1,
+        call_volume=9000,
+        put_volume=5130,
+        atm_volume=3400,
+        oi_by_strike_json=json.dumps(
+            [
+                {"strike": 220.0, "call_oi": 4000, "put_oi": 3500},
+                {"strike": 225.0, "call_oi": 6000, "put_oi": 5200},
+            ]
+        ),
     )
     panel = pages.options_panel(snap)
 
@@ -93,6 +103,18 @@ def test_options_panel_maps_and_derives(s):
     assert panel.richness == pytest.approx(0.3333, abs=1e-3)
     assert panel.iv_inverted is True
     assert panel.put_call_ratio == 0.57
+    assert panel.call_volume == 9000
+    assert panel.put_volume == 5130
+    assert panel.atm_volume == 3400
+    assert panel.oi_by_strike == [
+        StrikeOpenInterest(strike=220.0, call_oi=4000, put_oi=3500),
+        StrikeOpenInterest(strike=225.0, call_oi=6000, put_oi=5200),
+    ]
+
+
+def test_options_panel_oi_by_strike_is_none_without_a_stored_series(s):
+    panel = pages.options_panel(_snap(s, put_call_ratio=0.57))
+    assert panel.oi_by_strike is None
 
 
 def test_options_panel_absent_when_there_is_no_chain(s):

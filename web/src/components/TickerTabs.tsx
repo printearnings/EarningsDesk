@@ -7,6 +7,7 @@ import { DirectionChip, SessionChip, VerdictChip } from "@/components/Chip";
 import { FinancialsPanel } from "@/components/FinancialsPanel";
 import { ImpliedVsRealized } from "@/components/ImpliedVsRealized";
 import { NewsThumbnail } from "@/components/NewsThumbnail";
+import { OpenInterestChart } from "@/components/OpenInterestChart";
 import { Panel, Stat } from "@/components/Panel";
 import { PriceChart } from "@/components/PriceChart";
 import type { TickerPage as TickerData } from "@/lib/api";
@@ -178,6 +179,16 @@ function OptionsPanelCard({ data }: { data: TickerData }) {
           hint="Contracts held at the at-the-money strike. Low numbers mean wide spreads."
         />
         <Stat
+          label="Call volume"
+          value={compact(o.call_volume)}
+          hint="Total call contracts traded today, across every strike and expiry."
+        />
+        <Stat
+          label="Put volume"
+          value={compact(o.put_volume)}
+          hint="Total put contracts traded today, across every strike and expiry."
+        />
+        <Stat
           label="IV term"
           value={
             o.iv_inverted === null || o.iv_inverted === undefined
@@ -212,6 +223,13 @@ function OptionsPanelCard({ data }: { data: TickerData }) {
           Measured from the {money(o.atm_strike, 0)} straddle expiring{" "}
           {formatDateShort(o.atm_expiry)}.
         </p>
+      )}
+
+      {o.oi_by_strike && o.oi_by_strike.length > 0 && (
+        <div className="mt-5 border-t border-[var(--color-border-subtle)] pt-5">
+          <p className="eyebrow mb-3">Open interest by strike</p>
+          <OpenInterestChart rows={o.oi_by_strike} atmStrike={o.atm_strike} />
+        </div>
       )}
     </Panel>
   );
