@@ -76,9 +76,13 @@ export function FinancialsPanel({ ticker }: { ticker: string }) {
     setPage(1);
   }
 
+  // Capped at 5 — most people are comparing recent years, and a decade-plus
+  // of fiscal history in one dropdown is more scrolling than signal.
   const availableYears = useMemo(() => {
     if (!data) return [];
-    return [...new Set(data.quarters.map((q) => q.fiscal_year))].sort((a, b) => b - a);
+    return [...new Set(data.quarters.map((q) => q.fiscal_year))]
+      .sort((a, b) => b - a)
+      .slice(0, 5);
   }, [data]);
 
   const filtered = useMemo(() => {
