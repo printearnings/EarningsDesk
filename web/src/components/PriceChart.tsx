@@ -229,13 +229,15 @@ export function PriceChart({
                 type="button"
                 onClick={() => setChartType(t.key)}
                 aria-pressed={chartType === t.key}
-                className={`pressable rounded-[3px] px-2.5 py-1 text-sm font-medium transition-colors ${
+                aria-label={t.label}
+                title={t.label}
+                className={`pressable flex h-[30px] w-[30px] items-center justify-center rounded-[3px] transition-colors ${
                   chartType === t.key
                     ? "bg-[var(--color-panel-soft)] text-[var(--color-heading)]"
                     : "text-[var(--color-muted)] hover:bg-[var(--color-panel-soft)]"
                 }`}
               >
-                {t.label}
+                {t.key === "line" ? <LineTypeIcon /> : <CandleTypeIcon />}
               </button>
             ))}
           </div>
@@ -291,6 +293,13 @@ export function PriceChart({
         <p className="py-10 text-center text-sm text-[var(--color-muted)]">
           {intraday.error} Try the 1Y view instead.
         </p>
+      ) : range !== "1y" && points.length === 0 ? (
+        // Distinct from `intraday.error`: the fetch succeeded, there is just
+        // nothing to plot yet — the normal state for 1D outside market hours,
+        // not a broken chart. Same fallback pointer as the error case above.
+        <p className="py-10 text-center text-sm text-[var(--color-muted)]">
+          No trading data yet for this window. Markets may be closed. Try 5D or 1Y.
+        </p>
       ) : (
         <ChartBody
           points={points}
@@ -306,6 +315,31 @@ export function PriceChart({
         />
       )}
     </figure>
+  );
+}
+
+function LineTypeIcon() {
+  return (
+    <svg width={15} height={15} viewBox="0 0 16 16" fill="none" aria-hidden>
+      <path
+        d="M2 11.5 6 7l2.5 2.5L14 4"
+        stroke="currentColor"
+        strokeWidth={1.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function CandleTypeIcon() {
+  return (
+    <svg width={15} height={15} viewBox="0 0 16 16" fill="none" aria-hidden>
+      <line x1="4.5" y1="1.5" x2="4.5" y2="14.5" stroke="currentColor" strokeWidth={1.3} />
+      <rect x="2.8" y="5" width="3.4" height="5" rx="0.5" fill="currentColor" />
+      <line x1="11.5" y1="1.5" x2="11.5" y2="14.5" stroke="currentColor" strokeWidth={1.3} />
+      <rect x="9.8" y="7.5" width="3.4" height="4" rx="0.5" fill="currentColor" />
+    </svg>
   );
 }
 
@@ -735,7 +769,7 @@ function ChartBody({
   return (
     <div>
       <div className="mb-1.5 flex h-4 items-center justify-end">
-        {zoom ? (
+        {zoom && (
           <button
             type="button"
             onClick={() => setZoom(null)}
@@ -743,10 +777,6 @@ function ChartBody({
           >
             Reset zoom
           </button>
-        ) : (
-          <span className="text-2xs font-mono tracking-[0.06em] text-[var(--color-muted)] uppercase">
-            Scroll or pinch to zoom · drag to pan
-          </span>
         )}
       </div>
 
