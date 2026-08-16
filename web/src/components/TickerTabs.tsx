@@ -11,11 +11,12 @@ import { NewsThumbnail } from "@/components/NewsThumbnail";
 import { OpenInterestChart } from "@/components/OpenInterestChart";
 import { Panel, Stat } from "@/components/Panel";
 import { PriceChart } from "@/components/PriceChart";
-import type { TickerPage as TickerData } from "@/lib/api";
+import type { PricePoint, TickerPage as TickerData } from "@/lib/api";
 import {
   EMPTY,
   compact,
   eps,
+  formatDate,
   formatDateShort,
   money,
   num,
@@ -305,6 +306,83 @@ function NewsPanel({ data }: { data: TickerData }) {
   );
 }
 
+// The 1Y price series only covers the trailing year, so an older report date
+// has no real "day after" close in range at all. Without a bound, the
+// closeXAfter functions below would fall through to the *first* point in the
+// whole array — some price months away — and silently mislabel it as the
+// reaction close. A trading-week-ish cap turns that into an honest "—".
+const MAX_REACTION_GAP_DAYS = 7;
+
+function daysBetween(a: string, b: string): number {
+  return Math.abs(new Date(a).getTime() - new Date(b).getTime()) / 86_400_000;
+}
+
+/** Last close on or before `iso`, within a short window — `prices` must be ascending by date. */
+function closeAtOrBefore(prices: PricePoint[], iso: string): number | null {
+  let result: PricePoint | null = null;
+  for (const p of prices) {
+    if (p.date > iso) break;
+    result = p;
+  }
+  return result && daysBetween(result.date, iso) <= MAX_REACTION_GAP_DAYS ? result.close : null;
+}
+
+/** First close on or after `iso`, within a short window. */
+function closeAtOrAfter(prices: PricePoint[], iso: string): number | null {
+  for (const p of prices) {
+    if (p.date >= iso) {
+      return daysBetween(p.date, iso) <= MAX_REACTION_GAP_DAYS ? p.close : null;
+    }
+  }
+  return null;
+}
+
+/** Strictly before `iso`, within a short window — excludes an exact match, unlike closeAtOrBefore. */
+function closeStrictlyBefore(prices: PricePoint[], iso: string): number | null {
+  let result: PricePoint | null = null;
+  for (const p of prices) {
+    if (p.date >= iso) break;
+    result = p;
+  }
+  return result && daysBetween(result.date, iso) <= MAX_REACTION_GAP_DAYS ? result.close : null;
+}
+
+/** Strictly after `iso`, within a short window — excludes an exact match, unlike closeAtOrAfter. */
+function closeStrictlyAfter(prices: PricePoint[], iso: string): number | null {
+  for (const p of prices) {
+    if (p.date > iso) {
+      return daysBetween(p.date, iso) <= MAX_REACTION_GAP_DAYS ? p.close : null;
+    }
+  }
+  return null;
+}
+
+/**
+ * The close right before and right after a report, timed against when the
+ * market actually had the news: an AMC report drops after that day's own
+ * close, so the reaction lands in the NEXT session — "before" is the report
+ * day's own close, "after" is the next one out. A BMO report is already
+ * priced in by the time that day's own close prints, so "before" is the
+ * PRIOR day's close and "after" is the report day's own. Unknown session
+ * falls back to the AMC convention, the more common case in this data.
+ */
+function reportPriceWindow(
+  prices: PricePoint[],
+  reportDate: string,
+  session: string | null | undefined,
+): { before: number | null; after: number | null } {
+  if (session === "BMO") {
+    return {
+      before: closeStrictlyBefore(prices, reportDate),
+      after: closeAtOrAfter(prices, reportDate),
+    };
+  }
+  return {
+    before: closeAtOrBefore(prices, reportDate),
+    after: closeStrictlyAfter(prices, reportDate),
+  };
+}
+
 function HistoryTable({ data }: { data: TickerData }) {
   const rows = data.history;
   const stats = data.stats;
@@ -315,7 +393,7 @@ function HistoryTable({ data }: { data: TickerData }) {
 
   return (
     <Panel
-      subtitle="The last eight reports"
+      subtitle="The last eight reports: EPS, surprise, and the move against what was priced in"
       bodyClassName="px-0 py-0"
       empty={
         rows.length === 0 ? "No earnings history recorded for this symbol yet." : undefined
@@ -360,6 +438,8 @@ function HistoryTable({ data }: { data: TickerData }) {
                 "Surprise",
                 "Implied",
                 "Actual",
+                "Price before",
+                "Price after",
                 "Gap",
                 "Volume",
                 "Call",
@@ -378,6 +458,11 @@ function HistoryTable({ data }: { data: TickerData }) {
               // engine hasn't scored that ticker's outcomes yet — which is the
               // common case today.
               const upcoming = r.report_date >= today;
+              const { before, after } = reportPriceWindow(
+                data.prices,
+                r.report_date,
+                r.session,
+              );
               return (
                 <tr
                   key={r.report_date}
@@ -387,7 +472,7 @@ function HistoryTable({ data }: { data: TickerData }) {
                 >
                   <td className="px-3 py-2.5 whitespace-nowrap">
                     <span className="inline-flex items-center gap-2 text-[var(--color-heading)]">
-                      {formatDateShort(r.report_date)}
+                      {formatDate(r.report_date)}
                       <SessionChip session={r.session} />
                     </span>
                   </td>
@@ -412,6 +497,12 @@ function HistoryTable({ data }: { data: TickerData }) {
                   </td>
                   <td className="px-3 py-2.5">{pctRange(r.implied_move)}</td>
                   <td className="px-3 py-2.5">{pctSigned(r.realized_move)}</td>
+                  <td className="px-3 py-2.5 whitespace-nowrap text-[var(--color-body)]">
+                    {money(before)}
+                  </td>
+                  <td className="px-3 py-2.5 whitespace-nowrap text-[var(--color-body)]">
+                    {money(after)}
+                  </td>
                   <td className="px-3 py-2.5">
                     {pctSigned(r.gap_open_pct)}
                     {r.gap_filled === true && (
