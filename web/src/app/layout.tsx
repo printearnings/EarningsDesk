@@ -30,7 +30,7 @@ const ebGaramond = EB_Garamond({
 });
 
 export const metadata: Metadata = {
-  title: "EarningsDesk",
+  title: "PrintEarnings",
   description:
     "What the options market is pricing into an earnings print, and what actually happened the last eight quarters.",
 };

@@ -76,12 +76,12 @@ export function Sidebar() {
         }`}
       >
         {collapsed ? (
-          <Link href="/" aria-label="EarningsDesk" className="font-mono text-sm font-bold">
-            ED
+          <Link href="/" aria-label="PrintEarnings" className="font-mono text-sm font-bold">
+            PE
           </Link>
         ) : (
           <Link href="/" className="font-mono text-sm font-medium tracking-[0.08em] uppercase">
-            Earnings<span className="text-[var(--color-muted)]">Desk</span>
+            Print<span className="text-[var(--color-muted)]">Earnings</span>
           </Link>
         )}
 

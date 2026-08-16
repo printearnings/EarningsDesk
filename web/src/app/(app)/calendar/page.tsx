@@ -3,7 +3,7 @@ import { Panel } from "@/components/Panel";
 import { TopBar } from "@/components/TopBar";
 import { getCalendarFull, getIndex } from "@/lib/api";
 
-export const metadata = { title: "Calendar | EarningsDesk" };
+export const metadata = { title: "Calendar | PrintEarnings" };
 
 export default async function CalendarPage() {
   const [index, calendar] = await Promise.all([getIndex(), getCalendarFull()]);

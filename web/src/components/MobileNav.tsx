@@ -70,7 +70,7 @@ export function MobileNav() {
           >
             <div className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4">
               <span className="font-mono text-sm font-medium tracking-[0.08em] uppercase">
-                Earnings<span className="text-[var(--color-muted)]">Desk</span>
+                Print<span className="text-[var(--color-muted)]">Earnings</span>
               </span>
               <button
                 type="button"

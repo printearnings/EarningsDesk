@@ -3,7 +3,7 @@ import { TopBar } from "@/components/TopBar";
 import { getIndex } from "@/lib/api";
 import { DISCLAIMER_PARAGRAPHS } from "@/lib/legal";
 
-export const metadata = { title: "Disclaimer | EarningsDesk" };
+export const metadata = { title: "Disclaimer | PrintEarnings" };
 
 export default async function DisclaimerPage() {
   const index = await getIndex();

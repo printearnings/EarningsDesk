@@ -34,7 +34,7 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: { params: Promise<{ ticker: string }> }) {
   const { ticker } = await params;
-  return { title: `${ticker.toUpperCase()} earnings | EarningsDesk` };
+  return { title: `${ticker.toUpperCase()} earnings | PrintEarnings` };
 }
 
 export default async function TickerPage({ params }: { params: Promise<{ ticker: string }> }) {

@@ -3,7 +3,7 @@ import { TickersScreener } from "@/components/TickersScreener";
 import { TopBar } from "@/components/TopBar";
 import { getIndex } from "@/lib/api";
 
-export const metadata = { title: "Tickers | EarningsDesk" };
+export const metadata = { title: "Tickers | PrintEarnings" };
 
 /**
  * The screener: every tracked ticker, sorted by how soon it reports —

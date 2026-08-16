@@ -3,7 +3,7 @@ import { TopBar } from "@/components/TopBar";
 import { getIndex, getTrackRecord } from "@/lib/api";
 import { pct } from "@/lib/format";
 
-export const metadata = { title: "Track record | EarningsDesk" };
+export const metadata = { title: "Track record | PrintEarnings" };
 
 /**
  * Verdict and direction accuracy, kept on two separate axes throughout — see

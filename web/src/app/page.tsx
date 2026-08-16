@@ -5,7 +5,7 @@ import { getCalendar, getIndex } from "@/lib/api";
 import { formatDateShort, pctRange } from "@/lib/format";
 
 export const metadata = {
-  title: "EarningsDesk | Implied move vs. history",
+  title: "PrintEarnings | Implied move vs. history",
 };
 
 /**
@@ -27,7 +27,7 @@ export default async function LandingPage() {
     <main>
       <section className="bg-[var(--color-brand)]">
         <div className="mx-auto max-w-[1280px] px-6 py-20 sm:py-28">
-          <p className="eyebrow !text-[var(--color-on-brand-muted)]">EarningsDesk</p>
+          <p className="eyebrow !text-[var(--color-on-brand-muted)]">PrintEarnings</p>
 
           <h1 className="display mt-4 max-w-3xl text-5xl !text-[var(--color-on-brand)] sm:text-6xl">
             Implied move vs. history,
@@ -106,7 +106,7 @@ export default async function LandingPage() {
           <strong className="font-medium text-[var(--color-body)]">
             Not financial advice.
           </strong>{" "}
-          EarningsDesk reports current options pricing and a stock&rsquo;s historical
+          PrintEarnings reports current options pricing and a stock&rsquo;s historical
           post-earnings behavior. It does not predict outcomes. Past behavior does not constrain
           the next print.
         </p>

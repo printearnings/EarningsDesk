@@ -2,7 +2,7 @@ import { Panel } from "@/components/Panel";
 import { TopBar } from "@/components/TopBar";
 import { getIndex } from "@/lib/api";
 
-export const metadata = { title: "FAQ | EarningsDesk" };
+export const metadata = { title: "FAQ | PrintEarnings" };
 
 export default async function FaqPage() {
   const index = await getIndex();
@@ -75,7 +75,7 @@ export default async function FaqPage() {
           </p>
         </Panel>
 
-        <Panel title="Is EarningsDesk free? Do I need an account?">
+        <Panel title="Is PrintEarnings free? Do I need an account?">
           <p className="max-w-3xl text-[var(--color-body)]">
             Free. No account, no sign-up. See{" "}
             <a href="/privacy/" className="underline underline-offset-2">

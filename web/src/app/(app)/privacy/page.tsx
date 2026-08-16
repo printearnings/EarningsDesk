@@ -2,7 +2,7 @@ import { Panel } from "@/components/Panel";
 import { TopBar } from "@/components/TopBar";
 import { getIndex } from "@/lib/api";
 
-export const metadata = { title: "Privacy | EarningsDesk" };
+export const metadata = { title: "Privacy | PrintEarnings" };
 
 export default async function PrivacyPage() {
   const index = await getIndex();

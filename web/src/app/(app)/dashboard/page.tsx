@@ -14,7 +14,7 @@ import {
   relativeDaysFromDate,
 } from "@/lib/format";
 
-export const metadata = { title: "Dashboard | EarningsDesk" };
+export const metadata = { title: "Dashboard | PrintEarnings" };
 
 /**
  * The overview: what's coming, what the engine has said lately, and how those

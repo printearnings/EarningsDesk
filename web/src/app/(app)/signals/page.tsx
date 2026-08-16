@@ -3,7 +3,7 @@ import { SignalsTable } from "@/components/SignalsTable";
 import { TopBar } from "@/components/TopBar";
 import { getIndex, getSignals } from "@/lib/api";
 
-export const metadata = { title: "Signals | EarningsDesk" };
+export const metadata = { title: "Signals | PrintEarnings" };
 
 /**
  * Every signal the engine has posted, newest run first — the receipts behind

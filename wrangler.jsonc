@@ -13,6 +13,21 @@
   "compatibility_date": "2026-08-08",
   "main": "./worker/src/index.ts",
 
+  // Adding `routes` makes Wrangler disable the free workers.dev URL by
+  // default (a silent behavior change, not something this file used to
+  // need an opinion on) — keep it explicitly on. earningsdesk.pkhai.workers.dev
+  // stays live as a bare-Worker fallback alongside the real domain below.
+  "workers_dev": true,
+
+  // Workers Custom Domains: `wrangler deploy` provisions the DNS record and
+  // SSL cert itself as long as the zone is already on this Cloudflare
+  // account (it is — printearnings.com shows "DNS Setup: Full"). No manual
+  // DNS record needed for either host.
+  "routes": [
+    { "pattern": "printearnings.com", "custom_domain": true },
+    { "pattern": "www.printearnings.com", "custom_domain": true }
+  ],
+
   "assets": {
     // `next build` with output: "export" writes here.
     "directory": "./web/out",

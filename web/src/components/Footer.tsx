@@ -9,7 +9,7 @@ export function Footer() {
   return (
     <footer className="border-t border-[var(--color-border)] px-6 py-5">
       <p className="text-2xs text-[var(--color-muted)]">
-        EarningsDesk: informational only, not financial advice.{" "}
+        PrintEarnings: informational only, not financial advice.{" "}
         <Link href="/disclaimer/" className="underline underline-offset-2">
           Disclaimer
         </Link>
