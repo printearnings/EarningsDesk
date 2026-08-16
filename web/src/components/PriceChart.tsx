@@ -327,6 +327,13 @@ function GearIcon() {
   );
 }
 
+/** Euclidean distance between two touch points, in the same client-pixel
+ * space `getBoundingClientRect` uses — the raw input a pinch gesture's zoom
+ * factor is derived from. */
+function touchDistance(a: Touch, b: Touch): number {
+  return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+}
+
 /** SVG path for an overlay series keyed by date against the main series' own
  * x/y scale — breaks into a fresh `M` after any gap (an indicator's warm-up
  * window, a date the main series doesn't have) rather than drawing a line
@@ -395,6 +402,13 @@ function ChartBody({
   // offset at mousedown, so every mousemove during the drag can compute "how
   // many indices has the cursor moved" and shift the window by exactly that.
   const [pan, setPan] = useState<{ anchorLocal: number; anchorOffset: number } | null>(null);
+  // Anchors a two-finger pinch: the previous frame's finger separation, so
+  // each touchmove can compute an incremental zoom factor the same way one
+  // wheel tick does — never a single cumulative jump from the gesture's start,
+  // which would fight `zoomBy`'s own "keep this point under the cursor" math.
+  // A ref, not state: purely gesture bookkeeping between touch events, never
+  // read during render, so it shouldn't trigger one on every pinch tick.
+  const pinchRef = useRef<{ distance: number } | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
   // A pan that ends with the mouse released outside the SVG (dragged past
@@ -649,6 +663,60 @@ function ChartBody({
     return () => el.removeEventListener("wheel", onWheel);
   });
 
+  // Touch equivalents of the mouse gestures above — mirrors mouse hover with
+  // one finger (scrub to preview a value) and mouse wheel with two (pinch to
+  // zoom, centered on the pinch midpoint). React attaches touch listeners
+  // passively by default, same issue the wheel listener above works around,
+  // so this needs the same native-listener escape hatch: without it,
+  // `preventDefault()` is silently ignored and the page pinch-zooms or
+  // scrolls instead of the chart.
+  useEffect(() => {
+    const el = svgRef.current;
+    if (!el) return;
+
+    const onTouchStart = (e: TouchEvent) => {
+      e.preventDefault();
+      const rect = el.getBoundingClientRect();
+      if (e.touches.length === 1) {
+        pinchRef.current = null;
+        setHover(localIndexAt(e.touches[0].clientX, rect));
+      } else if (e.touches.length === 2) {
+        setHover(null);
+        pinchRef.current = { distance: touchDistance(e.touches[0], e.touches[1]) };
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      e.preventDefault();
+      const rect = el.getBoundingClientRect();
+      if (e.touches.length === 1) {
+        setHover(localIndexAt(e.touches[0].clientX, rect));
+      } else if (e.touches.length === 2) {
+        const distance = touchDistance(e.touches[0], e.touches[1]);
+        const midClientX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        const centerLocal = localIndexAt(midClientX, rect);
+        if (pinchRef.current) zoomBy(pinchRef.current.distance / distance, centerLocal);
+        pinchRef.current = { distance };
+      }
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      pinchRef.current = null;
+      if (e.touches.length === 0) setHover(null);
+    };
+
+    el.addEventListener("touchstart", onTouchStart, { passive: false });
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    el.addEventListener("touchend", onTouchEnd, { passive: false });
+    el.addEventListener("touchcancel", onTouchEnd, { passive: false });
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+      el.removeEventListener("touchend", onTouchEnd);
+      el.removeEventListener("touchcancel", onTouchEnd);
+    };
+  });
+
   if (!chart) {
     return (
       <p className="py-10 text-center text-sm text-[var(--color-muted)]">
@@ -677,7 +745,7 @@ function ChartBody({
           </button>
         ) : (
           <span className="text-2xs font-mono tracking-[0.06em] text-[var(--color-muted)] uppercase">
-            Scroll to zoom · drag to pan
+            Scroll or pinch to zoom · drag to pan
           </span>
         )}
       </div>
@@ -685,7 +753,7 @@ function ChartBody({
       <div className="relative">
         <svg
           viewBox={`0 0 ${W} ${H}`}
-          className={`w-full select-none ${pan ? "cursor-grabbing" : "cursor-grab"}`}
+          className={`w-full touch-none select-none ${pan ? "cursor-grabbing" : "cursor-grab"}`}
           role="img"
           aria-label={`${intraday ? "Intraday" : "Daily"} closing price. Range ${money(
             chart.min,

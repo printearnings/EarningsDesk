@@ -89,11 +89,11 @@ export function DateRangeFilter({
   onToChange: (value: string) => void;
 }) {
   const inputClass =
-    "text-2xs w-[8.5rem] rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-panel)] px-2 py-1 text-[var(--color-heading)] focus:border-[var(--color-brand)] focus:outline-none";
+    "text-2xs w-32 shrink-0 sm:w-[8.5rem] rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-panel)] px-2 py-1 text-[var(--color-heading)] focus:border-[var(--color-brand)] focus:outline-none";
 
   return (
-    <div className="flex items-center gap-1.5">
-      <span className="eyebrow text-[var(--color-muted)]">{label}</span>
+    <div className="flex flex-wrap items-center gap-1.5 gap-y-2">
+      <span className="eyebrow shrink-0 text-[var(--color-muted)]">{label}</span>
       <input
         type="date"
         value={from}
@@ -101,7 +101,7 @@ export function DateRangeFilter({
         aria-label={`${label} from`}
         className={inputClass}
       />
-      <span className="text-2xs text-[var(--color-muted)]">to</span>
+      <span className="text-2xs shrink-0 text-[var(--color-muted)]">to</span>
       <input
         type="date"
         value={to}
