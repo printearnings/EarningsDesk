@@ -115,8 +115,7 @@ export function Sidebar() {
       {!collapsed && (
         <div className="border-t border-[var(--color-border)] p-4">
           <p className="text-2xs text-[var(--color-muted)]">
-            Snapshots rebuild nightly. Options pricing is as of the last run, never live on page
-            load.
+            Data updates once a day. Live pricing available on request.
           </p>
         </div>
       )}

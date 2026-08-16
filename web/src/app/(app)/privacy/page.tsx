@@ -32,25 +32,13 @@ export default async function PrivacyPage() {
           </p>
         </Panel>
 
-        <Panel title="What touches a server">
-          <div className="max-w-3xl space-y-3 text-[var(--color-body)]">
-            <p>
-              Every request reaches Cloudflare&rsquo;s edge network, which logs standard web
-              server information (IP address, user agent, requested path) as any host does. This
-              project does not query or export those logs.
-            </p>
-            <p>
-              The &ldquo;refresh live data&rdquo; and ticker-search actions are rate-limited per
-              IP address to control data costs. Your IP is held briefly for that count, keyed by
-              the hour and expiring automatically within about 65 minutes. Not logged, profiled,
-              or retained beyond that window.
-            </p>
-            <p>
-              Company logos load from Google&rsquo;s public favicon service. Your browser makes
-              a direct request to Google for that image, the one third-party request this site
-              causes your browser to make on its own.
-            </p>
-          </div>
+        <Panel title="A couple of other things">
+          <p className="max-w-3xl text-[var(--color-body)]">
+            Cloudflare, which hosts this site, logs standard request info the way any web host
+            does; this project doesn&rsquo;t use those logs for anything. A couple of actions
+            (refreshing live data, searching a ticker) are briefly limited by IP address to keep
+            costs sane. Company logos load a small image from Google.
+          </p>
         </Panel>
 
         <Panel title="Questions">

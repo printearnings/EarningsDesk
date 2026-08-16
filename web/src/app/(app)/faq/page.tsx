@@ -25,11 +25,11 @@ export default async function FaqPage() {
 
         <Panel title="Why don't I see an options panel for this ticker?">
           <p className="max-w-3xl text-[var(--color-body)]">
-            Two distinct states. &ldquo;Options data hasn&rsquo;t been captured for this symbol
-            yet&rdquo; means the nightly job has not taken a snapshot, typically because the
-            symbol is outside the tracked universe. &ldquo;No listed options chain&rdquo; means
-            it was checked: this symbol has no weekly options market (common for thinly-traded
-            names, some ADRs, and indices).
+            Two different messages, two different reasons. &ldquo;Options data not yet
+            captured&rdquo; means we haven&rsquo;t looked at this stock&rsquo;s options yet, so
+            there&rsquo;s nothing to show. &ldquo;No listed options chain&rdquo; means we
+            checked, and this stock genuinely has no weekly options market (common for
+            thinly-traded names, some foreign stocks, and indices).
           </p>
         </Panel>
 
@@ -67,11 +67,11 @@ export default async function FaqPage() {
           </p>
         </Panel>
 
-        <Panel title="What if a ticker isn't in the tracked universe?">
+        <Panel title="What if a ticker isn't one we track closely?">
           <p className="max-w-3xl text-[var(--color-body)]">
             Search works for any symbol. You get price, news, and financials the same as a
-            tracked name, without the historical signal track record or a nightly snapshot.
-            Options data is fetched live, on demand, instead.
+            closely-tracked name, without the historical signal track record. Options data is
+            fetched live, on demand, instead of pre-updated daily.
           </p>
         </Panel>
 

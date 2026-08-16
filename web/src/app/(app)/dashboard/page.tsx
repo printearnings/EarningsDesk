@@ -195,7 +195,7 @@ export default async function DashboardPage() {
 
         <Panel
           title="Recent news"
-          subtitle="Latest headlines across the tracked universe"
+          subtitle="Latest headlines across every tracked name"
           bodyClassName="px-0 py-0"
           empty={news.items.length === 0 ? "No recent headlines." : undefined}
         >

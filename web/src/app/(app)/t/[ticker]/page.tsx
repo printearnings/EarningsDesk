@@ -172,7 +172,7 @@ function SubHeader({ data, record }: { data: TickerData; record: TrackRecordPage
         </p>
         {!data.is_tracked && (
           <p className="mt-1 text-sm text-[var(--color-warning)]">
-            Outside the tracked universe, no signal history
+            Not one of our closely-tracked names, so no signal history
           </p>
         )}
       </div>

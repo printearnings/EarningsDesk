@@ -179,7 +179,7 @@ export function LookupClient({ trackedTickers }: { trackedTickers: string[] }) {
           {result.earnings_history.length > 0 && (
             <Panel
               title="Earnings history"
-              subtitle="By fiscal quarter end, not announcement date (the tracked universe carries the announcement date; this lookup does not)"
+              subtitle="By fiscal quarter end, not announcement date (tracked names carry the announcement date; this lookup does not)"
               bodyClassName="px-0 py-0"
             >
               <div className="overflow-x-auto">
