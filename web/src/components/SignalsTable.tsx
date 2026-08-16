@@ -7,14 +7,18 @@ import { DirectionChip, ResultChip, VerdictChip, WorkflowChip } from "@/componen
 import {
   DIRECTION_DOT,
   DIRECTIONS,
+  DateRangeFilter,
   FilterDivider,
   FilterGroup,
   VERDICT_DOT,
   VERDICTS,
   toggleInSet,
 } from "@/components/FilterGroup";
+import { Pagination } from "@/components/Pagination";
 import type { SignalRow } from "@/lib/api";
 import { formatDateShort, money, num, pctRange } from "@/lib/format";
+
+const PAGE_SIZE = 25;
 
 const HEADERS = [
   "Run date",
@@ -36,14 +40,34 @@ export function SignalsTable({ rows }: { rows: SignalRow[] }) {
   const [verdicts, setVerdicts] = useState<Set<string>>(() => new Set());
   const [directions, setDirections] = useState<Set<string>>(() => new Set());
   const [tickerQuery, setTickerQuery] = useState("");
+  const [runFrom, setRunFrom] = useState("");
+  const [runTo, setRunTo] = useState("");
+  const [page, setPage] = useState(1);
   const filtersActive =
-    workflows.size > 0 || verdicts.size > 0 || directions.size > 0 || tickerQuery.trim() !== "";
+    workflows.size > 0 ||
+    verdicts.size > 0 ||
+    directions.size > 0 ||
+    tickerQuery.trim() !== "" ||
+    runFrom !== "" ||
+    runTo !== "";
+
+  // Same reset-on-filter-change idiom as TickersScreener: a page number the
+  // new, narrower result set doesn't have would otherwise show an empty page
+  // instead of the first one.
+  const resetKey = `${[...workflows].join(",")}|${[...verdicts].join(",")}|${[...directions].join(",")}|${tickerQuery}|${runFrom}|${runTo}`;
+  const [prevResetKey, setPrevResetKey] = useState(resetKey);
+  if (prevResetKey !== resetKey) {
+    setPrevResetKey(resetKey);
+    setPage(1);
+  }
 
   function clearFilters() {
     setWorkflows(new Set());
     setVerdicts(new Set());
     setDirections(new Set());
     setTickerQuery("");
+    setRunFrom("");
+    setRunTo("");
   }
 
   const filtered = useMemo(() => {
@@ -55,9 +79,16 @@ export function SignalsTable({ rows }: { rows: SignalRow[] }) {
       const directionOk =
         directions.size === 0 || (r.direction != null && directions.has(r.direction));
       const tickerOk = q === "" || r.ticker.includes(q);
-      return workflowOk && verdictOk && directionOk && tickerOk;
+      const runDateOk =
+        (runFrom === "" || r.run_date >= runFrom) && (runTo === "" || r.run_date <= runTo);
+      return workflowOk && verdictOk && directionOk && tickerOk && runDateOk;
     });
-  }, [rows, workflows, verdicts, directions, tickerQuery, filtersActive]);
+  }, [rows, workflows, verdicts, directions, tickerQuery, runFrom, runTo, filtersActive]);
+
+  const paged = useMemo(
+    () => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [filtered, page],
+  );
 
   return (
     <>
@@ -112,6 +143,14 @@ export function SignalsTable({ rows }: { rows: SignalRow[] }) {
             className="text-2xs w-28 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-panel)] px-2 py-1 font-mono tracking-[0.06em] text-[var(--color-heading)] uppercase placeholder:tracking-normal placeholder:text-[var(--color-muted)] placeholder:normal-case focus:border-[var(--color-brand)] focus:outline-none"
           />
         </div>
+        <FilterDivider />
+        <DateRangeFilter
+          label="Run date"
+          from={runFrom}
+          to={runTo}
+          onFromChange={setRunFrom}
+          onToChange={setRunTo}
+        />
         {filtersActive && (
           <button
             type="button"
@@ -145,7 +184,7 @@ export function SignalsTable({ rows }: { rows: SignalRow[] }) {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((row) => (
+              {paged.map((row) => (
                 <tr
                   key={`${row.ticker}-${row.run_date}-${row.workflow}`}
                   className="border-b border-[var(--color-border-subtle)] last:border-b-0"
@@ -194,6 +233,13 @@ export function SignalsTable({ rows }: { rows: SignalRow[] }) {
           </table>
         </div>
       )}
+
+      <Pagination
+        page={page}
+        pageSize={PAGE_SIZE}
+        total={filtered.length}
+        onPageChange={setPage}
+      />
     </>
   );
 }

@@ -68,6 +68,51 @@ export function FilterGroup({
   );
 }
 
+/**
+ * From/to date-range filter, sharing the same eyebrow-label + control row
+ * shape every other filter in this app uses. Native `<input type="date">`
+ * rather than a custom picker: it's a triage table filter, not a form
+ * someone lingers on, and every browser already has a perfectly good date
+ * picker built in.
+ */
+export function DateRangeFilter({
+  label,
+  from,
+  to,
+  onFromChange,
+  onToChange,
+}: {
+  label: string;
+  from: string;
+  to: string;
+  onFromChange: (value: string) => void;
+  onToChange: (value: string) => void;
+}) {
+  const inputClass =
+    "text-2xs w-[8.5rem] rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-panel)] px-2 py-1 text-[var(--color-heading)] focus:border-[var(--color-brand)] focus:outline-none";
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="eyebrow text-[var(--color-muted)]">{label}</span>
+      <input
+        type="date"
+        value={from}
+        onChange={(e) => onFromChange(e.target.value)}
+        aria-label={`${label} from`}
+        className={inputClass}
+      />
+      <span className="text-2xs text-[var(--color-muted)]">to</span>
+      <input
+        type="date"
+        value={to}
+        onChange={(e) => onToChange(e.target.value)}
+        aria-label={`${label} to`}
+        className={inputClass}
+      />
+    </div>
+  );
+}
+
 /** Hairline separator between filter groups in a toolbar row — depth from a
  * border, not a gap alone, matching Vertical's "no shadows" rule. Hidden
  * below `sm` since flex-wrap is more likely to break a row there, and a

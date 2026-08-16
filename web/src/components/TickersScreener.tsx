@@ -7,17 +7,21 @@ import { motion } from "motion/react";
 import { SessionChip, VerdictChip } from "@/components/Chip";
 import { CompanyLogo } from "@/components/CompanyLogo";
 import {
+  DateRangeFilter,
   FilterDivider,
   FilterGroup,
   VERDICT_DOT,
   VERDICTS,
   toggleInSet,
 } from "@/components/FilterGroup";
+import { Pagination } from "@/components/Pagination";
 import type { TickerIndexEntry } from "@/lib/api";
 import { EMPTY, daysUntilFromDate, money, pctRange, relativeDays } from "@/lib/format";
 
 type SortKey = "days" | "implied";
 type SortDir = "asc" | "desc";
+
+const PAGE_SIZE = 25;
 
 const HEADERS: { key: SortKey | null; label: string }[] = [
   { key: null, label: "Ticker" },
@@ -41,13 +45,30 @@ const HEADERS: { key: SortKey | null; label: string }[] = [
 export function TickersScreener({ tickers }: { tickers: TickerIndexEntry[] }) {
   const [verdicts, setVerdicts] = useState<Set<string>>(() => new Set());
   const [tickerQuery, setTickerQuery] = useState("");
+  const [reportFrom, setReportFrom] = useState("");
+  const [reportTo, setReportTo] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("days");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
-  const filtersActive = verdicts.size > 0 || tickerQuery.trim() !== "";
+  const [page, setPage] = useState(1);
+  const filtersActive =
+    verdicts.size > 0 || tickerQuery.trim() !== "" || reportFrom !== "" || reportTo !== "";
+
+  // Reset to page 1 whenever the filtered/sorted set changes shape, not just
+  // on an explicit page click — done during render (the reset-on-prop-change
+  // idiom this app uses elsewhere) so a filter change never leaves you
+  // stranded on a page number the new result set doesn't have.
+  const resetKey = `${[...verdicts].join(",")}|${tickerQuery}|${reportFrom}|${reportTo}|${sortKey}|${sortDir}`;
+  const [prevResetKey, setPrevResetKey] = useState(resetKey);
+  if (prevResetKey !== resetKey) {
+    setPrevResetKey(resetKey);
+    setPage(1);
+  }
 
   function clearFilters() {
     setVerdicts(new Set());
     setTickerQuery("");
+    setReportFrom("");
+    setReportTo("");
   }
 
   function toggleSort(key: SortKey) {
@@ -72,7 +93,15 @@ export function TickersScreener({ tickers }: { tickers: TickerIndexEntry[] }) {
             q === "" ||
             t.ticker.includes(q) ||
             (t.company_name ?? "").toUpperCase().includes(q);
-          return verdictOk && tickerOk;
+          // A ticker with no scheduled report has no date to compare — it
+          // can't satisfy a range constraint, so it drops out rather than
+          // ambiguously passing every date filter by default.
+          const reportDateOk =
+            (reportFrom === "" && reportTo === "") ||
+            (t.next_report_date != null &&
+              (reportFrom === "" || t.next_report_date >= reportFrom) &&
+              (reportTo === "" || t.next_report_date <= reportTo));
+          return verdictOk && tickerOk && reportDateOk;
         })
       : tickers;
 
@@ -96,7 +125,12 @@ export function TickersScreener({ tickers }: { tickers: TickerIndexEntry[] }) {
       return sortDir === "asc" ? av - bv : bv - av;
     });
     return withDays.map((r) => r.t);
-  }, [tickers, verdicts, tickerQuery, filtersActive, sortKey, sortDir]);
+  }, [tickers, verdicts, tickerQuery, reportFrom, reportTo, filtersActive, sortKey, sortDir]);
+
+  const pagedRows = useMemo(
+    () => rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [rows, page],
+  );
 
   return (
     <>
@@ -119,6 +153,14 @@ export function TickersScreener({ tickers }: { tickers: TickerIndexEntry[] }) {
             className="text-2xs w-32 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-panel)] px-2 py-1 font-mono tracking-[0.06em] text-[var(--color-heading)] uppercase placeholder:tracking-normal placeholder:text-[var(--color-muted)] placeholder:normal-case focus:border-[var(--color-brand)] focus:outline-none"
           />
         </div>
+        <FilterDivider />
+        <DateRangeFilter
+          label="Reports"
+          from={reportFrom}
+          to={reportTo}
+          onFromChange={setReportFrom}
+          onToChange={setReportTo}
+        />
         {filtersActive && (
           <button
             type="button"
@@ -167,7 +209,7 @@ export function TickersScreener({ tickers }: { tickers: TickerIndexEntry[] }) {
               </tr>
             </thead>
             <tbody>
-              {rows.map((t) => {
+              {pagedRows.map((t) => {
                 const days = daysUntilFromDate(t.next_report_date);
                 return (
                   <motion.tr
@@ -216,6 +258,8 @@ export function TickersScreener({ tickers }: { tickers: TickerIndexEntry[] }) {
           </table>
         </div>
       )}
+
+      <Pagination page={page} pageSize={PAGE_SIZE} total={rows.length} onPageChange={setPage} />
     </>
   );
 }
