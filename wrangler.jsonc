@@ -11,6 +11,9 @@
   // could fire /api/refresh and burn the Massive quota.
   "name": "earningsdesk",
   "compatibility_date": "2026-08-08",
+  // mimetext (building the support-form email) needs Node's Buffer/crypto
+  // shims — the one thing in this Worker that isn't pure Web APIs.
+  "compatibility_flags": ["nodejs_compat"],
   "main": "./worker/src/index.ts",
 
   // Adding `routes` makes Wrangler disable the free workers.dev URL by
@@ -25,7 +28,7 @@
   // DNS record needed for either host.
   "routes": [
     { "pattern": "printearnings.com", "custom_domain": true },
-    { "pattern": "www.printearnings.com", "custom_domain": true }
+    { "pattern": "www.printearnings.com", "custom_domain": true },
   ],
 
   "assets": {
@@ -40,7 +43,7 @@
 
     // Static assets win by default; these paths go to the Worker script
     // instead. Scoped to /api/* so page loads never pay for Worker startup.
-    "run_worker_first": ["/api/*"]
+    "run_worker_first": ["/api/*"],
   },
 
   "kv_namespaces": [
@@ -49,13 +52,27 @@
       // Massive-touching endpoint (refresh, search, chart, indicators,
       // financials).
       "binding": "RATE_LIMIT",
-      "id": "9135f20d01354929b7b2eb0681e7bd66"
-    }
+      "id": "9135f20d01354929b7b2eb0681e7bd66",
+    },
+  ],
+
+  // Support-form submissions go out through Email Routing's existing
+  // verified destination rather than a third-party mail API — no new
+  // account/domain onboarding needed since Email Routing is already set up
+  // for this domain. `destination_address` is the owner's real inbox; the
+  // support@printearnings.com address is only ever the From/Reply-To the
+  // recipient sees, never something the browser/page source exposes.
+  "send_email": [
+    {
+      "name": "SUPPORT_EMAIL",
+      "destination_address": "patrickkhai98@gmail.com",
+    },
   ],
 
   "vars": {
     "LIVE_REFRESH_PER_HOUR": "10",
     "SEARCH_PER_HOUR": "60",
+    "SUPPORT_PER_HOUR": "5",
 
     // Global circuit breakers — protect total Massive spend against many
     // concurrent visitors, not just one abusive IP. See the SCALE note in
@@ -64,11 +81,12 @@
     "GLOBAL_SEARCH_PER_HOUR": "5000",
     "GLOBAL_CHART_PER_HOUR": "3000",
     "GLOBAL_INDICATORS_PER_HOUR": "1500",
-    "GLOBAL_FINANCIALS_PER_HOUR": "1000"
+    "GLOBAL_FINANCIALS_PER_HOUR": "1000",
+    "GLOBAL_SUPPORT_PER_HOUR": "50",
   },
 
   "observability": {
-    "enabled": true
+    "enabled": true,
   },
 
   // Dev environment: a separate Worker service (its own name, its own
@@ -89,20 +107,28 @@
       "kv_namespaces": [
         {
           "binding": "RATE_LIMIT",
-          "id": "7faa19f385c14b58b8369f78fcd3ba6d"
-        }
+          "id": "7faa19f385c14b58b8369f78fcd3ba6d",
+        },
+      ],
+      "send_email": [
+        {
+          "name": "SUPPORT_EMAIL",
+          "destination_address": "patrickkhai98@gmail.com",
+        },
       ],
       "vars": {
         "LIVE_REFRESH_PER_HOUR": "10",
         "SEARCH_PER_HOUR": "60",
+        "SUPPORT_PER_HOUR": "5",
         "GLOBAL_REFRESH_PER_HOUR": "300",
         "GLOBAL_SEARCH_PER_HOUR": "5000",
         "GLOBAL_CHART_PER_HOUR": "3000",
         "GLOBAL_INDICATORS_PER_HOUR": "1500",
-        "GLOBAL_FINANCIALS_PER_HOUR": "1000"
-      }
-    }
-  }
+        "GLOBAL_FINANCIALS_PER_HOUR": "1000",
+        "GLOBAL_SUPPORT_PER_HOUR": "50",
+      },
+    },
+  },
 
   // MASSIVE_API_KEY is a secret, not a var:
   //   wrangler secret put MASSIVE_API_KEY            (production)

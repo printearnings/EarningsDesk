@@ -35,7 +35,11 @@ export const OTHER = [
   { href: "/past-earnings/", label: "Past earnings", icon: HistoryIcon },
   { href: "/macro-calendar/", label: "Macro calendar", icon: LandmarkIcon },
   { href: "/methodology/", label: "Methodology", icon: BookIcon },
+];
+
+export const CONTACT = [
   { href: "/faq/", label: "FAQ", icon: QuestionIcon },
+  { href: "/support/", label: "Support", icon: MailIcon },
 ];
 
 const STORAGE_KEY = "earningsdesk:sidebar-collapsed";
@@ -113,6 +117,13 @@ export function Sidebar() {
         {!collapsed && <p className="eyebrow px-2 pt-6 pb-2">Others</p>}
         <ul className={`space-y-0.5 ${collapsed ? "mt-2" : ""}`}>
           {OTHER.map((item) => (
+            <NavItem key={item.href} {...item} pathname={pathname} collapsed={collapsed} />
+          ))}
+        </ul>
+
+        {!collapsed && <p className="eyebrow px-2 pt-6 pb-2">Contact us</p>}
+        <ul className={`space-y-0.5 ${collapsed ? "mt-2" : ""}`}>
+          {CONTACT.map((item) => (
             <NavItem key={item.href} {...item} pathname={pathname} collapsed={collapsed} />
           ))}
         </ul>
@@ -246,6 +257,15 @@ function LandmarkIcon() {
       <path d="M2.5 5v8M13.5 5v8" />
       <path d="M5 7v4.5M8 7v4.5M11 7v4.5" />
       <path d="M1.5 13.5h13" />
+    </svg>
+  );
+}
+
+function MailIcon() {
+  return (
+    <svg {...svg}>
+      <rect x="1.5" y="3.5" width="13" height="9" rx="1.5" />
+      <path d="M2 4.5 8 9l6-4.5" />
     </svg>
   );
 }

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { MAIN, OTHER } from "@/components/Sidebar";
+import { CONTACT, MAIN, OTHER } from "@/components/Sidebar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 /**
@@ -96,6 +96,13 @@ export function MobileNav() {
               <p className="eyebrow px-2 pt-6 pb-2">Others</p>
               <ul className="space-y-0.5">
                 {OTHER.map((item) => (
+                  <DrawerItem key={item.href} {...item} pathname={pathname} />
+                ))}
+              </ul>
+
+              <p className="eyebrow px-2 pt-6 pb-2">Contact us</p>
+              <ul className="space-y-0.5">
+                {CONTACT.map((item) => (
                   <DrawerItem key={item.href} {...item} pathname={pathname} />
                 ))}
               </ul>

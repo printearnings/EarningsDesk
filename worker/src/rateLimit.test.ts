@@ -12,7 +12,10 @@ import { checkGlobalRateLimit, type Env } from "./index";
 
 /** Minimal in-memory stand-in for the two KVNamespace methods this function
  * calls — a real KV binding only exists inside a deployed Worker. */
-function fakeKv(): { get: (k: string) => Promise<string | null>; put: (k: string, v: string) => Promise<void> } & Env["RATE_LIMIT"] {
+function fakeKv(): {
+  get: (k: string) => Promise<string | null>;
+  put: (k: string, v: string) => Promise<void>;
+} & Env["RATE_LIMIT"] {
   const store = new Map<string, string>();
   return {
     get: async (key: string) => store.get(key) ?? null,
@@ -30,6 +33,7 @@ function env(): Env {
     ASSETS: {} as Env["ASSETS"],
     RATE_LIMIT: fakeKv(),
     MASSIVE_API_KEY: "test",
+    SUPPORT_EMAIL: {} as Env["SUPPORT_EMAIL"],
   };
 }
 

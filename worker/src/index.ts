@@ -53,18 +53,22 @@ export interface Env {
   ASSETS: Fetcher;
   RATE_LIMIT: KVNamespace;
   MASSIVE_API_KEY: string;
+  SUPPORT_EMAIL: SendEmail;
   LIVE_REFRESH_PER_HOUR?: string;
   SEARCH_PER_HOUR?: string;
+  SUPPORT_PER_HOUR?: string;
   GLOBAL_REFRESH_PER_HOUR?: string;
   GLOBAL_SEARCH_PER_HOUR?: string;
   GLOBAL_CHART_PER_HOUR?: string;
   GLOBAL_INDICATORS_PER_HOUR?: string;
   GLOBAL_FINANCIALS_PER_HOUR?: string;
+  GLOBAL_SUPPORT_PER_HOUR?: string;
 }
 
 const MASSIVE_BASE = "https://api.massive.com";
 const YAHOO_CHART_BASE = "https://query1.finance.yahoo.com/v8/finance/chart";
-const YAHOO_QUOTE_SUMMARY_BASE = "https://query1.finance.yahoo.com/v10/finance/quoteSummary";
+const YAHOO_QUOTE_SUMMARY_BASE =
+  "https://query1.finance.yahoo.com/v10/finance/quoteSummary";
 
 const CHART_CACHE_SECONDS = 60;
 
@@ -73,6 +77,7 @@ const STRIKE_BRACKET = 0.15;
 
 const DEFAULT_LIMIT_PER_HOUR = 10;
 const DEFAULT_SEARCH_PER_HOUR = 60;
+const DEFAULT_SUPPORT_PER_HOUR = 5;
 
 // Global (site-wide) circuit breakers, one per Massive-touching route. Sized
 // well above realistic peak traffic for a site this size — the point is to
@@ -84,6 +89,10 @@ const DEFAULT_GLOBAL_SEARCH_PER_HOUR = 5000;
 const DEFAULT_GLOBAL_CHART_PER_HOUR = 3000;
 const DEFAULT_GLOBAL_INDICATORS_PER_HOUR = 1500;
 const DEFAULT_GLOBAL_FINANCIALS_PER_HOUR = 1000;
+// Deliberately tight — this is the one route that sends a real email rather
+// than reading market data, so its ceiling protects an inbox from spam, not
+// a Massive budget.
+const DEFAULT_GLOBAL_SUPPORT_PER_HOUR = 50;
 
 function json(body: unknown, status = 200, extra: HeadersInit = {}): Response {
   return new Response(JSON.stringify(body), {
@@ -126,10 +135,14 @@ function parseDate(raw: string | null): string | null {
 async function checkRateLimit(
   env: Env,
   ip: string,
-  { kind = "refresh", limit: limitOverride }: { kind?: string; limit?: number } = {},
+  {
+    kind = "refresh",
+    limit: limitOverride,
+  }: { kind?: string; limit?: number } = {},
 ): Promise<{ ok: boolean; remaining: number; limit: number }> {
   const limit =
-    limitOverride ?? Number(env.LIVE_REFRESH_PER_HOUR ?? DEFAULT_LIMIT_PER_HOUR);
+    limitOverride ??
+    Number(env.LIVE_REFRESH_PER_HOUR ?? DEFAULT_LIMIT_PER_HOUR);
   const window = Math.floor(Date.now() / 3_600_000);
   const key = `${kind}:${ip}:${window}`;
 
@@ -189,7 +202,10 @@ async function handleRefresh(request: Request, env: Env): Promise<Response> {
   // silently price the wrong week.
   const reportDate = parseDate(url.searchParams.get("report_date"));
   if (!reportDate) {
-    return json({ error: "Missing or malformed `report_date` (YYYY-MM-DD)." }, 400);
+    return json(
+      { error: "Missing or malformed `report_date` (YYYY-MM-DD)." },
+      400,
+    );
   }
 
   const ip = request.headers.get("cf-connecting-ip") ?? "unknown";
@@ -211,7 +227,10 @@ async function handleRefresh(request: Request, env: Env): Promise<Response> {
   );
   if (!globalLimit.ok) {
     return json(
-      { error: "Refresh is at capacity site-wide right now. The page data still updates nightly." },
+      {
+        error:
+          "Refresh is at capacity site-wide right now. The page data still updates nightly.",
+      },
       429,
       { "retry-after": "3600" },
     );
@@ -249,6 +268,162 @@ async function handleRefresh(request: Request, env: Env): Promise<Response> {
     200,
     { "x-ratelimit-remaining": String(limit.remaining) },
   );
+}
+
+const SUPPORT_CATEGORIES = ["feedback", "bug"] as const;
+type SupportCategory = (typeof SUPPORT_CATEGORIES)[number];
+const SUPPORT_CATEGORY_LABEL: Record<SupportCategory, string> = {
+  feedback: "Feedback",
+  bug: "Bug report",
+};
+
+const SUPPORT_MAX_SUBJECT = 200;
+const SUPPORT_MAX_DESCRIPTION = 5000;
+const SUPPORT_MAX_EMAIL = 200;
+const SUPPORT_FROM_ADDRESS = "support@printearnings.com";
+// Fixed at deploy time via the `send_email` binding's own `destination_address`
+// (wrangler.jsonc) — the binding refuses to send anywhere else, so this only
+// needs to match that value, never come from the request.
+const SUPPORT_TO_ADDRESS = "patrickkhai98@gmail.com";
+
+/**
+ * The support form's only server-side job: validate, rate-limit, and hand
+ * off to Email Routing's `send_email` binding — no database, no queue,
+ * nothing to poll. That binding is what keeps the real inbox address out of
+ * both the page source and the browser network tab: the client only ever
+ * sees this Worker route, never an address to mail directly.
+ */
+async function handleSupport(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "POST") {
+    return json({ error: "Use POST." }, 405, { allow: "POST" });
+  }
+
+  // Same CSRF posture as /api/refresh — see the file header.
+  const contentType = request.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/json")) {
+    return json({ error: "Content-Type: application/json is required." }, 415);
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: "Malformed JSON body." }, 400);
+  }
+  const { category, subject, description, email, page } = (body ??
+    {}) as Record<string, unknown>;
+
+  if (
+    typeof category !== "string" ||
+    !SUPPORT_CATEGORIES.includes(category as SupportCategory)
+  ) {
+    return json({ error: '`category` must be "feedback" or "bug".' }, 400);
+  }
+  const subjectText = typeof subject === "string" ? subject.trim() : "";
+  if (!subjectText || subjectText.length > SUPPORT_MAX_SUBJECT) {
+    return json(
+      { error: `\`subject\` is required (max ${SUPPORT_MAX_SUBJECT} chars).` },
+      400,
+    );
+  }
+  const descriptionText =
+    typeof description === "string" ? description.trim() : "";
+  if (!descriptionText || descriptionText.length > SUPPORT_MAX_DESCRIPTION) {
+    return json(
+      {
+        error: `\`description\` is required (max ${SUPPORT_MAX_DESCRIPTION} chars).`,
+      },
+      400,
+    );
+  }
+  const emailText = typeof email === "string" ? email.trim() : "";
+  if (
+    emailText &&
+    (emailText.length > SUPPORT_MAX_EMAIL ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailText))
+  ) {
+    return json({ error: "`email` doesn't look valid." }, 400);
+  }
+  // Free-text context only, never trusted as a real URL — just interpolated
+  // into the email body for "what page were they on".
+  const pageText = typeof page === "string" ? page.trim().slice(0, 300) : "";
+
+  if (!env.SUPPORT_EMAIL) {
+    return json({ error: "Support form is not configured." }, 503);
+  }
+
+  const ip = request.headers.get("cf-connecting-ip") ?? "unknown";
+  const limit = await checkRateLimit(env, ip, {
+    kind: "support",
+    limit: Number(env.SUPPORT_PER_HOUR ?? DEFAULT_SUPPORT_PER_HOUR),
+  });
+  if (!limit.ok) {
+    return json(
+      { error: `Too many submissions (${limit.limit}/hour). Try again later.` },
+      429,
+      {
+        "retry-after": "3600",
+      },
+    );
+  }
+
+  const globalLimit = await checkGlobalRateLimit(
+    env,
+    "support",
+    Number(env.GLOBAL_SUPPORT_PER_HOUR ?? DEFAULT_GLOBAL_SUPPORT_PER_HOUR),
+  );
+  if (!globalLimit.ok) {
+    return json(
+      { error: "The support form is at capacity site-wide right now." },
+      429,
+      {
+        "retry-after": "3600",
+      },
+    );
+  }
+
+  try {
+    const { createMimeMessage } = await import("mimetext");
+    const { EmailMessage } = await import("cloudflare:email");
+
+    const msg = createMimeMessage();
+    msg.setSender({
+      name: "PrintEarnings Support",
+      addr: SUPPORT_FROM_ADDRESS,
+    });
+    msg.setRecipient(SUPPORT_TO_ADDRESS);
+    if (emailText) msg.setHeader("Reply-To", emailText);
+    msg.setSubject(
+      `[${SUPPORT_CATEGORY_LABEL[category as SupportCategory]}] ${subjectText}`,
+    );
+    const headerLines = [
+      `Category: ${SUPPORT_CATEGORY_LABEL[category as SupportCategory]}`,
+      `From: ${emailText || "(not provided)"}`,
+    ];
+    if (pageText) headerLines.push(`Page: ${pageText}`);
+
+    msg.addMessage({
+      contentType: "text/plain",
+      data: [...headerLines, "", descriptionText].join("\n"),
+    });
+
+    const message = new EmailMessage(
+      SUPPORT_FROM_ADDRESS,
+      SUPPORT_TO_ADDRESS,
+      msg.asRaw(),
+    );
+    await env.SUPPORT_EMAIL.send(message);
+  } catch (err) {
+    console.error("support email failed", { err: String(err) });
+    return json(
+      { error: "Couldn't send that right now. Try again shortly." },
+      502,
+    );
+  }
+
+  return json({ ok: true }, 200, {
+    "x-ratelimit-remaining": String(limit.remaining),
+  });
 }
 
 export interface ChartPoint {
@@ -296,23 +471,32 @@ async function fetchMassiveAggs(
   from: string,
   to: string,
 ): Promise<MassiveAggBar[]> {
-  const url = new URL(`${MASSIVE_BASE}/v2/aggs/ticker/${ticker}/range/${multiplier}/${timespan}/${from}/${to}`);
+  const url = new URL(
+    `${MASSIVE_BASE}/v2/aggs/ticker/${ticker}/range/${multiplier}/${timespan}/${from}/${to}`,
+  );
   url.searchParams.set("adjusted", "true");
   url.searchParams.set("sort", "asc");
   url.searchParams.set("limit", String(MASSIVE_AGGS_LIMIT));
   url.searchParams.set("apiKey", env.MASSIVE_API_KEY);
 
-  const res = await fetch(url.toString(), { signal: AbortSignal.timeout(10_000) });
+  const res = await fetch(url.toString(), {
+    signal: AbortSignal.timeout(10_000),
+  });
   if (!res.ok) throw new Error(`upstream ${res.status}`);
   const body = (await res.json()) as { results?: MassiveAggBar[] };
   return body.results ?? [];
 }
 
-async function fetchMassivePrevClose(env: Env, ticker: string): Promise<number | null> {
+async function fetchMassivePrevClose(
+  env: Env,
+  ticker: string,
+): Promise<number | null> {
   try {
     const url = new URL(`${MASSIVE_BASE}/v2/aggs/ticker/${ticker}/prev`);
     url.searchParams.set("apiKey", env.MASSIVE_API_KEY);
-    const res = await fetch(url.toString(), { signal: AbortSignal.timeout(8_000) });
+    const res = await fetch(url.toString(), {
+      signal: AbortSignal.timeout(8_000),
+    });
     if (!res.ok) return null;
     const body = (await res.json()) as { results?: Array<{ c?: number }> };
     return body.results?.[0]?.c ?? null;
@@ -343,7 +527,11 @@ const RANGE_TRADING_DAYS: Record<string, number> = { "1d": 1, "5d": 5 };
  * Edge-cached same as before — a popular ticker within the same 60s window
  * shares one upstream fetch rather than paying for it per visitor.
  */
-async function handleChart(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+async function handleChart(
+  request: Request,
+  env: Env,
+  ctx: ExecutionContext,
+): Promise<Response> {
   const url = new URL(request.url);
   const ticker = parseTicker(url.searchParams.get("ticker"));
   const range = url.searchParams.get("range") ?? "1d";
@@ -352,7 +540,9 @@ async function handleChart(request: Request, env: Env, ctx: ExecutionContext): P
   if (!ticker) return json({ error: "Missing or malformed `ticker`." }, 400);
   if (!barMinutes) {
     return json(
-      { error: `Unsupported range. Use one of: ${Object.keys(RANGE_BAR_MINUTES).join(", ")}.` },
+      {
+        error: `Unsupported range. Use one of: ${Object.keys(RANGE_BAR_MINUTES).join(", ")}.`,
+      },
       400,
     );
   }
@@ -361,7 +551,10 @@ async function handleChart(request: Request, env: Env, ctx: ExecutionContext): P
   }
 
   const cache = caches.default;
-  const cacheKey = new Request(`https://cache.internal/chart/${ticker}/${range}`, { method: "GET" });
+  const cacheKey = new Request(
+    `https://cache.internal/chart/${ticker}/${range}`,
+    { method: "GET" },
+  );
   const cached = await cache.match(cacheKey);
   if (cached) return cached;
 
@@ -374,7 +567,10 @@ async function handleChart(request: Request, env: Env, ctx: ExecutionContext): P
   );
   if (!globalLimit.ok) {
     return json(
-      { error: "Chart data is at capacity site-wide right now. Try again shortly." },
+      {
+        error:
+          "Chart data is at capacity site-wide right now. Try again shortly.",
+      },
       429,
       { "retry-after": "3600" },
     );
@@ -382,7 +578,9 @@ async function handleChart(request: Request, env: Env, ctx: ExecutionContext): P
 
   const now = new Date();
   const to = etDateString(now);
-  const from = etDateString(new Date(now.getTime() - RANGE_LOOKBACK_DAYS[range] * 86_400_000));
+  const from = etDateString(
+    new Date(now.getTime() - RANGE_LOOKBACK_DAYS[range] * 86_400_000),
+  );
 
   let bars: MassiveAggBar[];
   let previousClose: number | null;
@@ -393,15 +591,22 @@ async function handleChart(request: Request, env: Env, ctx: ExecutionContext): P
     ]);
   } catch (err) {
     console.error("chart fetch failed", { ticker, range, err: String(err) });
-    return json({ error: `Couldn't reach the price data provider for ${ticker}.` }, 502);
+    return json(
+      { error: `Couldn't reach the price data provider for ${ticker}.` },
+      502,
+    );
   }
 
   // The lookback buffer intentionally overshoots (to survive weekends and
   // holidays); trim to the labeled number of trading days by keeping only
   // the most recent N distinct ET calendar dates present in the bars.
-  const distinctDates = [...new Set(bars.map((b) => etDateString(new Date(b.t))))];
+  const distinctDates = [
+    ...new Set(bars.map((b) => etDateString(new Date(b.t)))),
+  ];
   const keepDates = new Set(distinctDates.slice(-RANGE_TRADING_DAYS[range]));
-  const trimmed = bars.filter((b) => keepDates.has(etDateString(new Date(b.t))));
+  const trimmed = bars.filter((b) =>
+    keepDates.has(etDateString(new Date(b.t))),
+  );
 
   const points: ChartPoint[] = trimmed.map((b) => ({
     t: new Date(b.t).toISOString(),
@@ -417,7 +622,9 @@ async function handleChart(request: Request, env: Env, ctx: ExecutionContext): P
     range,
     interval: `${barMinutes}m`,
     currency: "USD",
-    regular_market_price: points.length ? points[points.length - 1].close : null,
+    regular_market_price: points.length
+      ? points[points.length - 1].close
+      : null,
     previous_close: previousClose,
     points,
   };
@@ -471,23 +678,37 @@ async function fetchMassiveIndicator(
     url.searchParams.set("limit", String(INDICATOR_LIMIT));
     url.searchParams.set("apiKey", env.MASSIVE_API_KEY);
 
-    const res = await fetch(url.toString(), { signal: AbortSignal.timeout(10_000) });
+    const res = await fetch(url.toString(), {
+      signal: AbortSignal.timeout(10_000),
+    });
     if (!res.ok) return [];
     const body = (await res.json()) as {
       results?: { values?: Array<{ timestamp?: number; value?: number }> };
     };
     return (body.results?.values ?? [])
-      .filter((v): v is { timestamp: number; value: number } =>
-        typeof v.timestamp === "number" && typeof v.value === "number",
+      .filter(
+        (v): v is { timestamp: number; value: number } =>
+          typeof v.timestamp === "number" && typeof v.value === "number",
       )
-      .map((v) => ({ date: etDateString(new Date(v.timestamp)), value: v.value }));
+      .map((v) => ({
+        date: etDateString(new Date(v.timestamp)),
+        value: v.value,
+      }));
   } catch (err) {
-    console.error("indicator fetch failed", { ticker, kind, window, err: String(err) });
+    console.error("indicator fetch failed", {
+      ticker,
+      kind,
+      window,
+      err: String(err),
+    });
     return [];
   }
 }
 
-async function fetchMassiveMACD(env: Env, ticker: string): Promise<MACDPoint[]> {
+async function fetchMassiveMACD(
+  env: Env,
+  ticker: string,
+): Promise<MACDPoint[]> {
   try {
     const url = new URL(`${MASSIVE_BASE}/v1/indicators/macd/${ticker}`);
     url.searchParams.set("timespan", "day");
@@ -499,16 +720,30 @@ async function fetchMassiveMACD(env: Env, ticker: string): Promise<MACDPoint[]> 
     url.searchParams.set("limit", String(INDICATOR_LIMIT));
     url.searchParams.set("apiKey", env.MASSIVE_API_KEY);
 
-    const res = await fetch(url.toString(), { signal: AbortSignal.timeout(10_000) });
+    const res = await fetch(url.toString(), {
+      signal: AbortSignal.timeout(10_000),
+    });
     if (!res.ok) return [];
     const body = (await res.json()) as {
       results?: {
-        values?: Array<{ timestamp?: number; value?: number; signal?: number; histogram?: number }>;
+        values?: Array<{
+          timestamp?: number;
+          value?: number;
+          signal?: number;
+          histogram?: number;
+        }>;
       };
     };
     return (body.results?.values ?? [])
       .filter(
-        (v): v is { timestamp: number; value: number; signal: number; histogram: number } =>
+        (
+          v,
+        ): v is {
+          timestamp: number;
+          value: number;
+          signal: number;
+          histogram: number;
+        } =>
           typeof v.timestamp === "number" &&
           typeof v.value === "number" &&
           typeof v.signal === "number" &&
@@ -536,7 +771,11 @@ function computeSMA(bars: MassiveAggBar[], window: number): IndicatorPoint[] {
   for (let i = 0; i < bars.length; i++) {
     sum += bars[i].c;
     if (i >= window) sum -= bars[i - window].c;
-    if (i >= window - 1) out.push({ date: new Date(bars[i].t).toISOString(), value: sum / window });
+    if (i >= window - 1)
+      out.push({
+        date: new Date(bars[i].t).toISOString(),
+        value: sum / window,
+      });
   }
   return out;
 }
@@ -550,7 +789,9 @@ function computeEMA(bars: MassiveAggBar[], window: number): IndicatorPoint[] {
   let seed = 0;
   for (let i = 0; i < window; i++) seed += bars[i].c;
   let ema = seed / window;
-  const out: IndicatorPoint[] = [{ date: new Date(bars[window - 1].t).toISOString(), value: ema }];
+  const out: IndicatorPoint[] = [
+    { date: new Date(bars[window - 1].t).toISOString(), value: ema },
+  ];
   for (let i = window; i < bars.length; i++) {
     ema = bars[i].c * k + ema * (1 - k);
     out.push({ date: new Date(bars[i].t).toISOString(), value: ema });
@@ -581,7 +822,10 @@ function computeRSI(bars: MassiveAggBar[], window: number): IndicatorPoint[] {
   let avgGain = gainSum / window;
   let avgLoss = lossSum / window;
   const out: IndicatorPoint[] = [
-    { date: new Date(bars[window].t).toISOString(), value: rsiFrom(avgGain, avgLoss) },
+    {
+      date: new Date(bars[window].t).toISOString(),
+      value: rsiFrom(avgGain, avgLoss),
+    },
   ];
   for (let i = window + 1; i < bars.length; i++) {
     const diff = bars[i].c - bars[i - 1].c;
@@ -589,7 +833,10 @@ function computeRSI(bars: MassiveAggBar[], window: number): IndicatorPoint[] {
     const loss = diff < 0 ? -diff : 0;
     avgGain = (avgGain * (window - 1) + gain) / window;
     avgLoss = (avgLoss * (window - 1) + loss) / window;
-    out.push({ date: new Date(bars[i].t).toISOString(), value: rsiFrom(avgGain, avgLoss) });
+    out.push({
+      date: new Date(bars[i].t).toISOString(),
+      value: rsiFrom(avgGain, avgLoss),
+    });
   }
   return out;
 }
@@ -667,34 +914,49 @@ function computeMACD(
  * Massive's own indicator endpoint would risk its bars not lining up with
  * the chart's, since they'd be two independent fetches.
  */
-async function handleIndicators(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+async function handleIndicators(
+  request: Request,
+  env: Env,
+  ctx: ExecutionContext,
+): Promise<Response> {
   const url = new URL(request.url);
   const ticker = parseTicker(url.searchParams.get("ticker"));
   const range = url.searchParams.get("range") ?? "1y";
   if (!ticker) return json({ error: "Missing or malformed `ticker`." }, 400);
   if (range !== "1y" && !RANGE_BAR_MINUTES[range]) {
     return json(
-      { error: `Unsupported range. Use one of: 1y, ${Object.keys(RANGE_BAR_MINUTES).join(", ")}.` },
+      {
+        error: `Unsupported range. Use one of: 1y, ${Object.keys(RANGE_BAR_MINUTES).join(", ")}.`,
+      },
       400,
     );
   }
-  if (!env.MASSIVE_API_KEY) return json({ error: "Indicators are not configured." }, 503);
+  if (!env.MASSIVE_API_KEY)
+    return json({ error: "Indicators are not configured." }, 503);
 
   const cache = caches.default;
-  const cacheKey = new Request(`https://cache.internal/indicators/${ticker}/${range}`, {
-    method: "GET",
-  });
+  const cacheKey = new Request(
+    `https://cache.internal/indicators/${ticker}/${range}`,
+    {
+      method: "GET",
+    },
+  );
   const cached = await cache.match(cacheKey);
   if (cached) return cached;
 
   const globalLimit = await checkGlobalRateLimit(
     env,
     "indicators",
-    Number(env.GLOBAL_INDICATORS_PER_HOUR ?? DEFAULT_GLOBAL_INDICATORS_PER_HOUR),
+    Number(
+      env.GLOBAL_INDICATORS_PER_HOUR ?? DEFAULT_GLOBAL_INDICATORS_PER_HOUR,
+    ),
   );
   if (!globalLimit.ok) {
     return json(
-      { error: "Indicator data is at capacity site-wide right now. Try again shortly." },
+      {
+        error:
+          "Indicator data is at capacity site-wide right now. Try again shortly.",
+      },
       429,
       { "retry-after": "3600" },
     );
@@ -718,12 +980,25 @@ async function handleIndicators(request: Request, env: Env, ctx: ExecutionContex
     const barMinutes = RANGE_BAR_MINUTES[range];
     const now = new Date();
     const to = etDateString(now);
-    const from = etDateString(new Date(now.getTime() - RANGE_LOOKBACK_DAYS[range] * 86_400_000));
+    const from = etDateString(
+      new Date(now.getTime() - RANGE_LOOKBACK_DAYS[range] * 86_400_000),
+    );
     let bars: MassiveAggBar[] = [];
     try {
-      bars = await fetchMassiveAggs(env, ticker, barMinutes, "minute", from, to);
+      bars = await fetchMassiveAggs(
+        env,
+        ticker,
+        barMinutes,
+        "minute",
+        from,
+        to,
+      );
     } catch (err) {
-      console.error("indicator aggs fetch failed", { ticker, range, err: String(err) });
+      console.error("indicator aggs fetch failed", {
+        ticker,
+        range,
+        err: String(err),
+      });
     }
     sma20 = computeSMA(bars, 20);
     ema50 = computeEMA(bars, 50);
@@ -733,7 +1008,9 @@ async function handleIndicators(request: Request, env: Env, ctx: ExecutionContex
   }
 
   const payload: IndicatorsResponse = { ticker, sma20, ema50, rsi14, macd };
-  const response = json(payload, 200, { "cache-control": `public, max-age=${cacheSeconds}` });
+  const response = json(payload, 200, {
+    "cache-control": `public, max-age=${cacheSeconds}`,
+  });
   ctx.waitUntil(cache.put(cacheKey, response.clone()));
   return response;
 }
@@ -758,7 +1035,10 @@ export interface FinancialsQuarter {
  * a reader can open), but its last path segment IS the actual SEC accession
  * number, which is all EDGAR's public URL scheme needs.
  */
-function edgarFilingUrl(cik: string | undefined, sourceFilingUrl: string | undefined): string | null {
+function edgarFilingUrl(
+  cik: string | undefined,
+  sourceFilingUrl: string | undefined,
+): string | null {
   if (!cik || !sourceFilingUrl) return null;
   const accession = sourceFilingUrl.split("/").pop();
   if (!accession || !/^\d{10}-\d{2}-\d{6}$/.test(accession)) return null;
@@ -795,25 +1075,35 @@ async function handleFinancials(
   const url = new URL(request.url);
   const ticker = parseTicker(url.searchParams.get("ticker"));
   if (!ticker) return json({ error: "Missing or malformed `ticker`." }, 400);
-  if (!env.MASSIVE_API_KEY) return json({ error: "Financials are not configured." }, 503);
+  if (!env.MASSIVE_API_KEY)
+    return json({ error: "Financials are not configured." }, 503);
 
-  const timeframe = url.searchParams.get("timeframe") === "annual" ? "annual" : "quarterly";
+  const timeframe =
+    url.searchParams.get("timeframe") === "annual" ? "annual" : "quarterly";
 
   const cache = caches.default;
-  const cacheKey = new Request(`https://cache.internal/financials/${ticker}/${timeframe}`, {
-    method: "GET",
-  });
+  const cacheKey = new Request(
+    `https://cache.internal/financials/${ticker}/${timeframe}`,
+    {
+      method: "GET",
+    },
+  );
   const cached = await cache.match(cacheKey);
   if (cached) return cached;
 
   const globalLimit = await checkGlobalRateLimit(
     env,
     "financials",
-    Number(env.GLOBAL_FINANCIALS_PER_HOUR ?? DEFAULT_GLOBAL_FINANCIALS_PER_HOUR),
+    Number(
+      env.GLOBAL_FINANCIALS_PER_HOUR ?? DEFAULT_GLOBAL_FINANCIALS_PER_HOUR,
+    ),
   );
   if (!globalLimit.ok) {
     return json(
-      { error: "Financials are at capacity site-wide right now. Try again shortly." },
+      {
+        error:
+          "Financials are at capacity site-wide right now. Try again shortly.",
+      },
       429,
       { "retry-after": "3600" },
     );
@@ -836,7 +1126,9 @@ async function handleFinancials(
     apiUrl.searchParams.set("sort", "period_of_report_date");
     apiUrl.searchParams.set("apiKey", env.MASSIVE_API_KEY);
 
-    const res = await fetch(apiUrl.toString(), { signal: AbortSignal.timeout(10_000) });
+    const res = await fetch(apiUrl.toString(), {
+      signal: AbortSignal.timeout(10_000),
+    });
     if (res.ok) {
       interface LineItem {
         value?: number;
@@ -950,13 +1242,19 @@ const YAHOO_UA = "Mozilla/5.0 (compatible; EarningsDeskBot/1.0)";
  * the historical scoring only the tracked universe has. A cold lookup is
  * honestly a smaller page than a tracked one; see web/src/app/(app)/lookup.
  */
-async function handleLookup(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+async function handleLookup(
+  request: Request,
+  env: Env,
+  ctx: ExecutionContext,
+): Promise<Response> {
   const url = new URL(request.url);
   const ticker = parseTicker(url.searchParams.get("ticker"));
   if (!ticker) return json({ error: "Missing or malformed `ticker`." }, 400);
 
   const cache = caches.default;
-  const cacheKey = new Request(`https://cache.internal/lookup/${ticker}`, { method: "GET" });
+  const cacheKey = new Request(`https://cache.internal/lookup/${ticker}`, {
+    method: "GET",
+  });
   const cached = await cache.match(cacheKey);
   if (cached) return cached;
 
@@ -995,10 +1293,15 @@ async function fetchYahooChartMeta(ticker: string): Promise<{
   shortName?: string;
 } | null> {
   try {
-    const res = await fetch(`${YAHOO_CHART_BASE}/${ticker}?range=1d&interval=1d`, {
-      headers: { "user-agent": "Mozilla/5.0 (compatible; EarningsDeskBot/1.0)" },
-      signal: AbortSignal.timeout(6_000),
-    });
+    const res = await fetch(
+      `${YAHOO_CHART_BASE}/${ticker}?range=1d&interval=1d`,
+      {
+        headers: {
+          "user-agent": "Mozilla/5.0 (compatible; EarningsDeskBot/1.0)",
+        },
+        signal: AbortSignal.timeout(6_000),
+      },
+    );
     if (!res.ok) return null;
     const body = (await res.json()) as {
       chart?: { result?: Array<{ meta?: Record<string, unknown> }> };
@@ -1026,7 +1329,10 @@ const YAHOO_CRUMB_TTL_SECONDS = 3_300; // under an hour — refreshed well befor
  * wide token shared across all lookups for under an hour is exactly as valid
  * as fetching a fresh one every time, for a fraction of the upstream calls.
  */
-async function getYahooAuth(env: Env, { forceRefresh = false } = {}): Promise<YahooAuth | null> {
+async function getYahooAuth(
+  env: Env,
+  { forceRefresh = false } = {},
+): Promise<YahooAuth | null> {
   if (!forceRefresh) {
     const cached = await env.RATE_LIMIT.get(YAHOO_CRUMB_KV_KEY, "json");
     if (cached) return cached as YahooAuth;
@@ -1041,10 +1347,13 @@ async function getYahooAuth(env: Env, { forceRefresh = false } = {}): Promise<Ya
     if (!setCookie) return null;
     const cookie = setCookie.split(";")[0];
 
-    const crumbRes = await fetch("https://query2.finance.yahoo.com/v1/test/getcrumb", {
-      headers: { "user-agent": YAHOO_UA, cookie },
-      signal: AbortSignal.timeout(6_000),
-    });
+    const crumbRes = await fetch(
+      "https://query2.finance.yahoo.com/v1/test/getcrumb",
+      {
+        headers: { "user-agent": YAHOO_UA, cookie },
+        signal: AbortSignal.timeout(6_000),
+      },
+    );
     if (!crumbRes.ok) return null;
     const crumb = (await crumbRes.text()).trim();
     // A failed handshake returns an HTML error page, not a short token.
@@ -1084,13 +1393,20 @@ async function fetchYahooQuoteSummary(
       if (!res.ok) continue;
 
       const body = (await res.json()) as {
-        quoteSummary?: { result?: Array<Record<string, unknown>>; error?: unknown };
+        quoteSummary?: {
+          result?: Array<Record<string, unknown>>;
+          error?: unknown;
+        };
       };
       if (body.quoteSummary?.error) continue; // e.g. "Invalid Crumb" — retry with a fresh one.
       const result = body.quoteSummary?.result?.[0];
       if (result) return result;
     } catch (err) {
-      console.error("quoteSummary fetch failed", { ticker, modules, err: String(err) });
+      console.error("quoteSummary fetch failed", {
+        ticker,
+        modules,
+        err: String(err),
+      });
     }
   }
   return null;
@@ -1107,17 +1423,22 @@ async function fetchYahooEarnings(
   env: Env,
   ticker: string,
 ): Promise<{ nextReportDate: string | null; history: LookupEarningsRow[] }> {
-  const result = await fetchYahooQuoteSummary(env, ticker, "calendarEvents,earningsHistory");
+  const result = await fetchYahooQuoteSummary(
+    env,
+    ticker,
+    "calendarEvents,earningsHistory",
+  );
   if (!result) return { nextReportDate: null, history: [] };
 
   const calendar = result.calendarEvents as
-    | { earnings?: { earningsDate?: YahooRaw[] } }
-    | undefined;
+    { earnings?: { earningsDate?: YahooRaw[] } } | undefined;
   const nextRaw = calendar?.earnings?.earningsDate?.[0]?.raw;
   const nextReportDate = typeof nextRaw === "number" ? isoDate(nextRaw) : null;
 
-  const rows = (result.earningsHistory as { history?: Record<string, unknown>[] } | undefined)
-    ?.history;
+  const rows = (
+    result.earningsHistory as
+      { history?: Record<string, unknown>[] } | undefined
+  )?.history;
   const history: LookupEarningsRow[] = (rows ?? [])
     .map((row): LookupEarningsRow | null => {
       const quarterRaw = (row.quarter as YahooRaw | undefined)?.raw;
@@ -1126,7 +1447,8 @@ async function fetchYahooEarnings(
         quarter_end: isoDate(quarterRaw),
         eps_estimate: (row.epsEstimate as YahooRaw | undefined)?.raw ?? null,
         eps_actual: (row.epsActual as YahooRaw | undefined)?.raw ?? null,
-        eps_surprise_pct: (row.surprisePercent as YahooRaw | undefined)?.raw ?? null,
+        eps_surprise_pct:
+          (row.surprisePercent as YahooRaw | undefined)?.raw ?? null,
       };
     })
     .filter((r): r is LookupEarningsRow => r !== null)
@@ -1146,10 +1468,13 @@ function isoDate(epochSeconds: number): string {
  * range/interval combination `handleChart` deliberately doesn't serve. */
 async function fetchYahoo1yDaily(ticker: string): Promise<LookupPricePoint[]> {
   try {
-    const res = await fetch(`${YAHOO_CHART_BASE}/${ticker}?range=1y&interval=1d`, {
-      headers: { "user-agent": YAHOO_UA },
-      signal: AbortSignal.timeout(8_000),
-    });
+    const res = await fetch(
+      `${YAHOO_CHART_BASE}/${ticker}?range=1y&interval=1d`,
+      {
+        headers: { "user-agent": YAHOO_UA },
+        signal: AbortSignal.timeout(8_000),
+      },
+    );
     if (!res.ok) return [];
     const body = (await res.json()) as {
       chart?: {
@@ -1185,7 +1510,9 @@ interface YahooNewsThumbnailResolution {
  * full-size original — a list-row image, not a hero. Mirrors the engine's
  * `data.news._thumbnail_url`, adapted to this endpoint's flatter shape (see
  * that function's docstring for why the "original" tag is skipped). */
-function newsThumbnailUrl(resolutions: YahooNewsThumbnailResolution[] | undefined): string | null {
+function newsThumbnailUrl(
+  resolutions: YahooNewsThumbnailResolution[] | undefined,
+): string | null {
   if (!resolutions?.length) return null;
   const sized = resolutions.find((r) => r.tag && r.tag !== "original" && r.url);
   if (sized) return sized.url ?? null;
@@ -1222,7 +1549,9 @@ async function fetchYahooNews(ticker: string): Promise<LookupNewsItem[]> {
     };
 
     return (body.news ?? [])
-      .filter((item): item is typeof item & { title: string } => Boolean(item.title))
+      .filter((item): item is typeof item & { title: string } =>
+        Boolean(item.title),
+      )
       .slice(0, NEWS_RESULT_LIMIT)
       .map((item) => ({
         title: item.title,
@@ -1262,7 +1591,11 @@ const SEARCH_RESULT_LIMIT = 8;
  * /api/refresh, and deserves a correspondingly higher ceiling, not the same
  * one.
  */
-async function handleSearch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+async function handleSearch(
+  request: Request,
+  env: Env,
+  ctx: ExecutionContext,
+): Promise<Response> {
   const url = new URL(request.url);
   const q = (url.searchParams.get("q") ?? "").trim();
   if (q.length < 2) return json({ results: [] });
@@ -1283,9 +1616,12 @@ async function handleSearch(request: Request, env: Env, ctx: ExecutionContext): 
     });
   }
 
-  const cacheKey = new Request(`https://cache.internal/search/${q.toLowerCase()}`, {
-    method: "GET",
-  });
+  const cacheKey = new Request(
+    `https://cache.internal/search/${q.toLowerCase()}`,
+    {
+      method: "GET",
+    },
+  );
   const cache = caches.default;
   const cached = await cache.match(cacheKey);
   if (cached) return cached;
@@ -1297,7 +1633,9 @@ async function handleSearch(request: Request, env: Env, ctx: ExecutionContext): 
   );
   if (!globalLimit.ok) {
     return json(
-      { error: "Search is at capacity site-wide right now. Try again shortly." },
+      {
+        error: "Search is at capacity site-wide right now. Try again shortly.",
+      },
       429,
       { "retry-after": "3600" },
     );
@@ -1312,13 +1650,18 @@ async function handleSearch(request: Request, env: Env, ctx: ExecutionContext): 
 
   let results: SearchResult[] = [];
   try {
-    const res = await fetch(upstream.toString(), { signal: AbortSignal.timeout(6_000) });
+    const res = await fetch(upstream.toString(), {
+      signal: AbortSignal.timeout(6_000),
+    });
     if (!res.ok) throw new Error(`upstream ${res.status}`);
     const body = (await res.json()) as {
       results?: Array<{ ticker?: string; name?: string }>;
     };
     results = (body.results ?? [])
-      .filter((r): r is { ticker: string; name?: string } => typeof r.ticker === "string")
+      .filter(
+        (r): r is { ticker: string; name?: string } =>
+          typeof r.ticker === "string",
+      )
       .map((r) => ({ ticker: r.ticker, name: r.name ?? null }));
   } catch (err) {
     // Never surface the upstream error verbatim — it carries the API key.
@@ -1326,11 +1669,9 @@ async function handleSearch(request: Request, env: Env, ctx: ExecutionContext): 
     return json({ error: "Couldn't reach the search provider." }, 502);
   }
 
-  const response = json(
-    { results },
-    200,
-    { "cache-control": `public, max-age=${SEARCH_CACHE_SECONDS}` },
-  );
+  const response = json({ results }, 200, {
+    "cache-control": `public, max-age=${SEARCH_CACHE_SECONDS}`,
+  });
   ctx.waitUntil(cache.put(cacheKey, response.clone()));
   return response;
 }
@@ -1371,11 +1712,19 @@ async function fetchChain(
 }
 
 export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  async fetch(
+    request: Request,
+    env: Env,
+    ctx: ExecutionContext,
+  ): Promise<Response> {
     const url = new URL(request.url);
 
     if (url.pathname === "/api/refresh") {
       return handleRefresh(request, env);
+    }
+
+    if (url.pathname === "/api/support") {
+      return handleSupport(request, env);
     }
 
     if (url.pathname === "/api/chart") {
