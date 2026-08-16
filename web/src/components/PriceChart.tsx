@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import NumberFlow from "@number-flow/react";
 
 import type { EarningsHistoryRow, PricePoint } from "@/lib/api";
-import { compact, formatDate, money } from "@/lib/format";
+import { compact, formatDate, formatDateShort, money } from "@/lib/format";
 import type { MACDPoint } from "@/lib/useIndicators";
 import { useIndicators } from "@/lib/useIndicators";
 import { useIntradayChart } from "@/lib/useIntradayChart";
@@ -156,6 +156,17 @@ export function PriceChart({
     }));
   }, [range, prices, intraday.data]);
 
+  // 1D's lookback buffer reaches back past a closed market to the last real
+  // session (see RANGE_LOOKBACK_DAYS in the Worker), so outside market hours
+  // this is showing where that session ended, not a live-updating today.
+  // "Go live" only makes sense once the newest bar actually IS today's.
+  const isCurrentSession =
+    range !== "1d" ||
+    points.length === 0 ||
+    new Date(points[points.length - 1].key).toLocaleDateString("en-CA", {
+      timeZone: "America/New_York",
+    }) === new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+
   // Only the 1Y series carries markers — see the module note above.
   const markerDates = useMemo(
     () =>
@@ -206,7 +217,18 @@ export function PriceChart({
             </span>
           )}
 
-          {range === "1d" && (
+          {range === "1d" && points.length > 0 && !isCurrentSession && (
+            <span className="text-sm whitespace-nowrap text-[var(--color-muted)]">
+              Last session:{" "}
+              {formatDateShort(
+                new Date(points[points.length - 1].key).toLocaleDateString("en-CA", {
+                  timeZone: "America/New_York",
+                }),
+              )}
+            </span>
+          )}
+
+          {range === "1d" && isCurrentSession && (
             <button
               type="button"
               onClick={() => setLive((v) => !v)}

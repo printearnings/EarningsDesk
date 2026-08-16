@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 import { DirectionChip, VerdictChip } from "@/components/Chip";
 import { CompanyLogo } from "@/components/CompanyLogo";
@@ -68,7 +69,11 @@ export default async function TickerPage({ params }: { params: Promise<{ ticker:
 
         {data.ai_summary && <AiPanel data={data} />}
 
-        <TickerTabs data={data} />
+        {/* useSearchParams (for the tab-in-URL persistence) requires a
+            Suspense boundary during static prerendering. */}
+        <Suspense fallback={<p className="text-sm text-[var(--color-muted)]">Loading…</p>}>
+          <TickerTabs data={data} />
+        </Suspense>
       </div>
     </>
   );

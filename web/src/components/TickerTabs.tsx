@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "motion/react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { DirectionChip, SessionChip, VerdictChip } from "@/components/Chip";
 import { FinancialsPanel } from "@/components/FinancialsPanel";
@@ -47,12 +48,26 @@ const TABS: { id: TabId; label: string }[] = [
  * render.
  */
 export function TickerTabs({ data }: { data: TickerData }) {
-  const [active, setActive] = useState<TabId>("price");
-  const [visited, setVisited] = useState<Set<TabId>>(new Set(["price"]));
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // The tab lives in the URL, not just component state, so a page refresh
+  // (or a shared link) lands back on the tab you were reading instead of
+  // always resetting to Price.
+  const requestedTab = searchParams.get("tab");
+  const initialTab: TabId = TABS.some((t) => t.id === requestedTab)
+    ? (requestedTab as TabId)
+    : "price";
+
+  const [active, setActive] = useState<TabId>(initialTab);
+  const [visited, setVisited] = useState<Set<TabId>>(new Set([initialTab]));
 
   function selectTab(id: TabId) {
     setActive(id);
     if (!visited.has(id)) setVisited(new Set(visited).add(id));
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", id);
+    router.replace(`?${params.toString()}`, { scroll: false });
   }
 
   return (

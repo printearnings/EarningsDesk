@@ -322,8 +322,14 @@ async function fetchMassivePrevClose(env: Env, ticker: string): Promise<number |
 }
 
 /** How many calendar days of buffer to request so weekends/holidays don't
- * leave a range short of its labeled trading-day count. */
-const RANGE_LOOKBACK_DAYS: Record<string, number> = { "1d": 1, "5d": 10 };
+ * leave a range short of its labeled trading-day count. "1d" needs more than
+ * a bare 1-day margin: a 1-day buffer only reaches back across a weekend when
+ * "now" happens to be Saturday. On Sunday (or the day after a holiday that
+ * follows a weekend) it lands on another non-trading day and comes back
+ * empty — not because there's no recent session, just because the window
+ * didn't reach it. 4 days reaches the prior trading day from any day of the
+ * week; the trim-to-latest-trading-day logic below still shows only one. */
+const RANGE_LOOKBACK_DAYS: Record<string, number> = { "1d": 4, "5d": 10 };
 const RANGE_BAR_MINUTES: Record<string, number> = { "1d": 1, "5d": 5 };
 const RANGE_TRADING_DAYS: Record<string, number> = { "1d": 1, "5d": 5 };
 
@@ -1186,7 +1192,7 @@ function newsThumbnailUrl(resolutions: YahooNewsThumbnailResolution[] | undefine
   return resolutions.find((r) => r.url)?.url ?? null;
 }
 
-const NEWS_RESULT_LIMIT = 8;
+const NEWS_RESULT_LIMIT = 20; // matches the tracked-universe path's cap (news.py's MAX_HEADLINES)
 
 /** Recent headlines, unfiltered by relevance (unlike the engine's per-ticker
  * feed) — a cold lookup has no company-name cache to check mentions against,
