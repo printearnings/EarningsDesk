@@ -697,13 +697,17 @@ function ChartBody({
     return () => el.removeEventListener("wheel", onWheel);
   });
 
-  // Touch equivalents of the mouse gestures above — mirrors mouse hover with
-  // one finger (scrub to preview a value) and mouse wheel with two (pinch to
-  // zoom, centered on the pinch midpoint). React attaches touch listeners
-  // passively by default, same issue the wheel listener above works around,
-  // so this needs the same native-listener escape hatch: without it,
-  // `preventDefault()` is silently ignored and the page pinch-zooms or
-  // scrolls instead of the chart.
+  // Touch equivalents of the mouse gestures above — one finger mirrors
+  // mousedown+drag (pan, via the same `pan` state/panTo the mouse handlers
+  // below use — panning is a no-op while unzoomed, same as on desktop, so
+  // this is safe to fire unconditionally), and two fingers mirror the wheel
+  // (pinch to zoom, centered on the pinch midpoint). Unlike a mouse, touch has
+  // no hover-without-pressing phase, so hover is kept updated through the
+  // drag too — showing the value under the finger while panning, not only
+  // before it starts. React attaches touch listeners passively by default,
+  // same issue the wheel listener above works around, so this needs the same
+  // native-listener escape hatch: without it, `preventDefault()` is silently
+  // ignored and the page pinch-zooms or scrolls instead of the chart.
   useEffect(() => {
     const el = svgRef.current;
     if (!el) return;
@@ -713,8 +717,11 @@ function ChartBody({
       const rect = el.getBoundingClientRect();
       if (e.touches.length === 1) {
         pinchRef.current = null;
-        setHover(localIndexAt(e.touches[0].clientX, rect));
+        const idx = localIndexAt(e.touches[0].clientX, rect);
+        setPan({ anchorLocal: idx, anchorOffset: offset });
+        setHover(idx);
       } else if (e.touches.length === 2) {
+        setPan(null);
         setHover(null);
         pinchRef.current = { distance: touchDistance(e.touches[0], e.touches[1]) };
       }
@@ -724,7 +731,9 @@ function ChartBody({
       e.preventDefault();
       const rect = el.getBoundingClientRect();
       if (e.touches.length === 1) {
-        setHover(localIndexAt(e.touches[0].clientX, rect));
+        const idx = localIndexAt(e.touches[0].clientX, rect);
+        if (pan) panTo(pan, idx);
+        setHover(idx);
       } else if (e.touches.length === 2) {
         const distance = touchDistance(e.touches[0], e.touches[1]);
         const midClientX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
@@ -736,6 +745,7 @@ function ChartBody({
 
     const onTouchEnd = (e: TouchEvent) => {
       pinchRef.current = null;
+      setPan(null);
       if (e.touches.length === 0) setHover(null);
     };
 
