@@ -1,4 +1,5 @@
 import { DisclaimerGate } from "@/components/DisclaimerGate";
+import { Footer } from "@/components/Footer";
 import { Sidebar } from "@/components/Sidebar";
 
 /**
@@ -13,7 +14,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-screen">
       <DisclaimerGate />
       <Sidebar />
-      <div className="min-w-0 flex-1">{children}</div>
+      <div className="flex min-w-0 flex-1 flex-col">
+        {children}
+        <Footer />
+      </div>
     </div>
   );
 }

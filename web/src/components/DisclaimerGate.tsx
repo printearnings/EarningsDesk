@@ -1,6 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
+
+import { DISCLAIMER_PARAGRAPHS } from "@/lib/legal";
 
 // Bump the suffix (v1 -> v2) if the policy text materially changes -- that's
 // the mechanism for making previously-accepted visitors re-acknowledge it,
@@ -56,21 +59,9 @@ export function DisclaimerGate() {
         </h2>
 
         <div className="mt-3 space-y-3 text-sm text-[var(--color-body)]">
-          <p>
-            EarningsDesk is an informational and educational tool. Nothing on this site — the
-            implied-move verdict, the directional read, the AI summary, or anything else — is
-            financial advice or a recommendation to buy or sell any security.
-          </p>
-          <p>
-            Every number here is a model output over public options flow, price history, and
-            sentiment data. Models are wrong often enough that you should verify independently
-            and never rely on a single number to size a real trade. Past performance — including
-            this site&rsquo;s own scored track record — does not predict future results.
-          </p>
-          <p>
-            Options trading carries substantial risk and isn&rsquo;t suitable for every
-            investor. You are solely responsible for your own trading decisions.
-          </p>
+          {DISCLAIMER_PARAGRAPHS.map((p) => (
+            <p key={p.slice(0, 24)}>{p}</p>
+          ))}
         </div>
 
         <button
@@ -80,6 +71,16 @@ export function DisclaimerGate() {
         >
           I understand — continue
         </button>
+
+        <p className="mt-3 text-center text-xs text-[var(--color-muted)]">
+          <Link href="/disclaimer/" className="underline underline-offset-2">
+            Full disclaimer
+          </Link>
+          {" · "}
+          <Link href="/privacy/" className="underline underline-offset-2">
+            Privacy
+          </Link>
+        </p>
       </div>
     </div>
   );
