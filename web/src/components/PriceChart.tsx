@@ -938,7 +938,13 @@ function ChartBody({
             />
           ))}
 
-          {hover !== null && !pan && (
+          {/* Not gated on `!pan` — a mouse only sets `pan` while actually
+              dragging, but touch sets it on every finger-down (panning is a
+              no-op unless zoomed), so gating on it hid the crosshair for
+              the entire duration of any touch. `visible`/`hover` are both
+              current as of this render either way, so showing it while
+              panning is accurate, not stale. */}
+          {hover !== null && (
             <line
               x1={chart.x(hover)}
               x2={chart.x(hover)}
@@ -950,7 +956,7 @@ function ChartBody({
           )}
         </svg>
 
-        {point && !pan && (
+        {point && (
           <div
             className="pointer-events-none absolute top-0 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-panel)] px-2 py-1.5 text-xs"
             style={{ left: `${(chart.x(hover!) / W) * 100}%`, transform: "translateX(-50%)" }}
@@ -985,7 +991,7 @@ function ChartBody({
         <div className="mt-3">
           <div className="text-2xs mb-1 flex items-center justify-between font-mono tracking-[0.06em] text-[var(--color-muted)] uppercase">
             <span>Volume</span>
-            {hover !== null && !pan && hover < visible.length && (
+            {hover !== null && hover < visible.length && (
               <span className="tnum text-[var(--color-heading)] normal-case">
                 {compact(visible[hover].volume ?? 0)}
               </span>
@@ -1025,7 +1031,7 @@ function ChartBody({
                 fillOpacity={0.55}
               />
             ))}
-            {hover !== null && !pan && hover < visible.length && (
+            {hover !== null && hover < visible.length && (
               <line
                 x1={chart.x(hover)}
                 x2={chart.x(hover)}
@@ -1076,7 +1082,7 @@ function ChartBody({
               strokeLinejoin="round"
               strokeLinecap="round"
             />
-            {hover !== null && !pan && hover < visible.length && (
+            {hover !== null && hover < visible.length && (
               <line
                 x1={chart.x(hover)}
                 x2={chart.x(hover)}
@@ -1145,7 +1151,7 @@ function ChartBody({
               strokeLinejoin="round"
               strokeLinecap="round"
             />
-            {hover !== null && !pan && hover < visible.length && (
+            {hover !== null && hover < visible.length && (
               <line
                 x1={chart.x(hover)}
                 x2={chart.x(hover)}
