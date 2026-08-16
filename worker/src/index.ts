@@ -54,6 +54,7 @@ export interface Env {
   RATE_LIMIT: KVNamespace;
   MASSIVE_API_KEY: string;
   SUPPORT_EMAIL: SendEmail;
+  TURNSTILE_SECRET_KEY?: string;
   LIVE_REFRESH_PER_HOUR?: string;
   SEARCH_PER_HOUR?: string;
   SUPPORT_PER_HOUR?: string;
@@ -287,6 +288,41 @@ const SUPPORT_FROM_ADDRESS = "support@printearnings.com";
 const SUPPORT_TO_ADDRESS = "patrickkhai98@gmail.com";
 
 /**
+ * The rate limits alone only cap *volume* from a script hitting this route —
+ * they don't stop a script from hitting it at all, since CORS/content-type
+ * checks are enforced by browsers, not by a curl call that sets its own
+ * headers. Turnstile is the actual bot filter; this verifies the token
+ * server-side the same way Cloudflare's own docs describe.
+ */
+async function verifyTurnstile(
+  env: Env,
+  token: string,
+  ip: string,
+): Promise<boolean> {
+  if (!env.TURNSTILE_SECRET_KEY) return false;
+  const body = new URLSearchParams({
+    secret: env.TURNSTILE_SECRET_KEY,
+    response: token,
+    remoteip: ip,
+  });
+  try {
+    const res = await fetch(
+      "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+      {
+        method: "POST",
+        body,
+        signal: AbortSignal.timeout(10_000),
+      },
+    );
+    const result = (await res.json()) as { success?: boolean };
+    return result.success === true;
+  } catch (err) {
+    console.error("turnstile verify failed", { err: String(err) });
+    return false;
+  }
+}
+
+/**
  * The support form's only server-side job: validate, rate-limit, and hand
  * off to Email Routing's `send_email` binding — no database, no queue,
  * nothing to poll. That binding is what keeps the real inbox address out of
@@ -310,8 +346,8 @@ async function handleSupport(request: Request, env: Env): Promise<Response> {
   } catch {
     return json({ error: "Malformed JSON body." }, 400);
   }
-  const { category, subject, description, email, page } = (body ??
-    {}) as Record<string, unknown>;
+  const { category, subject, description, email, page, turnstileToken } =
+    (body ?? {}) as Record<string, unknown>;
 
   if (
     typeof category !== "string" ||
@@ -347,6 +383,12 @@ async function handleSupport(request: Request, env: Env): Promise<Response> {
   // Free-text context only, never trusted as a real URL — just interpolated
   // into the email body for "what page were they on".
   const pageText = typeof page === "string" ? page.trim().slice(0, 300) : "";
+  if (typeof turnstileToken !== "string" || !turnstileToken) {
+    return json(
+      { error: "Verification failed. Reload the page and try again." },
+      400,
+    );
+  }
 
   if (!env.SUPPORT_EMAIL) {
     return json({ error: "Support form is not configured." }, 503);
@@ -379,6 +421,13 @@ async function handleSupport(request: Request, env: Env): Promise<Response> {
       {
         "retry-after": "3600",
       },
+    );
+  }
+
+  if (!(await verifyTurnstile(env, turnstileToken, ip))) {
+    return json(
+      { error: "Verification failed. Reload the page and try again." },
+      400,
     );
   }
 
