@@ -30,7 +30,9 @@
 
   "kv_namespaces": [
     {
-      // Per-IP rate limiting, shared by the metered refresh and search endpoints.
+      // Per-IP AND global (site-wide) rate limiting, shared by every
+      // Massive-touching endpoint (refresh, search, chart, indicators,
+      // financials).
       "binding": "RATE_LIMIT",
       "id": "9135f20d01354929b7b2eb0681e7bd66"
     }
@@ -38,7 +40,16 @@
 
   "vars": {
     "LIVE_REFRESH_PER_HOUR": "10",
-    "SEARCH_PER_HOUR": "60"
+    "SEARCH_PER_HOUR": "60",
+
+    // Global circuit breakers — protect total Massive spend against many
+    // concurrent visitors, not just one abusive IP. See the SCALE note in
+    // worker/src/index.ts.
+    "GLOBAL_REFRESH_PER_HOUR": "300",
+    "GLOBAL_SEARCH_PER_HOUR": "5000",
+    "GLOBAL_CHART_PER_HOUR": "3000",
+    "GLOBAL_INDICATORS_PER_HOUR": "1500",
+    "GLOBAL_FINANCIALS_PER_HOUR": "1000"
   },
 
   "observability": {

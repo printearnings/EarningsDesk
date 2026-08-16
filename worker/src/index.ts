@@ -30,6 +30,16 @@
  *
  * If cookie-based sessions are ever added, CSRF protection becomes mandatory
  * at the same time.
+ *
+ * SCALE
+ * -----
+ * Every Massive-touching route also carries a GLOBAL hourly cap (site-wide,
+ * not per-IP) — see `checkGlobalRateLimit`. Per-IP limits only bound what one
+ * visitor can do; they do nothing against many different concurrent visitors,
+ * which is the normal case for /api/chart and /api/indicators (both fire
+ * automatically on every ticker page view, not from a deliberate click). The
+ * global cap is a circuit breaker on total metered spend during a real
+ * traffic spike, sized generously so it never fires under ordinary use.
  */
 
 import {
@@ -45,6 +55,11 @@ export interface Env {
   MASSIVE_API_KEY: string;
   LIVE_REFRESH_PER_HOUR?: string;
   SEARCH_PER_HOUR?: string;
+  GLOBAL_REFRESH_PER_HOUR?: string;
+  GLOBAL_SEARCH_PER_HOUR?: string;
+  GLOBAL_CHART_PER_HOUR?: string;
+  GLOBAL_INDICATORS_PER_HOUR?: string;
+  GLOBAL_FINANCIALS_PER_HOUR?: string;
 }
 
 const MASSIVE_BASE = "https://api.massive.com";
@@ -58,6 +73,17 @@ const STRIKE_BRACKET = 0.15;
 
 const DEFAULT_LIMIT_PER_HOUR = 10;
 const DEFAULT_SEARCH_PER_HOUR = 60;
+
+// Global (site-wide) circuit breakers, one per Massive-touching route. Sized
+// well above realistic peak traffic for a site this size — the point is to
+// bound worst-case spend under a genuine spike or bug, not to throttle normal
+// use. /api/chart and /api/indicators get the highest ceilings because they
+// fire on every ticker page view, not from a deliberate click.
+const DEFAULT_GLOBAL_REFRESH_PER_HOUR = 300;
+const DEFAULT_GLOBAL_SEARCH_PER_HOUR = 5000;
+const DEFAULT_GLOBAL_CHART_PER_HOUR = 3000;
+const DEFAULT_GLOBAL_INDICATORS_PER_HOUR = 1500;
+const DEFAULT_GLOBAL_FINANCIALS_PER_HOUR = 1000;
 
 function json(body: unknown, status = 200, extra: HeadersInit = {}): Response {
   return new Response(JSON.stringify(body), {
@@ -115,6 +141,28 @@ async function checkRateLimit(
   return { ok: true, remaining: limit - current - 1, limit };
 }
 
+/**
+ * Same fixed-window mechanism as `checkRateLimit`, but keyed WITHOUT an IP —
+ * a shared counter across every visitor. Per-IP limits protect against one
+ * abusive visitor; they do nothing when the load is many different visitors
+ * at once, which is ordinary traffic for a page-view-triggered route like
+ * /api/chart. This is that missing backstop.
+ */
+export async function checkGlobalRateLimit(
+  env: Env,
+  kind: string,
+  limit: number,
+): Promise<{ ok: boolean; remaining: number; limit: number }> {
+  const window = Math.floor(Date.now() / 3_600_000);
+  const key = `global:${kind}:${window}`;
+
+  const current = Number((await env.RATE_LIMIT.get(key)) ?? 0);
+  if (current >= limit) return { ok: false, remaining: 0, limit };
+
+  await env.RATE_LIMIT.put(key, String(current + 1), { expirationTtl: 3900 });
+  return { ok: true, remaining: limit - current - 1, limit };
+}
+
 async function handleRefresh(request: Request, env: Env): Promise<Response> {
   if (request.method !== "POST") {
     return json({ error: "Use POST." }, 405, { allow: "POST" });
@@ -151,6 +199,19 @@ async function handleRefresh(request: Request, env: Env): Promise<Response> {
       {
         error: `Refresh limit reached (${limit.limit}/hour). The page data still updates nightly.`,
       },
+      429,
+      { "retry-after": "3600" },
+    );
+  }
+
+  const globalLimit = await checkGlobalRateLimit(
+    env,
+    "refresh",
+    Number(env.GLOBAL_REFRESH_PER_HOUR ?? DEFAULT_GLOBAL_REFRESH_PER_HOUR),
+  );
+  if (!globalLimit.ok) {
+    return json(
+      { error: "Refresh is at capacity site-wide right now. The page data still updates nightly." },
       429,
       { "retry-after": "3600" },
     );
@@ -297,6 +358,21 @@ async function handleChart(request: Request, env: Env, ctx: ExecutionContext): P
   const cacheKey = new Request(`https://cache.internal/chart/${ticker}/${range}`, { method: "GET" });
   const cached = await cache.match(cacheKey);
   if (cached) return cached;
+
+  // Checked only on a cache miss — a cache hit costs Massive nothing, so it
+  // shouldn't spend from the budget that protects Massive spend.
+  const globalLimit = await checkGlobalRateLimit(
+    env,
+    "chart",
+    Number(env.GLOBAL_CHART_PER_HOUR ?? DEFAULT_GLOBAL_CHART_PER_HOUR),
+  );
+  if (!globalLimit.ok) {
+    return json(
+      { error: "Chart data is at capacity site-wide right now. Try again shortly." },
+      429,
+      { "retry-after": "3600" },
+    );
+  }
 
   const now = new Date();
   const to = etDateString(now);
@@ -605,6 +681,19 @@ async function handleIndicators(request: Request, env: Env, ctx: ExecutionContex
   const cached = await cache.match(cacheKey);
   if (cached) return cached;
 
+  const globalLimit = await checkGlobalRateLimit(
+    env,
+    "indicators",
+    Number(env.GLOBAL_INDICATORS_PER_HOUR ?? DEFAULT_GLOBAL_INDICATORS_PER_HOUR),
+  );
+  if (!globalLimit.ok) {
+    return json(
+      { error: "Indicator data is at capacity site-wide right now. Try again shortly." },
+      429,
+      { "retry-after": "3600" },
+    );
+  }
+
   let sma20: IndicatorPoint[];
   let ema50: IndicatorPoint[];
   let rsi14: IndicatorPoint[];
@@ -710,6 +799,19 @@ async function handleFinancials(
   });
   const cached = await cache.match(cacheKey);
   if (cached) return cached;
+
+  const globalLimit = await checkGlobalRateLimit(
+    env,
+    "financials",
+    Number(env.GLOBAL_FINANCIALS_PER_HOUR ?? DEFAULT_GLOBAL_FINANCIALS_PER_HOUR),
+  );
+  if (!globalLimit.ok) {
+    return json(
+      { error: "Financials are at capacity site-wide right now. Try again shortly." },
+      429,
+      { "retry-after": "3600" },
+    );
+  }
 
   let quarters: FinancialsQuarter[] = [];
   try {
@@ -1170,7 +1272,7 @@ async function handleSearch(request: Request, env: Env, ctx: ExecutionContext): 
     limit: Number(env.SEARCH_PER_HOUR ?? DEFAULT_SEARCH_PER_HOUR),
   });
   if (!limit.ok) {
-    return json({ error: "Search limit reached — try again in a bit." }, 429, {
+    return json({ error: "Search limit reached, try again in a bit." }, 429, {
       "retry-after": "3600",
     });
   }
@@ -1181,6 +1283,19 @@ async function handleSearch(request: Request, env: Env, ctx: ExecutionContext): 
   const cache = caches.default;
   const cached = await cache.match(cacheKey);
   if (cached) return cached;
+
+  const globalLimit = await checkGlobalRateLimit(
+    env,
+    "search",
+    Number(env.GLOBAL_SEARCH_PER_HOUR ?? DEFAULT_GLOBAL_SEARCH_PER_HOUR),
+  );
+  if (!globalLimit.ok) {
+    return json(
+      { error: "Search is at capacity site-wide right now. Try again shortly." },
+      429,
+      { "retry-after": "3600" },
+    );
+  }
 
   const upstream = new URL(`${MASSIVE_BASE}/v3/reference/tickers`);
   upstream.searchParams.set("search", q);
