@@ -73,6 +73,7 @@
     "LIVE_REFRESH_PER_HOUR": "10",
     "SEARCH_PER_HOUR": "60",
     "SUPPORT_PER_HOUR": "5",
+    "CHAIN_PER_HOUR": "10",
 
     // Global circuit breakers — protect total Massive spend against many
     // concurrent visitors, not just one abusive IP. See the SCALE note in
@@ -83,6 +84,7 @@
     "GLOBAL_INDICATORS_PER_HOUR": "1500",
     "GLOBAL_FINANCIALS_PER_HOUR": "1000",
     "GLOBAL_SUPPORT_PER_HOUR": "50",
+    "GLOBAL_CHAIN_PER_HOUR": "300",
   },
 
   "observability": {
@@ -120,12 +122,14 @@
         "LIVE_REFRESH_PER_HOUR": "10",
         "SEARCH_PER_HOUR": "60",
         "SUPPORT_PER_HOUR": "5",
+        "CHAIN_PER_HOUR": "10",
         "GLOBAL_REFRESH_PER_HOUR": "300",
         "GLOBAL_SEARCH_PER_HOUR": "5000",
         "GLOBAL_CHART_PER_HOUR": "3000",
         "GLOBAL_INDICATORS_PER_HOUR": "1500",
         "GLOBAL_FINANCIALS_PER_HOUR": "1000",
         "GLOBAL_SUPPORT_PER_HOUR": "50",
+        "GLOBAL_CHAIN_PER_HOUR": "300",
       },
     },
   },

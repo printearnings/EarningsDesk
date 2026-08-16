@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "motion/react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { DirectionChip, SessionChip, VerdictChip } from "@/components/Chip";
@@ -180,6 +181,14 @@ function OptionsPanelCard({ data }: { data: TickerData }) {
               o.richness > 0 ? "above" : "below"
             } this stock's typical post-earnings move`
           : undefined
+      }
+      action={
+        <Link
+          href={`/t/${data.ticker}/simulator/`}
+          className="pressable text-2xs rounded-[var(--radius-sm)] border border-[var(--color-border)] px-2.5 py-1 font-medium text-[var(--color-heading)] transition-colors hover:bg-[var(--color-panel-soft)]"
+        >
+          Simulate a trade →
+        </Link>
       }
     >
       <dl className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-3">

@@ -29,6 +29,10 @@ export interface RawContract {
   last_trade?: { price?: number };
   open_interest?: number;
   implied_volatility?: number;
+  // Present on Massive's /v3/snapshot/options response, confirmed by direct
+  // API inspection — never read by the straddle/put-call-ratio logic below,
+  // only by the P&L simulator's chain endpoint in index.ts.
+  greeks?: { delta?: number; gamma?: number; theta?: number; vega?: number };
   underlying_asset?: { price?: number };
 }
 

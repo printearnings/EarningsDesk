@@ -58,12 +58,14 @@ export interface Env {
   LIVE_REFRESH_PER_HOUR?: string;
   SEARCH_PER_HOUR?: string;
   SUPPORT_PER_HOUR?: string;
+  CHAIN_PER_HOUR?: string;
   GLOBAL_REFRESH_PER_HOUR?: string;
   GLOBAL_SEARCH_PER_HOUR?: string;
   GLOBAL_CHART_PER_HOUR?: string;
   GLOBAL_INDICATORS_PER_HOUR?: string;
   GLOBAL_FINANCIALS_PER_HOUR?: string;
   GLOBAL_SUPPORT_PER_HOUR?: string;
+  GLOBAL_CHAIN_PER_HOUR?: string;
 }
 
 const MASSIVE_BASE = "https://api.massive.com";
@@ -79,6 +81,7 @@ const STRIKE_BRACKET = 0.15;
 const DEFAULT_LIMIT_PER_HOUR = 10;
 const DEFAULT_SEARCH_PER_HOUR = 60;
 const DEFAULT_SUPPORT_PER_HOUR = 5;
+const DEFAULT_CHAIN_PER_HOUR = 10;
 
 // Global (site-wide) circuit breakers, one per Massive-touching route. Sized
 // well above realistic peak traffic for a site this size — the point is to
@@ -94,6 +97,10 @@ const DEFAULT_GLOBAL_FINANCIALS_PER_HOUR = 1000;
 // than reading market data, so its ceiling protects an inbox from spam, not
 // a Massive budget.
 const DEFAULT_GLOBAL_SUPPORT_PER_HOUR = 50;
+// Same Massive endpoint /api/refresh already hits (v3/snapshot/options), so
+// the same ceiling makes sense — this isn't a heavier call, just a richer
+// response shape (the full bracketed chain instead of one straddle).
+const DEFAULT_GLOBAL_CHAIN_PER_HOUR = 300;
 
 // /api/* bypasses static-asset serving entirely (run_worker_first), so the
 // _headers file in web/public — which carries HSTS/CSP/etc. for every page —
@@ -278,6 +285,129 @@ async function handleRefresh(request: Request, env: Env): Promise<Response> {
       straddle_price: straddle?.straddle ?? null,
       put_call_ratio: ratio,
     },
+    200,
+    { "x-ratelimit-remaining": String(limit.remaining) },
+  );
+}
+
+export interface ChainContract {
+  strike: number;
+  expiry: string;
+  type: "call" | "put";
+  price: number | null;
+  iv: number | null;
+  delta: number | null;
+  gamma: number | null;
+  theta: number | null;
+  vega: number | null;
+  open_interest: number | null;
+}
+
+/**
+ * The options P&L simulator's data source — the same Massive chain
+ * `fetchChain` already pulls for /api/refresh, but returned per-contract
+ * (strike/expiry/type/price/IV/greeks) instead of collapsed down to one ATM
+ * straddle. Greeks come straight off Massive's response; nothing here
+ * derives them (no Black-Scholes on this side — that lives client-side in
+ * blackScholes.ts, for repricing at a hypothetical spot/IV/date the API was
+ * never asked about).
+ */
+async function handleChain(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "POST") {
+    return json({ error: "Use POST." }, 405, { allow: "POST" });
+  }
+
+  const contentType = request.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/json")) {
+    return json({ error: "Content-Type: application/json is required." }, 415);
+  }
+
+  if (!env.MASSIVE_API_KEY) {
+    return json({ error: "Live chain is not configured." }, 503);
+  }
+
+  const url = new URL(request.url);
+  const ticker = parseTicker(url.searchParams.get("ticker"));
+  if (!ticker) {
+    return json({ error: "Missing or malformed `ticker`." }, 400);
+  }
+  const reportDate = parseDate(url.searchParams.get("report_date"));
+  if (!reportDate) {
+    return json(
+      { error: "Missing or malformed `report_date` (YYYY-MM-DD)." },
+      400,
+    );
+  }
+
+  const ip = request.headers.get("cf-connecting-ip") ?? "unknown";
+  const limit = await checkRateLimit(env, ip, {
+    kind: "chain",
+    limit: Number(env.CHAIN_PER_HOUR ?? DEFAULT_CHAIN_PER_HOUR),
+  });
+  if (!limit.ok) {
+    return json(
+      {
+        error: `Chain-load limit reached (${limit.limit}/hour). Try again later.`,
+      },
+      429,
+      { "retry-after": "3600" },
+    );
+  }
+
+  const globalLimit = await checkGlobalRateLimit(
+    env,
+    "chain",
+    Number(env.GLOBAL_CHAIN_PER_HOUR ?? DEFAULT_GLOBAL_CHAIN_PER_HOUR),
+  );
+  if (!globalLimit.ok) {
+    return json(
+      { error: "The chain loader is at capacity site-wide right now." },
+      429,
+      { "retry-after": "3600" },
+    );
+  }
+
+  let results: RawContract[];
+  try {
+    results = await fetchChain(env, ticker, reportDate);
+  } catch (err) {
+    console.error("massive fetch failed", { ticker, err: String(err) });
+    return json({ error: "Couldn't reach the options data provider." }, 502);
+  }
+
+  const spot = underlyingPrice(results);
+  if (spot === null) {
+    return json({ error: `No live chain available for ${ticker}.` }, 404);
+  }
+
+  const contracts: ChainContract[] = [];
+  for (const c of results) {
+    const strike = c.details?.strike_price;
+    const expiry = c.details?.expiration_date;
+    const type = c.details?.contract_type;
+    if (
+      typeof strike !== "number" ||
+      !expiry ||
+      (type !== "call" && type !== "put")
+    )
+      continue;
+
+    contracts.push({
+      strike,
+      expiry,
+      type,
+      price: c.last_trade?.price ?? c.day?.close ?? null,
+      iv: c.implied_volatility ?? null,
+      delta: c.greeks?.delta ?? null,
+      gamma: c.greeks?.gamma ?? null,
+      theta: c.greeks?.theta ?? null,
+      vega: c.greeks?.vega ?? null,
+      open_interest: c.open_interest ?? null,
+    });
+  }
+
+  return json(
+    { ticker, as_of: new Date().toISOString(), spot, contracts },
     200,
     { "x-ratelimit-remaining": String(limit.remaining) },
   );
@@ -1775,6 +1905,10 @@ export default {
 
     if (url.pathname === "/api/support") {
       return handleSupport(request, env);
+    }
+
+    if (url.pathname === "/api/chain") {
+      return handleChain(request, env);
     }
 
     if (url.pathname === "/api/chart") {
