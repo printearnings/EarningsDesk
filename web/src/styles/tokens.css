@@ -1,14 +1,18 @@
 /*
- * DESIGN TOKENS — TypeUI "Vertical"
+ * DESIGN TOKENS — TypeUI "Vertical", adapted
  *
- * A cool neutral system: light gray page, white raised panels, a deep charcoal
- * brand, and depth built from borders and spacing rather than shadow.
+ * A cool neutral system: light gray page, white raised panels, a navy brand,
+ * and depth built from borders and spacing rather than shadow.
  *
  * Rules that define the look, in order of how easily they get broken:
- *   1. ONE radius: 4px on everything. Only functionally round controls
- *      (toggles, avatars, radios, range thumbs) get full rounding.
+ *   1. ONE radius scale, softly rounded (6-10px) on everything. Only
+ *      functionally round controls (toggles, avatars, radios, range thumbs)
+ *      get full rounding. Vertical's own original was a flatter 4px
+ *      everywhere; this app rounds it off a step further, still one scale.
  *   2. NO shadows, no glow, no pointer-tracking hover effects. Depth comes
- *      from a white surface on a gray page, separated by a 1px border.
+ *      from a white surface on a gray page, separated by a 1px border. The
+ *      one deliberate exception is --gradient-brand, reserved for marketing
+ *      surfaces (the landing hero) — never a panel, button, or chip.
  *   3. No pastel surfaces and no decorative color striping. Color appears
  *      where it carries meaning, nowhere else.
  *   4. 16px minimum for body copy. Smaller sizes are for true micro-elements
@@ -31,8 +35,9 @@
   --color-panel-soft: #fafafa;
 
   /* ---- Brand & text ---- */
-  --color-brand: #232323;
-  --color-brand-hover: #3a3a3a;
+  --color-brand: #1e3a6e;
+  --color-brand-hover: #14294f;
+  --gradient-brand: linear-gradient(135deg, #142a4e 0%, #2f5aa8 100%);
   --color-heading: #18181b;
   --color-body: #52525b;
   --color-muted: #71717a;
@@ -92,9 +97,12 @@
    */
   --color-viz-implied: #454598;
   --color-viz-realized: #8f6316;
-  --color-viz-price: #232323;
-  --color-viz-grid: #e4e4e7;
-  --color-viz-axis: #a1a1aa;
+  --color-viz-price: #1e3a6e;
+  /* Darkened one step from the border color they used to match exactly —
+   * "recessive" doesn't mean "invisible," and the grid/axis text were both
+   * reported hard to read against the white panel. */
+  --color-viz-grid: #d4d4d8;
+  --color-viz-axis: #71717a;
 
   /*
    * SMA/EMA overlay pair, validated alongside --color-viz-realized (the
@@ -125,12 +133,13 @@
   --text-eyebrow: 0.6875rem;
 
   /* ---- Shape ----
-   * Vertical's signature: one slight radius everywhere. */
-  --radius-sm: 4px;
-  --radius-md: 4px;
-  --radius-lg: 4px;
-  --radius-panel: 4px;
-  --radius-chip: 4px;
+   * Softer than Vertical's original 4px everywhere — still one consistent
+   * radius scale, not per-component tuning, just a rounder one. */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-panel: 10px;
+  --radius-chip: 6px;
 
   /* ---- Motion ----
    * Emil Kowalski's design-eng rules (see .claude/skills/emil-design-eng):
@@ -183,8 +192,9 @@
     --color-panel: #18181b;
     --color-panel-soft: #202024;
 
-    --color-brand: #f4f4f5;
-    --color-brand-hover: #e4e4e7;
+    --color-brand: #3d64ad;
+    --color-brand-hover: #4a76c9;
+    --gradient-brand: linear-gradient(135deg, #16294f 0%, #4a76c9 100%);
     --color-heading: #fafafa;
     --color-body: #d4d4d8;
     --color-muted: #a1a1aa;
@@ -192,8 +202,8 @@
     --color-border: #27272a;
     --color-border-subtle: #1f1f22;
 
-    --color-on-brand: #18181b;
-    --color-on-brand-muted: #52525b;
+    --color-on-brand: #fafafa;
+    --color-on-brand-muted: #c7d5ef;
 
     --color-verdict-rich: #e05a5c;
     --color-verdict-cheap: #3d9468;
@@ -210,8 +220,8 @@
     --color-viz-implied: #6478c4;
     --color-viz-realized: #b07f28;
     --color-viz-price: #fafafa;
-    --color-viz-grid: #27272a;
-    --color-viz-axis: #71717a;
+    --color-viz-grid: #3f3f46;
+    --color-viz-axis: #a1a1aa;
 
     --color-viz-sma: #519adb;
     --color-viz-ema: #8354b8;
@@ -228,8 +238,9 @@
   --color-panel: #18181b;
   --color-panel-soft: #202024;
 
-  --color-brand: #f4f4f5;
-  --color-brand-hover: #e4e4e7;
+  --color-brand: #3d64ad;
+  --color-brand-hover: #4a76c9;
+  --gradient-brand: linear-gradient(135deg, #16294f 0%, #4a76c9 100%);
   --color-heading: #fafafa;
   --color-body: #d4d4d8;
   --color-muted: #a1a1aa;
@@ -237,8 +248,8 @@
   --color-border: #27272a;
   --color-border-subtle: #1f1f22;
 
-  --color-on-brand: #18181b;
-  --color-on-brand-muted: #52525b;
+  --color-on-brand: #fafafa;
+  --color-on-brand-muted: #c7d5ef;
 
   --color-verdict-rich: #e05a5c;
   --color-verdict-cheap: #3d9468;
@@ -255,8 +266,8 @@
   --color-viz-implied: #6478c4;
   --color-viz-realized: #b07f28;
   --color-viz-price: #fafafa;
-  --color-viz-grid: #27272a;
-  --color-viz-axis: #71717a;
+  --color-viz-grid: #3f3f46;
+  --color-viz-axis: #a1a1aa;
 
   --color-viz-sma: #519adb;
   --color-viz-ema: #8354b8;

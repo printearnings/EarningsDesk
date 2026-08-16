@@ -16,8 +16,10 @@ export const metadata = {
  * grid: there is nothing to sign up for, and a trader who lands here already
  * knows what they came to look up.
  *
- * The charcoal band is Vertical's marketing treatment — the system frames
- * content between brand bands rather than using photography.
+ * The navy gradient band is Vertical's marketing treatment, adapted — the
+ * system frames content between brand bands rather than using photography.
+ * The gradient itself (--gradient-brand) is scoped to marketing surfaces
+ * like this one; every other panel/button in the app stays flat.
  */
 export default async function LandingPage() {
   const [index, calendar] = await Promise.all([getIndex(), getCalendar(14)]);
@@ -25,7 +27,7 @@ export default async function LandingPage() {
 
   return (
     <main>
-      <section className="bg-[var(--color-brand)]">
+      <section style={{ background: "var(--gradient-brand)" }}>
         <div className="mx-auto max-w-[1280px] px-6 py-20 sm:py-28">
           <p className="eyebrow !text-[var(--color-on-brand-muted)]">PrintEarnings</p>
 

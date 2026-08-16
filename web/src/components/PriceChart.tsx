@@ -1165,7 +1165,7 @@ function ChartBody({
         </div>
       )}
 
-      <figcaption className="mt-2 flex flex-wrap items-center gap-4 text-sm text-[var(--color-muted)]">
+      <figcaption className="mt-2 flex flex-wrap items-center gap-4 text-sm text-[var(--color-body)]">
         {chartType === "candle" ? (
           <>
             <span className="inline-flex items-center gap-2">
