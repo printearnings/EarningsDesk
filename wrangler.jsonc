@@ -85,6 +85,7 @@
     "GLOBAL_FINANCIALS_PER_HOUR": "1000",
     "GLOBAL_SUPPORT_PER_HOUR": "50",
     "GLOBAL_CHAIN_PER_HOUR": "300",
+    "GLOBAL_INSIDERS_PER_HOUR": "1000",
   },
 
   "observability": {
@@ -130,6 +131,7 @@
         "GLOBAL_FINANCIALS_PER_HOUR": "1000",
         "GLOBAL_SUPPORT_PER_HOUR": "50",
         "GLOBAL_CHAIN_PER_HOUR": "300",
+        "GLOBAL_INSIDERS_PER_HOUR": "1000",
       },
     },
   },

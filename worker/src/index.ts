@@ -66,6 +66,7 @@ export interface Env {
   GLOBAL_FINANCIALS_PER_HOUR?: string;
   GLOBAL_SUPPORT_PER_HOUR?: string;
   GLOBAL_CHAIN_PER_HOUR?: string;
+  GLOBAL_INSIDERS_PER_HOUR?: string;
 }
 
 const MASSIVE_BASE = "https://api.massive.com";
@@ -101,6 +102,10 @@ const DEFAULT_GLOBAL_SUPPORT_PER_HOUR = 50;
 // the same ceiling makes sense — this isn't a heavier call, just a richer
 // response shape (the full bracketed chain instead of one straddle).
 const DEFAULT_GLOBAL_CHAIN_PER_HOUR = 300;
+// Cached for hours (see INSIDERS_CACHE_SECONDS below), so this only bounds
+// cache-miss traffic across many different tickers at once, not per-ticker
+// repeat views.
+const DEFAULT_GLOBAL_INSIDERS_PER_HOUR = 1000;
 
 // /api/* bypasses static-asset serving entirely (run_worker_first), so the
 // _headers file in web/public — which carries HSTS/CSP/etc. for every page —
@@ -1370,6 +1375,157 @@ async function handleFinancials(
   return response;
 }
 
+// Form 4 must be filed within two business days of a trade, so this is the
+// timeliest disclosure available anywhere short of paying for a real-time
+// feed — but a company only files a handful of these a month, so caching
+// for hours (not the ~minute-scale of the price chart) doesn't cost
+// freshness that matters.
+const INSIDERS_CACHE_SECONDS = 21_600;
+const INSIDER_LIMIT = 40;
+
+export interface InsiderTransaction {
+  filing_date: string | null;
+  transaction_date: string | null;
+  owner_name: string | null;
+  officer_title: string | null;
+  is_director: boolean;
+  is_officer: boolean;
+  is_ten_percent_owner: boolean;
+  transaction_code: string | null;
+  acquired_or_disposed: "A" | "D" | null;
+  shares: number | null;
+  price_per_share: number | null;
+  value: number | null;
+  shares_owned_after: number | null;
+  filing_url: string | null;
+}
+
+/**
+ * SEC Form 4 insider transactions — who at the company (officer, director,
+ * 10% owner) bought or sold shares, and when.
+ *
+ * Massive's form-4 endpoint filters by `issuer_cik`, not by ticker directly
+ * (confirmed by inspection: a `ticker` query param is silently ignored and
+ * the endpoint falls back to its own default sort). CIK is resolved first
+ * via the ticker-details endpoint, which already carries a `cik` field —
+ * no separate SEC ticker-to-CIK mapping file needed.
+ */
+async function handleInsiders(
+  request: Request,
+  env: Env,
+  ctx: ExecutionContext,
+): Promise<Response> {
+  const url = new URL(request.url);
+  const ticker = parseTicker(url.searchParams.get("ticker"));
+  if (!ticker) return json({ error: "Missing or malformed `ticker`." }, 400);
+  if (!env.MASSIVE_API_KEY) {
+    return json({ error: "Insider activity is not configured." }, 503);
+  }
+
+  const cache = caches.default;
+  const cacheKey = new Request(`https://cache.internal/insiders/${ticker}`, {
+    method: "GET",
+  });
+  const cached = await cache.match(cacheKey);
+  if (cached) return cached;
+
+  const globalLimit = await checkGlobalRateLimit(
+    env,
+    "insiders",
+    Number(env.GLOBAL_INSIDERS_PER_HOUR ?? DEFAULT_GLOBAL_INSIDERS_PER_HOUR),
+  );
+  if (!globalLimit.ok) {
+    return json(
+      {
+        error:
+          "Insider activity is at capacity site-wide right now. Try again shortly.",
+      },
+      429,
+      { "retry-after": "3600" },
+    );
+  }
+
+  let transactions: InsiderTransaction[] = [];
+  try {
+    const tickerUrl = new URL(`${MASSIVE_BASE}/v3/reference/tickers/${ticker}`);
+    tickerUrl.searchParams.set("apiKey", env.MASSIVE_API_KEY);
+    const tickerRes = await fetch(tickerUrl.toString(), {
+      signal: AbortSignal.timeout(10_000),
+    });
+    const tickerBody = tickerRes.ok
+      ? ((await tickerRes.json()) as { results?: { cik?: string } })
+      : null;
+    const cik = tickerBody?.results?.cik;
+
+    if (cik) {
+      const apiUrl = new URL(`${MASSIVE_BASE}/stocks/filings/vX/form-4`);
+      apiUrl.searchParams.set("issuer_cik", cik);
+      apiUrl.searchParams.set("limit", String(INSIDER_LIMIT));
+      apiUrl.searchParams.set("sort", "filing_date.desc");
+      apiUrl.searchParams.set("apiKey", env.MASSIVE_API_KEY);
+
+      const res = await fetch(apiUrl.toString(), {
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (res.ok) {
+        const body = (await res.json()) as {
+          results?: Array<{
+            filing_date?: string;
+            transaction_date?: string;
+            owner_name?: string;
+            officer_title?: string;
+            is_director?: boolean;
+            is_officer?: boolean;
+            is_ten_percent_owner?: boolean;
+            transaction_code?: string;
+            transaction_acquired_disposed?: string;
+            transaction_shares?: number;
+            transaction_price_per_share?: number;
+            transaction_value?: number;
+            shares_owned_following_transaction?: number;
+            filing_url?: string;
+          }>;
+        };
+        transactions = (body.results ?? [])
+          // Form 4 also carries pure position-summary rows with no trade of
+          // their own (Table I/II holdings disclosures) — a present share
+          // count is what actually distinguishes a real transaction here,
+          // not a `record_type` value nothing in this response confirms.
+          .filter((r) => typeof r.transaction_shares === "number")
+          .map((r) => ({
+            filing_date: r.filing_date ?? null,
+            transaction_date: r.transaction_date ?? null,
+            owner_name: r.owner_name ?? null,
+            officer_title: r.officer_title ?? null,
+            is_director: r.is_director ?? false,
+            is_officer: r.is_officer ?? false,
+            is_ten_percent_owner: r.is_ten_percent_owner ?? false,
+            transaction_code: r.transaction_code ?? null,
+            acquired_or_disposed:
+              r.transaction_acquired_disposed === "A" ||
+              r.transaction_acquired_disposed === "D"
+                ? r.transaction_acquired_disposed
+                : null,
+            shares: r.transaction_shares ?? null,
+            price_per_share: r.transaction_price_per_share ?? null,
+            value: r.transaction_value ?? null,
+            shares_owned_after: r.shares_owned_following_transaction ?? null,
+            filing_url: r.filing_url ?? null,
+          }));
+      }
+    }
+  } catch (err) {
+    console.error("insiders fetch failed", { ticker, err: String(err) });
+  }
+
+  const payload = { ticker, transactions };
+  const response = json(payload, 200, {
+    "cache-control": `public, max-age=${INSIDERS_CACHE_SECONDS}`,
+  });
+  ctx.waitUntil(cache.put(cacheKey, response.clone()));
+  return response;
+}
+
 export interface LookupPricePoint {
   date: string; // ISO date
   close: number;
@@ -1929,6 +2085,10 @@ export default {
 
     if (url.pathname === "/api/financials") {
       return handleFinancials(request, env, ctx);
+    }
+
+    if (url.pathname === "/api/insiders") {
+      return handleInsiders(request, env, ctx);
     }
 
     if (url.pathname === "/api/health") {

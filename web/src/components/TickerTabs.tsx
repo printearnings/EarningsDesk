@@ -8,6 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { DirectionChip, SessionChip, VerdictChip } from "@/components/Chip";
 import { FinancialsPanel } from "@/components/FinancialsPanel";
 import { ImpliedVsRealized } from "@/components/ImpliedVsRealized";
+import { InsidersPanel } from "@/components/InsidersPanel";
 import { NewsThumbnail } from "@/components/NewsThumbnail";
 import { OpenInterestChart } from "@/components/OpenInterestChart";
 import { Panel, Stat } from "@/components/Panel";
@@ -29,7 +30,7 @@ import {
   sentimentLabel,
 } from "@/lib/format";
 
-type TabId = "price" | "options" | "news" | "history" | "financials";
+type TabId = "price" | "options" | "news" | "history" | "financials" | "insiders";
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "price", label: "Price" },
@@ -37,6 +38,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: "news", label: "News" },
   { id: "history", label: "History" },
   { id: "financials", label: "Financials" },
+  { id: "insiders", label: "Insiders" },
 ];
 
 /**
@@ -146,6 +148,12 @@ export function TickerTabs({ data }: { data: TickerData }) {
         {visited.has("financials") && (
           <div hidden={active !== "financials"}>
             <FinancialsPanel ticker={data.ticker} />
+          </div>
+        )}
+
+        {visited.has("insiders") && (
+          <div hidden={active !== "insiders"}>
+            <InsidersPanel ticker={data.ticker} />
           </div>
         )}
       </div>
