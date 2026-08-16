@@ -69,8 +69,42 @@
 
   "observability": {
     "enabled": true
+  },
+
+  // Dev environment: a separate Worker service (its own name, its own
+  // workers.dev URL, its own KV) so testing here can never touch production
+  // data or traffic. `routes` is explicitly emptied — `routes`/`route` is an
+  // inheritable key, and without this it would try to attach the SAME
+  // printearnings.com custom domain to a second Worker service, which fails
+  // (a custom domain can only point at one Worker). `vars`/`kv_namespaces`
+  // are non-inheritable in Wrangler regardless, so they're repeated here on
+  // purpose, not duplicated by accident.
+  //
+  //   wrangler deploy --env dev            deploys here
+  //   wrangler secret put MASSIVE_API_KEY --env dev   (same key, separate secret store)
+  "env": {
+    "dev": {
+      "name": "earningsdesk-dev",
+      "routes": [],
+      "kv_namespaces": [
+        {
+          "binding": "RATE_LIMIT",
+          "id": "7faa19f385c14b58b8369f78fcd3ba6d"
+        }
+      ],
+      "vars": {
+        "LIVE_REFRESH_PER_HOUR": "10",
+        "SEARCH_PER_HOUR": "60",
+        "GLOBAL_REFRESH_PER_HOUR": "300",
+        "GLOBAL_SEARCH_PER_HOUR": "5000",
+        "GLOBAL_CHART_PER_HOUR": "3000",
+        "GLOBAL_INDICATORS_PER_HOUR": "1500",
+        "GLOBAL_FINANCIALS_PER_HOUR": "1000"
+      }
+    }
   }
 
   // MASSIVE_API_KEY is a secret, not a var:
-  //   wrangler secret put MASSIVE_API_KEY
+  //   wrangler secret put MASSIVE_API_KEY            (production)
+  //   wrangler secret put MASSIVE_API_KEY --env dev   (dev)
 }

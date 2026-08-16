@@ -10,6 +10,8 @@
     "dev": "wrangler dev",
     "deploy": "npm run build && wrangler deploy",
     "deploy:dry": "wrangler deploy --dry-run",
+    "deploy:dev": "npm run build && wrangler deploy --env dev",
+    "deploy:dev:dry": "wrangler deploy --env dev --dry-run",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
