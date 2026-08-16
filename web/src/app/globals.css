@@ -7,9 +7,18 @@
  */
 
 html {
-  /* Vertical is a light system. Without this, a dark-mode OS auto-inverts form
-     controls and scrollbars and the page reads as half-broken. */
+  /* Lets the browser pick which native form-control/scrollbar rendering to
+     use based on the same signal the tokens react to: system preference by
+     default, overridden by an explicit choice below. */
+  color-scheme: light dark;
+}
+
+html[data-theme="light"] {
   color-scheme: light;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
 }
 
 body {

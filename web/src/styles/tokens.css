@@ -153,10 +153,116 @@
 }
 
 /*
- * Vertical is specified as a light system, and this is a faithful
- * implementation of it. No dark mode: inventing one would mean inventing
- * surfaces, tints, and chart steps the system doesn't define, and the result
- * would be a different design wearing Vertical's name. `color-scheme: light`
- * below stops the browser auto-darkening form controls and scrollbars, which
- * is what makes a light-only page look broken on a dark OS.
+ * ---- Dark mode ----
+ *
+ * Vertical itself only specifies a light system, so this is not "the same
+ * design, inverted" — it's a from-scratch dark instance built with the same
+ * rules (one radius, no shadows, depth from a border not a glow, colour only
+ * where it carries meaning) and its own validated steps, not an automatic
+ * flip of the light values.
+ *
+ * Every categorical/chart pair below is re-validated against THIS surface
+ * (#18181b), not inherited from the light-mode numbers — a colour that
+ * clears CVD separation on white does not automatically clear it on a dark
+ * panel. Re-run scripts/validate_palette.js --mode dark --surface "#18181b"
+ * before changing any of them.
+ *
+ *   implied/realized   ΔE 23.0 protan · 18.2 tritan · 23.7 normal ✓
+ *   SMA/EMA             ΔE 12.3 deutan · 19.0 tritan · 18.1 normal ✓
+ *   verdict/direction   ΔE 6.8 deutan (floor band — legal because every
+ *                       verdict/direction chip already carries a text label,
+ *                       never colour alone) · 26.0 tritan · 26.0 normal
+ *
+ * Three states, not two: a system-dark visitor who hasn't chosen gets the
+ * @media block; an explicit choice (the toggle, persisted to localStorage)
+ * stamps data-theme and wins over system preference in both directions.
  */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-page: #0a0a0b;
+    --color-panel: #18181b;
+    --color-panel-soft: #202024;
+
+    --color-brand: #f4f4f5;
+    --color-brand-hover: #e4e4e7;
+    --color-heading: #fafafa;
+    --color-body: #d4d4d8;
+    --color-muted: #a1a1aa;
+
+    --color-border: #27272a;
+    --color-border-subtle: #1f1f22;
+
+    --color-on-brand: #18181b;
+    --color-on-brand-muted: #52525b;
+
+    --color-verdict-rich: #e05a5c;
+    --color-verdict-cheap: #3d9468;
+    --color-verdict-fair: #a1a1aa;
+
+    --color-verdict-rich-bg: #2a1618;
+    --color-verdict-cheap-bg: #12261d;
+    --color-verdict-fair-bg: #202024;
+
+    --color-direction-bullish: #3d9468;
+    --color-direction-bearish: #e05a5c;
+    --color-direction-neutral: #a1a1aa;
+
+    --color-viz-implied: #6478c4;
+    --color-viz-realized: #b07f28;
+    --color-viz-price: #fafafa;
+    --color-viz-grid: #27272a;
+    --color-viz-axis: #71717a;
+
+    --color-viz-sma: #519adb;
+    --color-viz-ema: #8354b8;
+
+    --color-positive: #3d9468;
+    --color-negative: #e05a5c;
+    --color-warning: #f0a94e;
+    --color-warning-bg: #2a2013;
+  }
+}
+
+:root[data-theme="dark"] {
+  --color-page: #0a0a0b;
+  --color-panel: #18181b;
+  --color-panel-soft: #202024;
+
+  --color-brand: #f4f4f5;
+  --color-brand-hover: #e4e4e7;
+  --color-heading: #fafafa;
+  --color-body: #d4d4d8;
+  --color-muted: #a1a1aa;
+
+  --color-border: #27272a;
+  --color-border-subtle: #1f1f22;
+
+  --color-on-brand: #18181b;
+  --color-on-brand-muted: #52525b;
+
+  --color-verdict-rich: #e05a5c;
+  --color-verdict-cheap: #3d9468;
+  --color-verdict-fair: #a1a1aa;
+
+  --color-verdict-rich-bg: #2a1618;
+  --color-verdict-cheap-bg: #12261d;
+  --color-verdict-fair-bg: #202024;
+
+  --color-direction-bullish: #3d9468;
+  --color-direction-bearish: #e05a5c;
+  --color-direction-neutral: #a1a1aa;
+
+  --color-viz-implied: #6478c4;
+  --color-viz-realized: #b07f28;
+  --color-viz-price: #fafafa;
+  --color-viz-grid: #27272a;
+  --color-viz-axis: #71717a;
+
+  --color-viz-sma: #519adb;
+  --color-viz-ema: #8354b8;
+
+  --color-positive: #3d9468;
+  --color-negative: #e05a5c;
+  --color-warning: #f0a94e;
+  --color-warning-bg: #2a2013;
+}

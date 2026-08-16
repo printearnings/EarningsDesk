@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { MAIN, OTHER } from "@/components/Sidebar";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 /**
  * Hamburger + slide-in drawer, for the same width range the desktop Sidebar
@@ -72,14 +73,17 @@ export function MobileNav() {
               <span className="font-mono text-sm font-medium tracking-[0.08em] uppercase">
                 Print<span className="text-[var(--color-muted)]">Earnings</span>
               </span>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                aria-label="Close menu"
-                className="pressable flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-muted)] hover:bg-[var(--color-panel-soft)] hover:text-[var(--color-heading)]"
-              >
-                <CloseIcon />
-              </button>
+              <div className="flex items-center gap-1">
+                <ThemeToggle />
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  aria-label="Close menu"
+                  className="pressable flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-muted)] hover:bg-[var(--color-panel-soft)] hover:text-[var(--color-heading)]"
+                >
+                  <CloseIcon />
+                </button>
+              </div>
             </div>
 
             <nav className="flex-1 overflow-y-auto px-2 pt-3">

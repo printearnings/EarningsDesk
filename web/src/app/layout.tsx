@@ -35,11 +35,32 @@ export const metadata: Metadata = {
     "What the options market is pricing into an earnings print, and what actually happened the last eight quarters.",
 };
 
+// Applies a saved explicit theme choice before the browser paints. Without
+// this, an explicit dark choice would flash light on every load: the server
+// has no localStorage, so the first paint is always the light default, and a
+// useEffect (React's usual "read after mount" idiom, used for the sidebar's
+// collapse state) only fixes that up after hydration — fine for a layout
+// shift, too jarring for a full theme flip. No system-preference branch here
+// on purpose: an unset preference is already handled by pure CSS
+// (@media (prefers-color-scheme: dark) in tokens.css), so this script has
+// nothing to do in that case and stays this small.
+const THEME_INIT_SCRIPT = `
+(function () {
+  try {
+    var v = localStorage.getItem("printearnings:theme");
+    if (v === "light" || v === "dark") {
+      document.documentElement.setAttribute("data-theme", v);
+    }
+  } catch (e) {}
+})();
+`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="en"
       className={`${inter.variable} ${geistMono.variable} ${ebGaramond.variable}`}
+      suppressHydrationWarning
     >
       {/*
         Browser extensions (Grammarly, form-fillers) inject attributes onto
@@ -51,6 +72,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         nothing else, so a genuine mismatch inside the page still surfaces.
       */}
       <body className="min-h-screen" suppressHydrationWarning>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         {children}
       </body>
     </html>

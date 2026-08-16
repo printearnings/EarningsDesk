@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { ThemeToggle } from "@/components/ThemeToggle";
+
 /**
  * Persistent left navigation. Collapsible to an icon rail.
  *
@@ -85,16 +87,19 @@ export function Sidebar() {
           </Link>
         )}
 
-        <button
-          type="button"
-          onClick={toggle}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          aria-pressed={!collapsed}
-          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className="pressable flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-muted)] hover:bg-[var(--color-panel-soft)] hover:text-[var(--color-heading)]"
-        >
-          <PanelIcon collapsed={collapsed} />
-        </button>
+        <div className={`flex items-center ${collapsed ? "flex-col gap-2" : "gap-1"}`}>
+          <ThemeToggle />
+          <button
+            type="button"
+            onClick={toggle}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-pressed={!collapsed}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            className="pressable flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-muted)] hover:bg-[var(--color-panel-soft)] hover:text-[var(--color-heading)]"
+          >
+            <PanelIcon collapsed={collapsed} />
+          </button>
+        </div>
       </div>
 
       <nav className="flex-1 px-2 pt-3">
