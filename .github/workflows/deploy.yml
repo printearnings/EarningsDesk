@@ -3,11 +3,14 @@ name: Deploy
 # Builds the static site from the latest dashboard_snapshots and pushes it to
 # the Cloudflare Worker. Two triggers:
 #   - push to main: ship code changes (frontend, Worker, API schema) right away.
-#   - nightly schedule: pick up the fresh data from the Earnings repo's
-#     build_dashboard cron, which runs ~50 minutes earlier (01:10 UTC,
-#     Tue-Sat — see patkhai/Earnings/.github/workflows/build_dashboard.yml).
-#     A push-triggered deploy would otherwise serve last night's numbers
-#     until the next code change happened to land.
+#   - twice-daily schedule: pick up the fresh data from the Earnings repo's
+#     build_dashboard cron, which now runs twice a trading day (~50 minutes
+#     before each of these) — see
+#     patkhai/Earnings/.github/workflows/build_dashboard.yml:
+#       ~8:10am ET (12:10 UTC, Mon-Fri) — BMO earnings settled before the open.
+#       ~9:10pm ET (01:10 UTC, Tue-Sat) — AMC earnings settled after the close.
+#     A push-triggered deploy would otherwise serve stale numbers until the
+#     next code change happened to land.
 #
 # Required repo secrets (Settings > Secrets and variables > Actions):
 #   DATABASE_URL             — Neon Postgres, read-only is enough for dump_json.
@@ -27,7 +30,8 @@ on:
   push:
     branches: [main]
   schedule:
-    - cron: "0 2 * * 2-6"
+    - cron: "0 13 * * 1-5" # ~50 min after the morning build_dashboard run.
+    - cron: "0 2 * * 2-6" # ~50 min after the evening build_dashboard run.
   workflow_dispatch:
 
 # A push landing mid-nightly-run would deploy a half-generated site; the

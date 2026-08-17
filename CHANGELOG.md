@@ -7,6 +7,18 @@ Notable changes to EarningsDesk, kept succinct. Format loosely follows
 
 ## [Unreleased]
 
+## [1.8.1] - 2026-08-16
+
+### Changed
+
+- Data now refreshes twice a trading day instead of once: the Earnings
+  repo's `build_dashboard` snapshot now runs ~8:10am ET (before the open,
+  catching BMO earnings) in addition to the existing ~9:10pm ET run (after
+  the close, catching AMC earnings). This repo's own deploy cron gained a
+  matching second run (~9:00am ET) to publish the fresh morning snapshot
+  promptly instead of waiting for the evening deploy. No frontend/Worker
+  code changed &mdash; CI/CD only.
+
 ## [1.8.0] - 2026-08-16
 
 ### Changed
