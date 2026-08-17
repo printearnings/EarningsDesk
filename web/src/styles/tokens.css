@@ -55,6 +55,11 @@
   /* ---- Brand & text ---- */
   --color-brand: #1e3a6e;
   --color-brand-hover: #14294f;
+  /* A softer, lighter navy for secondary text that still wants brand
+     color — Panel subtitles, in particular. 8.09:1 on white; deliberately
+     solid (not gradient) since subtitles run full sentences and a gradient
+     reads worse the longer the string. */
+  --color-brand-muted: #35507d;
   /* Full-bleed dark feature band — the landing hero, and anywhere else a
      deliberately saturated marketing surface is warranted. Never a panel,
      button, or chip fill; always full-bleed. */
@@ -221,8 +226,9 @@
 
     --color-brand: #3d64ad;
     --color-brand-hover: #4a76c9;
+    --color-brand-muted: #9fb3d9;
     --color-band: #16294f;
-    --gradient-brand: linear-gradient(135deg, #16294f 0%, #4a76c9 100%);
+    --gradient-brand: linear-gradient(135deg, #5a89d6 0%, #8fb4ec 100%);
     --color-table-head: #23262d;
     --color-heading: rgb(245 242 236 / 95%);
     --color-body: rgb(245 242 236 / 87%);
@@ -271,8 +277,9 @@
 
   --color-brand: #3d64ad;
   --color-brand-hover: #4a76c9;
+  --color-brand-muted: #9fb3d9;
   --color-band: #16294f;
-  --gradient-brand: linear-gradient(135deg, #16294f 0%, #4a76c9 100%);
+  --gradient-brand: linear-gradient(135deg, #5a89d6 0%, #8fb4ec 100%);
   --color-table-head: #23262d;
   --color-heading: rgb(245 242 236 / 95%);
   --color-body: rgb(245 242 236 / 87%);

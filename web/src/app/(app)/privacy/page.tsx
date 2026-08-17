@@ -20,15 +20,29 @@ export default async function PrivacyPage() {
           </p>
         </Panel>
 
+        <Panel title="Cookies">
+          <p className="max-w-3xl text-[var(--color-body)]">
+            This site sets exactly one cookie:{" "}
+            <code className="text-[var(--color-heading)]">cf_clearance</code>, placed by
+            Cloudflare (which sits in front of every request) for bot and abuse mitigation — it
+            is not used for analytics, advertising, or tracking you across sites, and nothing
+            here reads or acts on it. Cookies used strictly for security, like this one, are the
+            standard exemption in cookie-consent law (GDPR/ePrivacy, CCPA-style regimes), so the
+            Accept/Reject choice on the banner has nothing to actually turn off today &mdash;
+            it&rsquo;s there so the choice is on record, and so there&rsquo;s something real to
+            gate the day this site adds anything that isn&rsquo;t strictly necessary.
+          </p>
+        </Panel>
+
         <Panel title="What's stored in your browser">
           <p className="max-w-3xl text-[var(--color-body)]">
-            Two preferences live in local storage, never sent to any server: whether
+            A few preferences live in local storage, never sent to any server: whether
             you&rsquo;ve acknowledged the{" "}
             <a href="/disclaimer/" className="underline underline-offset-2">
               disclaimer
             </a>
-            , and whether the sidebar is collapsed. Clearing your browser&rsquo;s site data
-            resets both.
+            , your cookie-banner choice, your light/dark theme, and whether the sidebar is
+            collapsed. Clearing your browser&rsquo;s site data resets all of them.
           </p>
         </Panel>
 

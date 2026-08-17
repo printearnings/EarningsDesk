@@ -7,6 +7,11 @@ import type { ReactNode } from "react";
  * given) carries the one gradient text treatment in the app — --gradient-
  * brand via bg-clip-text — which is why titles stay short, sentence-style
  * labels rather than data: a gradient reads worse the longer the string.
+ * The subtitle gets a solid --color-brand-muted instead of a second
+ * gradient, both because it's often a full sentence and because the dark-
+ * mode gradient's own dark stop was briefly too close to the dark panel
+ * color to read reliably — --color-brand-muted is a plain, contrast-
+ * checked color precisely so this doesn't repeat.
  */
 export function Panel({
   title,
@@ -50,7 +55,9 @@ export function Panel({
                 {title}
               </h2>
             )}
-            {subtitle && <p className="mt-1 text-sm text-[var(--color-body)]">{subtitle}</p>}
+            {subtitle && (
+              <p className="mt-1 text-sm text-[var(--color-brand-muted)]">{subtitle}</p>
+            )}
           </div>
           {action}
         </header>

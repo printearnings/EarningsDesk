@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { EB_Garamond, Geist_Mono, Inter } from "next/font/google";
 import Script from "next/script";
 
+import { CookieBanner } from "@/components/CookieBanner";
+
 import "./globals.css";
 
 /*
@@ -73,6 +75,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         */}
         <Script src="/theme-init.js" strategy="beforeInteractive" />
         {children}
+        <CookieBanner />
       </body>
     </html>
   );
