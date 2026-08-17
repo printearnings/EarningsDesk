@@ -293,6 +293,30 @@ def test_stale_snapshot_is_flagged(s):
     assert pages.ticker_page(s, "NVDA", now=NOW).is_stale is True
 
 
+def test_stale_threshold_widens_over_the_weekend(s):
+    """build_dashboard only runs Tue-Sat — Friday's snapshot is still the
+    freshest one available all through Saturday, Sunday, and Monday, so its
+    growing age on those days isn't a missed run and shouldn't be flagged."""
+    friday_close = datetime(2026, 8, 7, 21, 0, tzinfo=UTC)  # 2026-08-07 is a Friday
+
+    sunday = datetime(2026, 8, 9, 12, 0, tzinfo=UTC)  # ~39h old — over the plain 36h cap
+    _snap(s, as_of=friday_close)
+    assert pages.ticker_page(s, "NVDA", now=sunday).is_stale is False
+
+    monday = datetime(2026, 8, 10, 20, 0, tzinfo=UTC)  # ~71h old
+    _snap(s, as_of=friday_close)
+    assert pages.ticker_page(s, "NVDA", now=monday).is_stale is False
+
+
+def test_stale_threshold_still_flags_a_genuinely_missed_weekend_run(s):
+    """The weekend grace period is generous, not infinite — a snapshot that's
+    stale even accounting for the market being closed must still be flagged."""
+    ancient = datetime(2026, 7, 20, 12, 0, tzinfo=UTC)
+    monday = datetime(2026, 8, 10, 20, 0, tzinfo=UTC)
+    _snap(s, as_of=ancient)
+    assert pages.ticker_page(s, "NVDA", now=monday).is_stale is True
+
+
 def test_days_until_report(s):
     _snap(s, next_report_date=date(2026, 8, 26))
     assert pages.ticker_page(s, "NVDA", now=NOW).days_until_report == 18

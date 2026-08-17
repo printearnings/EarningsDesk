@@ -10,11 +10,18 @@
  *      get full rounding. Vertical's own original was a flatter 4px
  *      everywhere; this app rounds it off a step further, still one scale.
  *   2. NO shadows, no glow, no pointer-tracking hover effects. Depth comes
- *      from a white surface on a gray page, separated by a 1px border. The
- *      one deliberate exception is --gradient-brand, reserved for marketing
- *      surfaces (the landing hero) — never a panel, button, or chip.
- *   3. No pastel surfaces and no decorative color striping. Color appears
- *      where it carries meaning, nowhere else.
+ *      from a white surface on a gray page, separated by a 1px border.
+ *      --gradient-brand appears in two places now: full-bleed on marketing
+ *      surfaces (the landing hero), and as a thin 3px top edge on every
+ *      Panel/StatCard (see PanelAccent in Panel.tsx) — a hairline of brand
+ *      color, not a colored surface. --gradient-page washes a faint brand
+ *      tint into the page background itself. Both were added because an
+ *      all-white/all-gray version of this system read as flat and lifeless;
+ *      neither adds color to data — verdict/direction/positive/negative
+ *      keep sole ownership of meaning-bearing color.
+ *   3. No pastel surfaces. Color appears where it carries meaning (the
+ *      verdict/direction/state tokens) or as the brand hairline/wash above
+ *      — never a decorative block behind data.
  *   4. 16px minimum for body copy. Smaller sizes are for true micro-elements
  *      (mono eyebrows, table micro-labels) only.
  *
@@ -38,6 +45,12 @@
   --color-brand: #1e3a6e;
   --color-brand-hover: #14294f;
   --gradient-brand: linear-gradient(135deg, #142a4e 0%, #2f5aa8 100%);
+  /* A whisper of brand navy behind the page itself — fades out within the
+     first screen, so it reads as ambient tone rather than a banner. */
+  --gradient-page:
+    radial-gradient(1100px 550px at 12% -8%, rgba(30, 58, 110, 0.07), transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, rgba(47, 90, 168, 0.05), transparent 55%),
+    var(--color-page);
   --color-heading: #18181b;
   --color-body: #52525b;
   --color-muted: #71717a;
@@ -195,6 +208,10 @@
     --color-brand: #3d64ad;
     --color-brand-hover: #4a76c9;
     --gradient-brand: linear-gradient(135deg, #16294f 0%, #4a76c9 100%);
+    --gradient-page:
+      radial-gradient(1100px 550px at 12% -8%, rgba(61, 100, 173, 0.14), transparent 60%),
+      radial-gradient(900px 500px at 100% 0%, rgba(74, 118, 201, 0.1), transparent 55%),
+      var(--color-page);
     --color-heading: #fafafa;
     --color-body: #d4d4d8;
     --color-muted: #a1a1aa;
@@ -241,6 +258,10 @@
   --color-brand: #3d64ad;
   --color-brand-hover: #4a76c9;
   --gradient-brand: linear-gradient(135deg, #16294f 0%, #4a76c9 100%);
+  --gradient-page:
+    radial-gradient(1100px 550px at 12% -8%, rgba(61, 100, 173, 0.14), transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, rgba(74, 118, 201, 0.1), transparent 55%),
+    var(--color-page);
   --color-heading: #fafafa;
   --color-body: #d4d4d8;
   --color-muted: #a1a1aa;

@@ -193,7 +193,8 @@ function OptionsPanelCard({ data }: { data: TickerData }) {
       action={
         <Link
           href={`/t/${data.ticker}/simulator/`}
-          className="pressable text-2xs rounded-[var(--radius-sm)] border border-[var(--color-border)] px-2.5 py-1 font-medium text-[var(--color-heading)] transition-colors hover:bg-[var(--color-panel-soft)]"
+          className="pressable inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] px-3.5 py-2 text-sm font-semibold whitespace-nowrap text-[var(--color-on-brand)] transition-opacity hover:opacity-90"
+          style={{ background: "var(--gradient-brand)" }}
         >
           Simulate a trade →
         </Link>

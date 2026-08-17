@@ -22,7 +22,11 @@ html[data-theme="dark"] {
 }
 
 body {
-  background: var(--color-page);
+  /* Anchored to the top of the document, not the viewport — deliberately NOT
+     background-attachment: fixed, which is a known scroll-jank/repaint
+     trigger on mobile Safari. The gradient fades to the flat page color
+     well within the first screen, so it reads the same either way. */
+  background: var(--gradient-page);
   color: var(--color-body);
   font-family: var(--font-sans);
   /* 16px floor for body copy — smaller sizes are reserved for mono eyebrows

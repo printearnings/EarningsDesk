@@ -29,6 +29,7 @@ export const MAIN = [
   { href: "/calendar/", label: "Calendar", icon: CalendarIcon },
   { href: "/signals/", label: "Signals", icon: PulseIcon },
   { href: "/track-record/", label: "Track record", icon: TargetIcon },
+  { href: "/simulator/", label: "Simulator", icon: SimulatorIcon },
 ];
 
 export const OTHER = [
@@ -155,8 +156,14 @@ function NavItem({
 }) {
   // Ticker pages are reached from the calendar, so highlight Calendar while
   // you're on one — otherwise the sidebar shows nothing active and the user
-  // loses their sense of place.
-  const active = pathname === href || (href === "/calendar/" && pathname.startsWith("/t/"));
+  // loses their sense of place. A ticker's own /simulator/ sub-page is the
+  // one exception: that's reached from the Simulator nav item just as often
+  // as from Calendar, so it highlights Simulator instead.
+  const isTickerSimulator = /^\/t\/[^/]+\/simulator\/?$/.test(pathname);
+  const active =
+    pathname === href ||
+    (href === "/simulator/" && isTickerSimulator) ||
+    (href === "/calendar/" && pathname.startsWith("/t/") && !isTickerSimulator);
 
   return (
     <li>
@@ -236,6 +243,17 @@ function TargetIcon() {
     <svg {...svg}>
       <circle cx="8" cy="8" r="6" />
       <circle cx="8" cy="8" r="2.5" />
+    </svg>
+  );
+}
+
+/** A payoff-diagram kink — flat, then a rising line — echoing the P&L chart
+ * the Simulator page itself shows, so the nav icon previews the feature. */
+function SimulatorIcon() {
+  return (
+    <svg {...svg}>
+      <path d="M1.5 11h4l6-8.5" />
+      <path d="M1.5 13.5h13" />
     </svg>
   );
 }

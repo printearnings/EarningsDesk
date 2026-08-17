@@ -1,9 +1,27 @@
 import type { ReactNode } from "react";
 
 /**
+ * A 3px brand-gradient hairline along a card's top edge — the one place
+ * --gradient-brand is allowed outside the marketing hero. Deliberately not a
+ * colored surface: `inset-x-0 top-0 h-[3px]` clipped to the parent's radius
+ * by the parent's own `overflow-hidden`, so it reads as a seam of color, not
+ * a decorative block sitting behind data.
+ */
+function PanelAccent() {
+  return (
+    <span
+      aria-hidden="true"
+      className="absolute inset-x-0 top-0 h-[3px]"
+      style={{ background: "var(--gradient-brand)" }}
+    />
+  );
+}
+
+/**
  * Vertical's card: flat, bordered, static. White on the gray page, separated
  * by a 1px border and a 4px radius. No shadow, no hover lift, no glow — depth
- * is the surface change, not an effect.
+ * is the surface change, not an effect. The one added texture is the top-edge
+ * brand hairline (PanelAccent) every Panel/StatCard now carries.
  */
 export function Panel({
   title,
@@ -32,7 +50,8 @@ export function Panel({
   bodyClassName?: string;
 }) {
   return (
-    <section className="rounded-[var(--radius-panel)] border border-[var(--color-border)] bg-[var(--color-panel)]">
+    <section className="relative overflow-hidden rounded-[var(--radius-panel)] border border-[var(--color-border)] bg-[var(--color-panel)]">
+      <PanelAccent />
       {(title || subtitle || action) && (
         <header className="flex flex-wrap items-baseline justify-between gap-3 border-b border-[var(--color-border)] px-5 py-4">
           <div>
@@ -100,7 +119,8 @@ export function Stat({
  */
 export function StatCard(props: Parameters<typeof Stat>[0]) {
   return (
-    <div className="rounded-[var(--radius-panel)] border border-[var(--color-border)] bg-[var(--color-panel)] px-5 py-4">
+    <div className="relative overflow-hidden rounded-[var(--radius-panel)] border border-[var(--color-border)] bg-[var(--color-panel)] px-5 py-4">
+      <PanelAccent />
       <Stat {...props} />
     </div>
   );

@@ -7,6 +7,12 @@ Notable changes to EarningsDesk, kept succinct. Format loosely follows
 
 ## [Unreleased]
 
+### Added
+
+- Standalone Simulator page (new sidebar/nav entry) — pick any tracked
+  ticker and land straight on its options P&L simulator, rather than only
+  reaching it from a specific ticker's Options tab.
+
 ### Changed
 
 - Options P&L simulator: fixed the expiry picker only showing ~2 months
@@ -15,6 +21,18 @@ Notable changes to EarningsDesk, kept succinct. Format loosely follows
   with a clearer legend; raised the post-print IV assumption slider's ceiling
   past 100% to model IV expansion, not just crush; fixed a mobile layout
   overflow and added touch-drag support for the chart's hover tooltip.
+- The "Simulate a trade" link on a ticker's Options tab is now a filled
+  brand-gradient button instead of a small bordered text link.
+- The "last updated" staleness warning now accounts for the nightly data
+  job not running on weekends — a Sunday/Monday snapshot dated Friday no
+  longer gets falsely flagged as a missed run.
+- UI: a subtle brand-navy wash behind the page background and a 3px
+  gradient hairline along the top edge of every panel/stat card, so the
+  app reads less flat/white at a glance. No change to data colors.
+- Fixed news thumbnails silently disappearing: the CSP's `img-src` didn't
+  allow-list the Yahoo CDN hosts they're served from, so every thumbnail
+  request was blocked and the component's error fallback hid it — added
+  `s.yimg.com` and `media.zenfs.com`.
 
 ### Security
 

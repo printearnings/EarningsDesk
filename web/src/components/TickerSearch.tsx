@@ -45,6 +45,7 @@ export function TickerSearch({
   size = "md",
   autoFocus = false,
   compact = false,
+  destination = "ticker",
 }: {
   tickers: TickerIndexEntry[];
   placeholder?: string;
@@ -55,6 +56,13 @@ export function TickerSearch({
    * on a placeholder nobody can finish reading anyway. Ignored at `sm` and
    * up, where there's room for the real thing. */
   compact?: boolean;
+  /** Where picking a *tracked* result navigates. "ticker" (default) goes to
+   * the ticker page itself; "simulator" goes straight to that ticker's
+   * /simulator/ sub-page — used by the standalone Simulator nav page, whose
+   * whole point is "pick a ticker, land in the simulator." A cold/untracked
+   * pick always goes through /lookup/ regardless, since a symbol with no
+   * confirmed report date has nothing to simulate yet. */
+  destination?: "ticker" | "simulator";
 }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -173,7 +181,7 @@ export function TickerSearch({
   function go(ticker: string) {
     setOpen(false);
     setQuery("");
-    router.push(`/t/${ticker}/`);
+    router.push(destination === "simulator" ? `/t/${ticker}/simulator/` : `/t/${ticker}/`);
   }
 
   function lookup(ticker: string) {

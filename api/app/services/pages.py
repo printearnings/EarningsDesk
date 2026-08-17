@@ -390,9 +390,8 @@ def ticker_page(
 
     page.as_of = snap.as_of
     page.snapshot_age_hours = round(age_hours, 1) if age_hours is not None else None
-    page.is_stale = bool(
-        age_hours is not None and age_hours > api_settings.snapshot_stale_after_hours
-    )
+    stale_threshold = _stale_threshold_hours(now, api_settings.snapshot_stale_after_hours)
+    page.is_stale = bool(age_hours is not None and age_hours > stale_threshold)
     page.company_name = snap.company_name
     page.company_domain = snap.company_domain
     page.spot = snap.spot if snap.spot is not None else page.spot
@@ -435,6 +434,26 @@ def _aware(dt: datetime) -> datetime:
     """SQLite drops tzinfo on round-trip; Postgres keeps it. Normalise so the
     age subtraction doesn't raise on one backend and work on the other."""
     return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
+
+
+def _stale_threshold_hours(now: datetime, base_hours: float) -> float:
+    """The nightly build_dashboard job only runs Tue-Sat (it skips Sun/Mon —
+    see deploy.yml), so the freshest snapshot sits unchanged from Friday's
+    run all through the weekend. That's expected, not a missed run, so the
+    staleness window widens on the days that gap actually spans:
+      - Sunday: Saturday's snapshot is already up to ~1 day old before today
+        even starts. +24h.
+      - Monday: up to ~3 days old (Fri close -> Sat run -> through Monday)
+        before Tuesday's run lands. +48h.
+    US market holidays (e.g. Thanksgiving) aren't accounted for — a rarer
+    case than every single week, and out of scope for this heuristic.
+    """
+    weekday = now.weekday()  # Monday=0 ... Sunday=6
+    if weekday == 0:  # Monday
+        return base_hours + 48
+    if weekday == 6:  # Sunday
+        return base_hours + 24
+    return base_hours
 
 
 def calendar_page(
