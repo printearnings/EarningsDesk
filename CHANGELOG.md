@@ -7,6 +7,15 @@ Notable changes to EarningsDesk, kept succinct. Format loosely follows
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-08-16
+
+### Changed
+
+- Dashboard's "Next to report" now defaults to a 7-day window (was 14) and
+  is paginated instead of hard-capped at the first 8 entries &mdash; the
+  rest of a busy week is now reachable without leaving for the full
+  calendar page.
+
 ## [1.7.0] - 2026-08-16
 
 ### Added

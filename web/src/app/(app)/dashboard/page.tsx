@@ -1,18 +1,13 @@
 import Link from "next/link";
 
-import { DirectionChip, SessionChip, VerdictChip } from "@/components/Chip";
+import { DirectionChip, VerdictChip } from "@/components/Chip";
 import { CompanyLogo } from "@/components/CompanyLogo";
 import { NewsThumbnail } from "@/components/NewsThumbnail";
+import { NextToReportList } from "@/components/NextToReportList";
 import { Panel, StatCard } from "@/components/Panel";
 import { TopBar } from "@/components/TopBar";
 import { getCalendar, getDashboardNews, getIndex, getSignals, getTrackRecord } from "@/lib/api";
-import {
-  formatDateShort,
-  pct,
-  pctRange,
-  relativeDays,
-  relativeDaysFromDate,
-} from "@/lib/format";
+import { formatDateShort, pct, pctRange, relativeDaysFromDate } from "@/lib/format";
 
 export const metadata = { title: "Dashboard | PrintEarnings" };
 
@@ -31,7 +26,7 @@ const PANEL_ACTION_CLASS =
 export default async function DashboardPage() {
   const [index, calendar, signals, record, news] = await Promise.all([
     getIndex(),
-    getCalendar(14),
+    getCalendar(7),
     getSignals(),
     getTrackRecord(),
     getDashboardNews(),
@@ -51,7 +46,7 @@ export default async function DashboardPage() {
       <div className="space-y-6 px-6 py-6">
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard
-            label="Reporting in 14 days"
+            label="Reporting this week"
             value={String(calendar.entries.length)}
             hint="Tracked companies with a scheduled print in the window."
           />
@@ -88,33 +83,7 @@ export default async function DashboardPage() {
               calendar.entries.length === 0 ? "Nothing scheduled in the window." : undefined
             }
           >
-            <ul>
-              {calendar.entries.slice(0, 8).map((entry) => (
-                <li
-                  key={`${entry.ticker}-${entry.report_date}`}
-                  className="border-b border-[var(--color-border-subtle)] last:border-b-0"
-                >
-                  <Link
-                    href={`/t/${entry.ticker}/`}
-                    className="flex items-center gap-3 px-5 py-3 hover:bg-[var(--color-panel-soft)]"
-                  >
-                    <span className="w-14 font-mono text-sm font-medium text-[var(--color-heading)]">
-                      {entry.ticker}
-                    </span>
-                    <SessionChip session={entry.session} />
-                    <VerdictChip verdict={entry.verdict} />
-                    <span className="ml-auto text-right">
-                      <span className="tnum block text-sm font-medium text-[var(--color-heading)]">
-                        {pctRange(entry.implied_move)}
-                      </span>
-                      <span className="text-sm text-[var(--color-muted)]">
-                        {relativeDays(entry.days_until)}
-                      </span>
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <NextToReportList entries={calendar.entries} />
           </Panel>
 
           <div className="space-y-6">
