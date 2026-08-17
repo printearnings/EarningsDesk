@@ -146,13 +146,28 @@ export function FinancialsPanel({ ticker }: { ticker: string }) {
         </div>
       }
       empty={
-        // Not necessarily a data gap on our end — SEC XBRL figures only
-        // exist for domestic filers. A foreign private issuer (most ADRs)
-        // files an annual 20-F instead of quarterly/annual 10-Q/10-K
-        // filings, so there is no filing for this endpoint to have found.
-        !loading && (!data || data.quarters.length === 0)
-          ? "No SEC filings found for this symbol. Common for foreign-domiciled companies, which file an annual 20-F instead of a 10-Q."
-          : undefined
+        // Not necessarily a data gap on our end — the structured XBRL figures
+        // this panel charts only exist for domestic 10-Q/10-K filers. A
+        // foreign private issuer (most ADRs) files an annual 20-F instead,
+        // which this endpoint doesn't parse. The filing itself still exists
+        // and is public, so link straight to it rather than leaving a dead
+        // end — EDGAR resolves a ticker directly in the CIK field.
+        !loading && (!data || data.quarters.length === 0) ? (
+          <>
+            No structured SEC data found for this symbol. Common for foreign-domiciled
+            companies, which file an annual 20-F instead of a 10-Q. The filing is still public,
+            just not in the quarterly format this chart uses.{" "}
+            <a
+              href={`https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${encodeURIComponent(ticker)}&type=&dateb=&owner=include&count=40`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-2"
+            >
+              See its EDGAR filings directly
+            </a>
+            .
+          </>
+        ) : undefined
       }
     >
       {loading ? (

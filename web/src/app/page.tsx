@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { FlickeringGrid } from "@/components/FlickeringGrid";
+import { Footer } from "@/components/Footer";
 import { Logo } from "@/components/Logo";
 import { TickerSearch } from "@/components/TickerSearch";
 import { getCalendar, getIndex } from "@/lib/api";
@@ -23,12 +25,16 @@ export const metadata = {
  * surfaces like this one; every other panel/button stays on white/cream.
  *
  * The flat band reads a little static as a hero, so it carries one subtle
- * animated layer: a drifting price-line texture (`.hero-ticker-bg`, defined
- * in globals.css) rather than a stock photo or an abstract blob — it's the
- * one motif that's actually on-theme for a chart product. Low opacity, thin
- * strokes, slow drift; it never competes with the text sitting on top, and
- * the app-wide `prefers-reduced-motion` rule in globals.css already freezes
- * it for anyone who's asked for that.
+ * animated layer underneath the text: `FlickeringGrid`, a canvas of small
+ * squares that flicker independently — the "live data board" texture common
+ * to fintech/terminal UIs, on-theme for a chart product without being a
+ * literal chart competing with the real ones on every other page. Low
+ * opacity, freezes to a static frame under `prefers-reduced-motion`.
+ *
+ * This page lives outside the (app) route group (no sidebar chrome), so it
+ * doesn't inherit that layout's Footer — rendered explicitly here instead,
+ * since the legal links belong on every page a first-time visitor can land
+ * on, not just once they're past the dashboard.
  */
 export default async function LandingPage() {
   const [index, calendar] = await Promise.all([getIndex(), getCalendar(14)]);
@@ -37,7 +43,16 @@ export default async function LandingPage() {
   return (
     <main>
       <section className="relative overflow-hidden" style={{ background: "var(--color-band)" }}>
-        <div className="hero-ticker-bg absolute inset-0" aria-hidden />
+        <FlickeringGrid className="absolute inset-0" />
+        {/* Fades the grid out toward the bottom edge so it recedes into the
+            band rather than cutting off hard at the section boundary. */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: "linear-gradient(180deg, transparent 55%, var(--color-band) 100%)",
+          }}
+          aria-hidden
+        />
         <div className="relative z-10 mx-auto max-w-[1280px] px-6 py-20 sm:py-28">
           <Logo size="lg" onBrand />
 
@@ -123,6 +138,8 @@ export default async function LandingPage() {
           the next print.
         </p>
       </section>
+
+      <Footer />
     </main>
   );
 }

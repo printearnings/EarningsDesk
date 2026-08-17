@@ -24,12 +24,12 @@ export default async function PrivacyPage() {
           <p className="max-w-3xl text-[var(--color-body)]">
             This site sets exactly one cookie:{" "}
             <code className="text-[var(--color-heading)]">cf_clearance</code>, placed by
-            Cloudflare (which sits in front of every request) for bot and abuse mitigation — it
+            Cloudflare (which sits in front of every request) for bot and abuse mitigation. It
             is not used for analytics, advertising, or tracking you across sites, and nothing
             here reads or acts on it. Cookies used strictly for security, like this one, are the
             standard exemption in cookie-consent law (GDPR/ePrivacy, CCPA-style regimes), so the
-            Accept/Reject choice on the banner has nothing to actually turn off today &mdash;
-            it&rsquo;s there so the choice is on record, and so there&rsquo;s something real to
+            Accept/Reject choice on the banner has nothing to actually turn off today.
+            It&rsquo;s there so the choice is on record, and so there&rsquo;s something real to
             gate the day this site adds anything that isn&rsquo;t strictly necessary.
           </p>
         </Panel>

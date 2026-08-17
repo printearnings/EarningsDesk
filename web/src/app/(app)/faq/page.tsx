@@ -91,18 +91,18 @@ export default async function FaqPage() {
       <TopBar title="FAQ" eyebrow="Common questions" tickers={index.tickers} />
 
       <div className="px-6 py-6">
-        <Panel bodyClassName="px-0 py-0">
+        <Panel title="Common questions" bodyClassName="px-0 py-0">
           <div>
             {QA.map((qa) => (
               <details
                 key={qa.question}
                 className="group border-b border-[var(--color-border-subtle)] last:border-b-0"
               >
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-sm font-medium text-[var(--color-heading)] transition-colors hover:bg-[var(--color-panel-soft)] [&::-webkit-details-marker]:hidden">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-4 text-sm font-medium text-[var(--color-heading)] transition-colors group-open:bg-[var(--color-table-head)] group-open:text-[var(--color-brand)] hover:bg-[var(--color-panel-soft)] sm:px-5 [&::-webkit-details-marker]:hidden">
                   {qa.question}
-                  <ChevronDownIcon className="shrink-0 text-[var(--color-muted)] transition-transform duration-[var(--duration-base)] ease-[var(--ease-out)] group-open:rotate-180" />
+                  <ChevronDownIcon className="shrink-0 text-[var(--color-brand)] transition-transform duration-[var(--duration-base)] ease-[var(--ease-out)] group-open:rotate-180" />
                 </summary>
-                <p className="max-w-3xl px-5 pb-4 text-sm text-[var(--color-body)]">
+                <p className="px-4 pb-4 text-sm text-[var(--color-body)] sm:max-w-3xl sm:px-5">
                   {qa.answer}
                 </p>
               </details>

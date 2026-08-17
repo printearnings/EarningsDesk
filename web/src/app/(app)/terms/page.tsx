@@ -23,9 +23,9 @@ export default async function TermsPage() {
         <Panel title="What this is">
           <p className="max-w-3xl text-[var(--color-body)]">
             PrintEarnings is a free, informational tool. There are no accounts, no trade
-            execution, and no custody of funds or securities &mdash; using this site never moves
-            money. By using it, you agree to these terms; if you don&rsquo;t agree, don&rsquo;t
-            use the site.
+            execution, and no custody of funds or securities. Using this site never moves money.
+            By using it, you agree to these terms; if you don&rsquo;t agree, don&rsquo;t use the
+            site.
           </p>
         </Panel>
 
@@ -43,7 +43,7 @@ export default async function TermsPage() {
           <p className="max-w-3xl text-[var(--color-body)]">
             The site and its data are provided &ldquo;as is,&rdquo; with no warranty of
             accuracy, completeness, or availability. Prices, options data, and financials come
-            from third-party providers and can be delayed, incomplete, or wrong &mdash; see the{" "}
+            from third-party providers and can be delayed, incomplete, or wrong. See the{" "}
             <a href="/disclaimer/" className="underline underline-offset-2">
               Disclaimer
             </a>{" "}
@@ -63,7 +63,7 @@ export default async function TermsPage() {
         <Panel title="Changes">
           <p className="max-w-3xl text-[var(--color-body)]">
             These terms can change as the site does. Continuing to use the site after a change
-            means you accept the update &mdash; check back here if you want to know what
+            means you accept the update, so check back here if you want to know what
             you&rsquo;re agreeing to.
           </p>
         </Panel>

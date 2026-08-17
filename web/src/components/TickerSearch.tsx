@@ -62,12 +62,13 @@ export function TickerSearch({
    * "simulator" goes to that ticker's /simulator/ sub-page. Ignored once
    * `onSelectTracked` is provided. */
   destination?: "ticker" | "simulator";
-  /** When given, picking a *tracked* result calls this instead of
-   * navigating — used by the standalone Simulator page, which renders the
-   * trade builder inline for the picked ticker rather than routing through
-   * that ticker's own page. A cold/untracked pick still always goes through
-   * /lookup/, with or without this prop: a symbol with no confirmed report
-   * date has nothing to simulate yet, so there's nowhere inline to send it. */
+  /** When given, picking ANY result (tracked or cold/untracked) calls this
+   * instead of navigating — used by the standalone Simulator page, which
+   * renders the trade builder inline for the picked ticker rather than
+   * routing through /lookup/ or that ticker's own page. The simulator itself
+   * doesn't require a confirmed report date (it's a plain payoff calculator
+   * without one), so a cold pick is handed over with `nextReportDate: null`
+   * instead of being sent away. */
   onSelectTracked?: (entry: {
     ticker: string;
     nextReportDate: string | null;
@@ -213,6 +214,11 @@ export function TickerSearch({
   }
 
   function pick(item: (typeof items)[number]) {
+    // onSelectTracked's one current consumer (the standalone Simulator page)
+    // wants every pick handled inline, tracked or not — see the prop's doc
+    // comment. Without it, an untracked pick still goes to /lookup/, since
+    // that's a page-navigation context where there's somewhere real to send it.
+    if (onSelectTracked) return go(item);
     return item.tracked ? go(item) : lookup(item.ticker);
   }
 
@@ -321,7 +327,7 @@ export function TickerSearch({
                     )}
                     {!item.tracked && (
                       <span className="text-2xs ml-auto shrink-0 text-[var(--color-muted)]">
-                        Look up
+                        {onSelectTracked ? "Simulate" : "Look up"}
                       </span>
                     )}
                   </button>

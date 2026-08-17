@@ -60,16 +60,20 @@ function todayIso(): string {
 }
 
 /**
- * A single-leg (long call or long put) earnings-day P&L simulator. Deliberately
- * not a full chain/spread builder — see the backlog note this shipped against.
+ * A single-leg (long call or long put) P&L simulator, built for earnings
+ * trades but not gated on having one: `reportDate` is nullable, and any
+ * ticker with a listed options chain works as a plain payoff calculator.
+ * Deliberately not a full chain/spread builder — see the backlog note this
+ * shipped against.
  *
- * Two curves on one chart, the same thing optionsprofitcalculator.com and
- * optionsmath.com show: the hard-kinked payoff AT expiration (pure intrinsic
- * value, no time value left), and a smooth Black-Scholes re-pricing for the
- * day right after the print, at whatever IV the user assumes survives the
- * crush. That second curve is the one that actually matters for an earnings
- * trade — most positions here are closed the next session, not held to
- * expiration.
+ * With a confirmed report date, two curves show on one chart, the same thing
+ * optionsprofitcalculator.com and optionsmath.com show: the hard-kinked
+ * payoff AT expiration (pure intrinsic value, no time value left), and a
+ * smooth Black-Scholes re-pricing for the day right after the print, at
+ * whatever IV the user assumes survives the crush — the curve that actually
+ * matters for an earnings trade, since most positions here are closed the
+ * next session, not held to expiration. Without a report date there's no
+ * "crush" to model, so only the at-expiration curve renders.
  */
 export function OptionsSimulator({
   ticker,
@@ -98,11 +102,14 @@ export function OptionsSimulator({
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
 
   async function loadChain() {
-    if (!reportDate) return;
     setState({ status: "loading" });
     try {
+      // `report_date` doubles as "earliest expiry to fetch from" server-side
+      // (see fetchChain in the Worker) — for a ticker with no confirmed
+      // report, today is the right anchor for that, not a reason to block
+      // the calculator entirely.
       const res = await fetch(
-        `/api/chain?ticker=${encodeURIComponent(ticker)}&report_date=${reportDate}`,
+        `/api/chain?ticker=${encodeURIComponent(ticker)}&report_date=${reportDate ?? todayIso()}`,
         { method: "POST", headers: { "content-type": "application/json" }, body: "{}" },
       );
       const body = await res.json();
@@ -189,7 +196,9 @@ export function OptionsSimulator({
         : addDays(reportDate, 1)
       : today;
     const yearsToExpiryPostPrint = Math.max(0, daysBetween(postPrintDate, expiry)) / 365;
-    const postPrintIv = entryIv !== null ? entryIv * (ivCrushPct / 100) : null;
+    // No confirmed report means no "crush" to model — the second curve is
+    // specifically an earnings-IV scenario, not a generic re-pricing tool.
+    const postPrintIv = reportDate && entryIv !== null ? entryIv * (ivCrushPct / 100) : null;
 
     const lo = spot * 0.7;
     const hi = spot * 1.3;
@@ -257,15 +266,6 @@ export function OptionsSimulator({
     reportDate,
     reportSession,
   ]);
-
-  if (!reportDate) {
-    return (
-      <Panel
-        title="Options P&L simulator"
-        empty="No confirmed earnings date. Nothing to simulate yet."
-      />
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -419,25 +419,31 @@ export function OptionsSimulator({
 
           <Panel
             title={`PnL at each price — ${formatDateShort(expiry)}`}
-            subtitle={`Green = profit, red = loss, at expiration. Dashed line = the day after the print (${formatDateShort(scenario.postPrintDate)}), assuming IV lands at ${ivCrushPct}% of today's ${entryIv !== null ? pct(entryIv, 0) : "entry"} level.`}
+            subtitle={
+              reportDate
+                ? `Green = profit, red = loss, at expiration. Dashed line = the day after the print (${formatDateShort(scenario.postPrintDate)}), assuming IV lands at ${ivCrushPct}% of today's ${entryIv !== null ? pct(entryIv, 0) : "entry"} level.`
+                : "Green = profit, red = loss, at expiration."
+            }
           >
-            <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-              <label className="eyebrow shrink-0 text-[var(--color-muted)]">
-                Post-print IV assumption
-              </label>
-              <input
-                type="range"
-                min={20}
-                max={150}
-                value={ivCrushPct}
-                onChange={(e) => setIvCrushPct(Number(e.target.value))}
-                className="w-full max-w-48 accent-[var(--color-viz-realized)]"
-              />
-              <span className="tnum text-sm text-[var(--color-heading)]">{ivCrushPct}%</span>
-              <span className="text-2xs w-full text-[var(--color-muted)] sm:w-auto">
-                (100% = no crush; above 100% models IV expanding further)
-              </span>
-            </div>
+            {reportDate && (
+              <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                <label className="eyebrow shrink-0 text-[var(--color-muted)]">
+                  Post-print IV assumption
+                </label>
+                <input
+                  type="range"
+                  min={20}
+                  max={150}
+                  value={ivCrushPct}
+                  onChange={(e) => setIvCrushPct(Number(e.target.value))}
+                  className="w-full max-w-48 accent-[var(--color-viz-realized)]"
+                />
+                <span className="tnum text-sm text-[var(--color-heading)]">{ivCrushPct}%</span>
+                <span className="text-2xs w-full text-[var(--color-muted)] sm:w-auto">
+                  (100% = no crush; above 100% models IV expanding further)
+                </span>
+              </div>
+            )}
 
             <PayoffChart
               points={scenario.points}
@@ -583,7 +589,11 @@ function PayoffChart({
         viewBox={`0 0 ${W} ${H}`}
         className="w-full touch-none select-none"
         role="img"
-        aria-label="P&L versus hypothetical stock price at expiration and the day after the print"
+        aria-label={
+          chart.postPrintPath
+            ? "P&L versus hypothetical stock price at expiration and the day after the print"
+            : "P&L versus hypothetical stock price at expiration"
+        }
         onMouseLeave={() => onHover(null)}
         onMouseMove={(e) =>
           hoverFromClientX(e.clientX, e.currentTarget.getBoundingClientRect())
@@ -769,20 +779,22 @@ function PayoffChart({
           </span>
           At expiration (green = profit, red = loss)
         </span>
-        <span className="inline-flex items-center gap-2">
-          <svg width="16" height="8" className="shrink-0">
-            <line
-              x1={0}
-              y1={4}
-              x2={16}
-              y2={4}
-              stroke="var(--color-viz-realized)"
-              strokeWidth={2}
-              strokeDasharray="4 3"
-            />
-          </svg>
-          Day after the print
-        </span>
+        {chart.postPrintPath && (
+          <span className="inline-flex items-center gap-2">
+            <svg width="16" height="8" className="shrink-0">
+              <line
+                x1={0}
+                y1={4}
+                x2={16}
+                y2={4}
+                stroke="var(--color-viz-realized)"
+                strokeWidth={2}
+                strokeDasharray="4 3"
+              />
+            </svg>
+            Day after the print
+          </span>
+        )}
       </div>
     </div>
   );

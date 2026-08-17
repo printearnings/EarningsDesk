@@ -122,33 +122,6 @@ body {
   animation: live-pulse 1.6s linear infinite;
 }
 
-/*
- * Landing hero background: a drifting price-line texture instead of a flat
- * fill. The line is a fixed SVG data URI (not a CSS var/currentColor —
- * data-URI backgrounds don't inherit page color, and the dark navy band is
- * near-identical in both themes anyway, so a hardcoded white stroke at low
- * opacity is safe either way). Tiles via background-repeat; the keyframe
- * only moves background-position-x by exactly one tile width (340px) so the
- * loop is seamless. Slow and linear — constant ambient motion, not a
- * one-shot entrance — and prefers-reduced-motion above already freezes it.
- */
-.hero-ticker-bg {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 340 220'%3E%3Cpolyline points='0,120 17,110 34,124 51,90 68,100 85,60 102,76 119,40 136,56 153,30 170,50 187,20 204,44 221,36 238,60 255,40 272,70 289,50 306,80 323,60 340,90' fill='none' stroke='rgba(255,255,255,0.16)' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
-  background-repeat: repeat-x;
-  background-position: 0 20%;
-  background-size: 340px 220px;
-  animation: hero-drift 50s linear infinite;
-}
-
-@keyframes hero-drift {
-  from {
-    background-position-x: 0;
-  }
-  to {
-    background-position-x: -340px;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

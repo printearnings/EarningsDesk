@@ -7,6 +7,29 @@ Notable changes to EarningsDesk, kept succinct. Format loosely follows
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-08-16
+
+### Added
+
+- Options Simulator no longer requires a confirmed earnings date &mdash; any
+  ticker with a listed options chain (an ETF, a stock between earnings
+  cycles, anything) now works as a plain Black-Scholes payoff calculator.
+  Picking an untracked/cold ticker on the standalone Simulator page loads it
+  inline instead of routing away to `/lookup/`.
+- Financials panel's "no SEC data" empty state now links straight to that
+  ticker's own EDGAR filings, instead of only explaining why the chart is
+  empty.
+- Landing page footer (Disclaimer/Privacy/Terms/FAQ links), previously only
+  on dashboard-side pages.
+
+### Changed
+
+- Landing hero background: replaced the hand-drawn zigzag price-line texture
+  with a proper flickering-dot-grid animation.
+- FAQ page now has its own colored panel header, and the accordion rows tint
+  navy when expanded instead of staying plain black-on-white.
+- Removed remaining em dashes from Terms and Privacy page copy.
+
 ## [1.4.0] - 2026-08-16
 
 ### Added

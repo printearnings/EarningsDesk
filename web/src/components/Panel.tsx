@@ -38,8 +38,10 @@ export function Panel({
    * The database currently holds 54 signals across 39 tickers, so most panels
    * render with one or two rows or nothing at all. A panel that explains its
    * own emptiness reads as intentional; a bare heading reads as broken.
+   * ReactNode (not just string) so an empty state can link somewhere useful
+   * instead of only explaining why there's nothing to show.
    */
-  empty?: string;
+  empty?: ReactNode;
   children?: ReactNode;
   bodyClassName?: string;
 }) {
