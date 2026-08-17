@@ -1391,6 +1391,171 @@ async function handleCpiHistory(
   }
 }
 
+const ANNUAL_FORM_TYPES = new Set([
+  "10-K",
+  "10-K/A",
+  "20-F",
+  "20-F/A",
+  "40-F",
+  "40-F/A",
+]);
+
+interface SecFactPoint {
+  end?: string;
+  val?: number;
+  accn?: string;
+  fy?: number;
+  fp?: string;
+  form?: string;
+  filed?: string;
+}
+
+interface SecCompanyFacts {
+  facts?: {
+    "us-gaap"?: Record<string, { units?: Record<string, SecFactPoint[]> }>;
+    "ifrs-full"?: Record<string, { units?: Record<string, SecFactPoint[]> }>;
+  };
+}
+
+/** Tries each candidate concept name, us-gaap first then ifrs-full, in the
+ * given unit key, returning the first with any data. Foreign filers
+ * reporting in their own currency (not USD) are skipped entirely rather
+ * than mislabeled — there's no FX conversion here, and a wrong number
+ * presented confidently is worse than no number. */
+function pickSecConcept(
+  facts: SecCompanyFacts["facts"],
+  names: string[],
+  unitKey: string,
+): SecFactPoint[] | null {
+  for (const taxonomy of ["us-gaap", "ifrs-full"] as const) {
+    const ns = facts?.[taxonomy];
+    if (!ns) continue;
+    for (const name of names) {
+      const points = ns[name]?.units?.[unitKey];
+      if (points && points.length > 0) return points;
+    }
+  }
+  return null;
+}
+
+function findAtEnd(points: SecFactPoint[] | null, end: string): number | null {
+  if (!points) return null;
+  return points.find((p) => p.end === end && p.val !== undefined)?.val ?? null;
+}
+
+/**
+ * Fallback for when Massive's financials endpoint has nothing — mainly
+ * foreign private issuers, who file an annual 20-F (or Canadian 40-F)
+ * instead of a 10-K/10-Q and whose XBRL vX/reference/financials doesn't
+ * surface. SEC's own companyfacts API has it directly: free, unauthenticated,
+ * and covers any filer that's submitted Inline XBRL (mandatory for
+ * large/foreign filers using IFRS for fiscal periods after 2020).
+ *
+ * Annual only, deliberately — most foreign private issuers don't file
+ * interim XBRL the way a domestic 10-Q filer does, so there's no quarterly
+ * equivalent to synthesize here. A `timeframe=quarterly` request still gets
+ * the plain "no data" empty state; only `annual` gets this fallback.
+ */
+async function fetchSecAnnualFinancials(
+  env: Env,
+  ticker: string,
+): Promise<FinancialsQuarter[]> {
+  const tickerUrl = new URL(`${MASSIVE_BASE}/v3/reference/tickers/${ticker}`);
+  tickerUrl.searchParams.set("apiKey", env.MASSIVE_API_KEY);
+  const tickerRes = await fetch(tickerUrl.toString(), {
+    signal: AbortSignal.timeout(10_000),
+  });
+  const cik = tickerRes.ok
+    ? ((await tickerRes.json()) as { results?: { cik?: string } }).results?.cik
+    : undefined;
+  if (!cik) return [];
+
+  const cikPadded = String(Number(cik)).padStart(10, "0");
+  const factsRes = await fetch(
+    `https://data.sec.gov/api/xbrl/companyfacts/CIK${cikPadded}.json`,
+    {
+      // SEC's fair-access policy blocks requests with no descriptive
+      // User-Agent (confirmed empirically — a generic/absent one 403s).
+      headers: { "User-Agent": "PrintEarnings (printearnings.com)" },
+      signal: AbortSignal.timeout(10_000),
+    },
+  );
+  if (!factsRes.ok) return [];
+  const facts = ((await factsRes.json()) as SecCompanyFacts).facts;
+  if (!facts) return [];
+
+  const revenue = pickSecConcept(
+    facts,
+    [
+      "Revenues",
+      "RevenueFromContractWithCustomerExcludingAssessedTax",
+      "SalesRevenueNet",
+      "Revenue",
+    ],
+    "USD",
+  );
+  if (!revenue) return [];
+
+  const netIncome = pickSecConcept(
+    facts,
+    ["NetIncomeLoss", "ProfitLoss", "ProfitLossAttributableToOwnersOfParent"],
+    "USD",
+  );
+  const grossProfit = pickSecConcept(facts, ["GrossProfit"], "USD");
+  const operatingIncome = pickSecConcept(
+    facts,
+    ["OperatingIncomeLoss", "ProfitLossFromOperatingActivities"],
+    "USD",
+  );
+  const dilutedEps = pickSecConcept(
+    facts,
+    ["EarningsPerShareDiluted", "DilutedEarningsLossPerShare"],
+    "USD/shares",
+  );
+
+  // One row per fiscal-year end, keyed off revenue's own annual-form
+  // entries. A company can amend a prior year's filing, so the
+  // most-recently-filed value for a given period wins regardless of which
+  // one is encountered first while iterating.
+  const byPeriod = new Map<string, FinancialsQuarter>();
+  for (const point of revenue) {
+    if (
+      !point.form ||
+      !ANNUAL_FORM_TYPES.has(point.form) ||
+      !point.end ||
+      point.val === undefined
+    ) {
+      continue;
+    }
+    const existing = byPeriod.get(point.end);
+    if (
+      existing?.filing_date &&
+      point.filed &&
+      point.filed <= existing.filing_date
+    ) {
+      continue;
+    }
+    byPeriod.set(point.end, {
+      fiscal_year: point.fy ?? new Date(point.end).getUTCFullYear(),
+      fiscal_period: "FY",
+      period_end: point.end,
+      filing_date: point.filed ?? null,
+      filing_url: point.accn
+        ? `https://www.sec.gov/Archives/edgar/data/${Number(cik)}/${point.accn.replace(/-/g, "")}/${point.accn}-index.htm`
+        : null,
+      revenue: point.val,
+      gross_profit: findAtEnd(grossProfit, point.end),
+      operating_income: findAtEnd(operatingIncome, point.end),
+      net_income: findAtEnd(netIncome, point.end),
+      diluted_eps: findAtEnd(dilutedEps, point.end),
+    });
+  }
+
+  return [...byPeriod.values()].sort((a, b) =>
+    b.period_end.localeCompare(a.period_end),
+  );
+}
+
 /**
  * Quarterly or annual income-statement figures — revenue, margins, net
  * income, diluted EPS — from SEC filings via Massive's financials API.
@@ -1413,8 +1578,12 @@ async function handleFinancials(
     url.searchParams.get("timeframe") === "annual" ? "annual" : "quarterly";
 
   const cache = caches.default;
+  // v2: bumped after adding the Yahoo/SEC fallbacks below — the Cache API
+  // persists across deploys, so tickers already cached empty (queried
+  // before this existed) would otherwise keep serving that empty response
+  // for up to 24h despite the fallback now having real data for them.
   const cacheKey = new Request(
-    `https://cache.internal/financials/${ticker}/${timeframe}`,
+    `https://cache.internal/financials-v2/${ticker}/${timeframe}`,
     {
       method: "GET",
     },
@@ -1511,6 +1680,35 @@ async function handleFinancials(
     }
   } catch (err) {
     console.error("financials fetch failed", { ticker, err: String(err) });
+  }
+
+  // Massive's financials endpoint mostly only covers domestic 10-Q/10-K
+  // filers — a foreign private issuer's 20-F genuinely has no quarterly
+  // filing for it to have found, but the underlying figures are real and
+  // public. Two fallbacks, in order: Yahoo's aggregation first (covers
+  // both quarterly and annual, already USD-normalized, verified live
+  // against actual foreign filers), then SEC's own companyfacts API
+  // (annual only, and only for filers reporting natively in USD) for
+  // whatever Yahoo still doesn't have.
+  if (quarters.length === 0) {
+    try {
+      quarters = await fetchYahooFinancials(env, ticker, timeframe);
+    } catch (err) {
+      console.error("yahoo financials fetch failed", {
+        ticker,
+        err: String(err),
+      });
+    }
+  }
+  if (quarters.length === 0 && timeframe === "annual") {
+    try {
+      quarters = await fetchSecAnnualFinancials(env, ticker);
+    } catch (err) {
+      console.error("sec companyfacts fetch failed", {
+        ticker,
+        err: String(err),
+      });
+    }
   }
 
   const payload: FinancialsResponse = { ticker, quarters };
@@ -1942,6 +2140,68 @@ async function fetchYahooEarnings(
 
 function isoDate(epochSeconds: number): string {
   return new Date(epochSeconds * 1000).toISOString().slice(0, 10);
+}
+
+/**
+ * Second fallback for /api/financials, after Massive's own endpoint (which
+ * only covers domestic 10-Q/10-K filers) and ahead of the SEC companyfacts
+ * fallback below it — reuses the same crumb-authenticated quoteSummary
+ * plumbing fetchYahooEarnings already relies on. Where SEC companyfacts
+ * only has annual figures for a foreign filer (many don't tag interim
+ * periods, and plenty report in a non-USD currency this app doesn't
+ * convert), Yahoo's own aggregation frequently has both quarterly and
+ * annual, already normalized to USD, for the same names.
+ *
+ * Yahoo represents "we don't have this line item" as a literal `0`, not a
+ * missing field — passed through naively that reads as "this company had
+ * $0 gross profit," which is wrong, not just absent. Zero is treated as
+ * unavailable for the line items Yahoo is inconsistent about (gross
+ * profit, operating income); revenue and net income are the two fields
+ * actually reliable here, per live testing against known foreign filers.
+ */
+async function fetchYahooFinancials(
+  env: Env,
+  ticker: string,
+  timeframe: "quarterly" | "annual",
+): Promise<FinancialsQuarter[]> {
+  const moduleName =
+    timeframe === "annual"
+      ? "incomeStatementHistory"
+      : "incomeStatementHistoryQuarterly";
+  const result = await fetchYahooQuoteSummary(env, ticker, moduleName);
+  const entries =
+    (
+      result?.[moduleName] as
+        { incomeStatementHistory?: Record<string, YahooRaw>[] } | undefined
+    )?.incomeStatementHistory ?? [];
+
+  return entries
+    .map((e): FinancialsQuarter | null => {
+      const periodEnd = (e.endDate as { fmt?: string } | undefined)?.fmt;
+      const revenue = e.totalRevenue?.raw;
+      if (!periodEnd || typeof revenue !== "number") return null;
+      const nonZero = (v: number | undefined) =>
+        typeof v === "number" && v !== 0 ? v : null;
+      return {
+        fiscal_year: Number(periodEnd.slice(0, 4)),
+        fiscal_period:
+          timeframe === "annual"
+            ? "FY"
+            : `Q${Math.floor((Number(periodEnd.slice(5, 7)) - 1) / 3) + 1}`,
+        period_end: periodEnd,
+        // Yahoo's aggregation doesn't carry the filing date or accession
+        // number the way Massive/SEC's own responses do — nothing to link.
+        filing_date: null,
+        filing_url: null,
+        revenue,
+        gross_profit: nonZero(e.grossProfit?.raw),
+        operating_income: nonZero(e.operatingIncome?.raw),
+        net_income: nonZero(e.netIncome?.raw),
+        diluted_eps: null,
+      };
+    })
+    .filter((q): q is FinancialsQuarter => q !== null)
+    .sort((a, b) => b.period_end.localeCompare(a.period_end));
 }
 
 /** A year of daily closes, live from Yahoo — the cold-lookup counterpart to

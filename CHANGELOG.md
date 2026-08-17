@@ -7,6 +7,22 @@ Notable changes to EarningsDesk, kept succinct. Format loosely follows
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-08-16
+
+### Added
+
+- Financials now has two real fallback data sources for foreign-domiciled
+  tickers (mostly ADRs), where Massive's endpoint only covers domestic
+  10-Q/10-K filers: Yahoo's aggregation (revenue and net income, both
+  quarterly and annual, already USD-normalized) first, then SEC's own
+  companyfacts XBRL API (annual only, USD-reporting filers) if Yahoo still
+  has nothing. Previously these tickers only ever showed an empty state
+  pointing at EDGAR; verified live against several real foreign filers,
+  both now show multiple years of real revenue/net income data. Gross
+  margin, operating margin, and diluted EPS still show as empty where
+  neither source has them &mdash; common, since Yahoo's aggregation
+  doesn't reliably carry those line items for these filers.
+
 ## [1.6.0] - 2026-08-16
 
 ### Added

@@ -146,24 +146,26 @@ export function FinancialsPanel({ ticker }: { ticker: string }) {
         </div>
       }
       empty={
-        // Not necessarily a data gap on our end — the structured XBRL figures
-        // this panel charts only exist for domestic 10-Q/10-K filers. A
-        // foreign private issuer (most ADRs) files an annual 20-F instead,
-        // which this endpoint doesn't parse. The filing itself still exists
-        // and is public, so link straight to it rather than leaving a dead
-        // end — EDGAR resolves a ticker directly in the CIK field.
+        // A foreign private issuer (most ADRs) files an annual 20-F instead
+        // of a quarterly 10-Q, so the Quarterly tab genuinely has nothing to
+        // show — but the Worker's /api/financials now falls back to SEC's
+        // own companyfacts API for annual figures when Massive's endpoint
+        // (domestic 10-Q/10-K only) comes back empty, so Annual often *does*
+        // have real data even when Quarterly doesn't. Point there first;
+        // the EDGAR link is the fallback for the genuinely-nothing case.
         !loading && (!data || data.quarters.length === 0) ? (
           <>
-            No structured SEC data found for this symbol. Common for foreign-domiciled
-            companies, which file an annual 20-F instead of a 10-Q. The filing is still public,
-            just not in the quarterly format this chart uses.{" "}
+            No {timeframe} SEC data found for this symbol.{" "}
+            {timeframe === "quarterly"
+              ? "Common for foreign-domiciled companies, which file annually (a 20-F) instead of quarterly. Try the Annual tab, or "
+              : "The filing may report in a currency other than USD, which this chart doesn't convert, or "}
             <a
               href={`https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${encodeURIComponent(ticker)}&type=&dateb=&owner=include&count=40`}
               target="_blank"
               rel="noopener noreferrer"
               className="underline underline-offset-2"
             >
-              See its EDGAR filings directly
+              see its EDGAR filings directly
             </a>
             .
           </>
