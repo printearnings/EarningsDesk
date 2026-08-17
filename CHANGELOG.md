@@ -7,6 +7,8 @@ Notable changes to EarningsDesk, kept succinct. Format loosely follows
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-08-16
+
 ### Added
 
 - Standalone Simulator page (new sidebar/nav entry) — pick any tracked
