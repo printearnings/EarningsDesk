@@ -48,6 +48,17 @@ function iso(y: number, m: number, d: number): string {
   return `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 }
 
+/** `iso` shifted by `days` — calendar-local, same non-UTC reasoning as `iso`
+ * itself. Only needs to handle small positive offsets (the mobile agenda's
+ * default window), so no calendar-arithmetic library is warranted. */
+function addDaysIso(dateIso: string, days: number): string {
+  const [y, m, d] = dateIso.split("-").map(Number);
+  const dt = new Date(y, m - 1, d + days);
+  return iso(dt.getFullYear(), dt.getMonth(), dt.getDate());
+}
+
+const MOBILE_AGENDA_DEFAULT_WINDOW_DAYS = 14;
+
 /**
  * A real month grid, navigable client-side over one wide-window payload — no
  * network request per month, since the tracked universe is small enough that
@@ -110,6 +121,13 @@ export function MonthCalendar({ entries }: { entries: CalendarEntry[] }) {
     setCursor({ year: now.getFullYear(), month: now.getMonth() });
   }
 
+  // The grid already opens on the current month and circles today's date —
+  // a "Today" button sitting there unconditionally was a no-op most of the
+  // time (you're already looking at it) and gave no signal for the one time
+  // it actually does something: after you've paged away.
+  const now = new Date();
+  const onCurrentMonth = cursor.year === now.getFullYear() && cursor.month === now.getMonth();
+
   return (
     <div>
       <div className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4">
@@ -117,13 +135,15 @@ export function MonthCalendar({ entries }: { entries: CalendarEntry[] }) {
           {MONTH_NAMES[cursor.month]} {cursor.year}
         </h2>
         <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={goToday}
-            className="pressable rounded-[var(--radius-sm)] border border-[var(--color-border)] px-2.5 py-1 text-sm text-[var(--color-body)] transition-colors hover:bg-[var(--color-panel-soft)]"
-          >
-            Today
-          </button>
+          {!onCurrentMonth && (
+            <button
+              type="button"
+              onClick={goToday}
+              className="pressable rounded-[var(--radius-sm)] border border-[var(--color-border)] px-2.5 py-1 text-sm text-[var(--color-body)] transition-colors hover:bg-[var(--color-panel-soft)]"
+            >
+              Jump to today
+            </button>
+          )}
           <button
             type="button"
             onClick={() => shift(-1)}
@@ -195,7 +215,7 @@ export function MonthCalendar({ entries }: { entries: CalendarEntry[] }) {
         </div>
       </div>
 
-      <AgendaView cells={weeks.flat()} />
+      <AgendaView cells={weeks.flat()} todayIso={todayIso} onCurrentMonth={onCurrentMonth} />
     </div>
   );
 }
@@ -203,53 +223,101 @@ export function MonthCalendar({ entries }: { entries: CalendarEntry[] }) {
 /** Mobile fallback for the month grid: every in-month day with at least one
  * report, one row each, full ticker symbols instead of a truncated grid
  * cell. Days with nothing to report simply don't get a row — a list of
- * blank days would be scrolling for the sake of it. */
-function AgendaView({ cells }: { cells: DayCell[] }) {
-  const days = cells.filter((c) => c.inMonth && c.entries.length > 0);
+ * blank days would be scrolling for the sake of it.
+ *
+ * On the current month, this defaults to a rolling 14-day-ahead window
+ * (matching the "reporting in 14 days" framing used elsewhere) rather than
+ * the whole month — scrolling past every earlier day in the month just to
+ * reach today, then past every reporting day after that too, was the actual
+ * complaint. A past/future month reached via prev/next is a deliberate
+ * browse, so it still shows in full; the cap only applies where a visitor
+ * lands by default.
+ */
+function AgendaView({
+  cells,
+  todayIso,
+  onCurrentMonth,
+}: {
+  cells: DayCell[];
+  todayIso: string;
+  onCurrentMonth: boolean;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const allDays = cells.filter((c) => c.inMonth && c.entries.length > 0);
+
+  const windowEnd = useMemo(
+    () => addDaysIso(todayIso, MOBILE_AGENDA_DEFAULT_WINDOW_DAYS),
+    [todayIso],
+  );
+  const windowed =
+    onCurrentMonth && !expanded
+      ? allDays.filter((c) => c.iso >= todayIso && c.iso <= windowEnd)
+      : allDays;
+  // Whether the full month actually has anything outside the 14-day window
+  // — no reason to offer a toggle that wouldn't change what's shown.
+  const hasMore = onCurrentMonth && allDays.some((c) => c.iso < todayIso || c.iso > windowEnd);
 
   return (
-    <div className="divide-y divide-[var(--color-border-subtle)] sm:hidden">
-      {days.length === 0 ? (
-        <p className="px-5 py-8 text-sm text-[var(--color-muted)]">
-          No reports match the current filters this month.
-        </p>
-      ) : (
-        days.map((cell) => (
-          <div key={cell.iso} className="px-5 py-3">
-            <div className="mb-2 flex items-center gap-2">
-              <span
-                className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs ${
-                  cell.isToday
-                    ? "bg-[var(--color-brand)] font-medium text-[var(--color-on-brand)]"
-                    : "text-[var(--color-body)]"
-                }`}
-              >
-                {cell.day}
-              </span>
-              <span className="text-sm text-[var(--color-muted)]">
-                {cell.entries.length} report{cell.entries.length === 1 ? "" : "s"}
-              </span>
+    <div className="sm:hidden">
+      <div className="divide-y divide-[var(--color-border-subtle)]">
+        {windowed.length === 0 ? (
+          <p className="px-5 py-8 text-sm text-[var(--color-muted)]">
+            {allDays.length === 0
+              ? "No reports match the current filters this month."
+              : `Nothing in the next ${MOBILE_AGENDA_DEFAULT_WINDOW_DAYS} days — try showing the full month.`}
+          </p>
+        ) : (
+          windowed.map((cell) => (
+            <div key={cell.iso} className="px-5 py-3">
+              <div className="mb-2 flex items-center gap-2">
+                <span
+                  className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs ${
+                    cell.isToday
+                      ? "bg-[var(--color-brand)] font-medium text-[var(--color-on-brand)]"
+                      : "text-[var(--color-body)]"
+                  }`}
+                >
+                  {cell.day}
+                </span>
+                <span className="text-sm text-[var(--color-muted)]">
+                  {cell.entries.length} report{cell.entries.length === 1 ? "" : "s"}
+                </span>
+              </div>
+              <ul className="space-y-1.5 pl-8">
+                {cell.entries.map((e) => (
+                  <li key={e.ticker}>
+                    <Link
+                      href={`/t/${e.ticker}/`}
+                      className="pressable flex items-center gap-2 rounded-[3px] py-0.5 text-sm transition-colors hover:bg-[var(--color-panel-soft)]"
+                    >
+                      <VerdictDot verdict={e.verdict} />
+                      <span className="font-mono font-medium text-[var(--color-heading)]">
+                        {e.ticker}
+                      </span>
+                      <span className="ml-auto shrink-0 text-[var(--color-muted)]">
+                        {pctRange(e.implied_move)}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <ul className="space-y-1.5 pl-8">
-              {cell.entries.map((e) => (
-                <li key={e.ticker}>
-                  <Link
-                    href={`/t/${e.ticker}/`}
-                    className="pressable flex items-center gap-2 rounded-[3px] py-0.5 text-sm transition-colors hover:bg-[var(--color-panel-soft)]"
-                  >
-                    <VerdictDot verdict={e.verdict} />
-                    <span className="font-mono font-medium text-[var(--color-heading)]">
-                      {e.ticker}
-                    </span>
-                    <span className="ml-auto shrink-0 text-[var(--color-muted)]">
-                      {pctRange(e.implied_move)}
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))
+          ))
+        )}
+      </div>
+
+      {hasMore && (
+        <div className="border-t border-[var(--color-border-subtle)] px-5 py-3">
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="pressable text-sm text-[var(--color-body)] underline decoration-dotted underline-offset-2 hover:text-[var(--color-heading)]"
+          >
+            {expanded
+              ? `Show only the next ${MOBILE_AGENDA_DEFAULT_WINDOW_DAYS} days`
+              : "Show the full month"}
+          </button>
+        </div>
       )}
     </div>
   );

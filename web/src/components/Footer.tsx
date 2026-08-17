@@ -12,7 +12,7 @@ import Link from "next/link";
  */
 export function Footer() {
   return (
-    <footer className="border-t border-[var(--color-border)] px-6 py-5 pb-24">
+    <footer className="border-t border-[var(--color-border)] px-6 py-5 pb-24 text-center">
       <p className="text-2xs text-[var(--color-muted)]">
         &copy; {new Date().getFullYear()} PrintEarnings. Informational only, not financial
         advice.{" "}

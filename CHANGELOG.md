@@ -7,6 +7,56 @@ Notable changes to EarningsDesk, kept succinct. Format loosely follows
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-08-16
+
+### Added
+
+- Options Simulator now runs inline on a ticker's own Options tab &mdash;
+  "Simulate a trade" expands the builder in place instead of navigating to
+  a now-removed `/t/[ticker]/simulator/` page.
+- Simulator strike/current-price context: the "Build a trade" panel now
+  names the ticker, and two new stat cards show the underlying's live price
+  and the selected contract's live quoted price, separate from whatever
+  hypothetical entry price is being modeled.
+- Macro calendar: a "CPI, as released" table showing actual headline/core
+  CPI prints (month-over-month and year-over-year), computed live from
+  FRED's own series rather than a hand-maintained table.
+- Calendar: mobile's day list now defaults to a rolling 14-day window
+  instead of the whole month, with a "Show the full month" toggle.
+
+### Fixed
+
+- **Options Simulator strike/type mismatch**: the strike dropdown wasn't
+  filtered by Call/Put, so picking a strike that only existed on the other
+  side of the chain silently blanked the entire builder (no stats, no
+  chart, no error). Wider strike ranges made this easy to hit. Now the
+  dropdown only ever offers strikes that exist for the selected type.
+- **Company logos broken CSP-wide**: Google's favicon endpoint
+  (`www.google.com/s2/favicons`) redirects to `t{0-3}.gstatic.com`, which
+  wasn't in `img-src` &mdash; every logo site-wide was silently falling back
+  to a letter avatar. Added `https://*.gstatic.com`.
+- **CPI table showing -100%**: FRED leaves not-yet-finalized months blank;
+  `Number("")` evaluates to `0` in JS, so a blank month was read as an
+  actual value and produced a fake -100% change. Blank fields are now
+  skipped instead of parsed as zero.
+- Options Simulator's strike bracket widened from the verdict engine's
+  narrow &plusmn;15% (meant for ATM-only lookups) to &plusmn;60% for the
+  simulator specifically &mdash; deep OTM and wide-strangle strikes were
+  previously unreachable.
+- Removed all remaining em dashes from user-facing copy site-wide.
+
+### Changed
+
+- Landing hero background: replaced the flickering-dot-grid animation with
+  three large, softly blurred, slowly drifting glow blobs (quieter, less
+  busy) and gave the hero a wavy bottom edge instead of a hard line into
+  the page below.
+- Calendar's "Today" button only shows once you've navigated away from the
+  current month (relabeled "Jump to today") &mdash; it was previously
+  always visible despite being a no-op most of the time, since the grid
+  already opens on the current month by default.
+- Footer is now centered instead of left-aligned.
+
 ## [1.5.0] - 2026-08-16
 
 ### Added

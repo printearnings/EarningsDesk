@@ -22,7 +22,11 @@ function contract(
   extra: Partial<RawContract> = {},
 ): RawContract {
   return {
-    details: { contract_type: type, strike_price: strike, expiration_date: expiry },
+    details: {
+      contract_type: type,
+      strike_price: strike,
+      expiration_date: expiry,
+    },
     last_trade: price === null ? undefined : { price },
     underlying_asset: { price: 100 },
     ...extra,
@@ -72,7 +76,9 @@ describe("selectAtmStraddle", () => {
       contract("put", 100, "2026-08-28", 4),
     ];
 
-    expect(selectAtmStraddle(chain, 100, "2026-08-26")?.expiry).toBe("2026-08-28");
+    expect(selectAtmStraddle(chain, 100, "2026-08-26")?.expiry).toBe(
+      "2026-08-28",
+    );
   });
 
   it("skips a strike missing one leg", () => {
@@ -109,7 +115,10 @@ describe("selectAtmStraddle", () => {
     expect(selectAtmStraddle([], 100, "2026-08-26")).toBeNull();
     expect(
       selectAtmStraddle(
-        [contract("call", 100, "2026-08-21", 4), contract("put", 100, "2026-08-21", 4)],
+        [
+          contract("call", 100, "2026-08-21", 4),
+          contract("put", 100, "2026-08-21", 4),
+        ],
         100,
         "2026-08-26",
       ),
@@ -117,7 +126,10 @@ describe("selectAtmStraddle", () => {
   });
 
   it("rejects a nonsensical spot instead of dividing by it", () => {
-    const chain = [contract("call", 100, "2026-08-28", 4), contract("put", 100, "2026-08-28", 4)];
+    const chain = [
+      contract("call", 100, "2026-08-28", 4),
+      contract("put", 100, "2026-08-28", 4),
+    ];
     expect(selectAtmStraddle(chain, 0, "2026-08-26")).toBeNull();
   });
 });
@@ -137,7 +149,9 @@ describe("putCallVolume", () => {
 
   it("returns null rather than Infinity when no calls traded", () => {
     /** Infinity would render as extreme bearishness; the truth is "unknown". */
-    const chain = [{ ...contract("put", 100, "2026-08-28", 4), day: { volume: 500 } }];
+    const chain = [
+      { ...contract("put", 100, "2026-08-28", 4), day: { volume: 500 } },
+    ];
     expect(putCallVolume(chain).ratio).toBeNull();
   });
 });
@@ -157,6 +171,8 @@ describe("underlyingPrice", () => {
   });
 
   it("returns null when the chain carries no spot at all", () => {
-    expect(underlyingPrice([{ details: { contract_type: "call" } }])).toBeNull();
+    expect(
+      underlyingPrice([{ details: { contract_type: "call" } }]),
+    ).toBeNull();
   });
 });

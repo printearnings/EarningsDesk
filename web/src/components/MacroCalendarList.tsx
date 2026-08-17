@@ -100,18 +100,33 @@ export function MacroCalendarList({ events }: { events: MacroEvent[] }) {
       ) : (
         <ul className="divide-y divide-[var(--color-border-subtle)]">
           {filtered.map((e) => (
-            <li key={`${e.type}-${e.date}`} className="flex items-center gap-4 px-5 py-3.5">
-              <div className="w-20 shrink-0">
-                <div className="text-sm font-medium text-[var(--color-heading)]">
-                  {formatDateShort(e.date)}
+            <li
+              key={`${e.type}-${e.date}`}
+              className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-5 py-3.5"
+            >
+              {/* On mobile this row (date, chip, days-until) takes the full
+                  width and wraps onto its own line, so the label below never
+                  has to compete with it for space — that's what was causing
+                  long labels ("2-day meeting: ... with Summary of Economic
+                  Projections") to get clipped instead of wrapping. At `sm`
+                  and up it drops back to `w-auto` and sits inline as before. */}
+              <div className="flex w-full items-center gap-4 sm:w-auto">
+                <div className="w-20 shrink-0">
+                  <div className="text-sm font-medium text-[var(--color-heading)]">
+                    {formatDateShort(e.date)}
+                  </div>
+                  <div className="text-2xs text-[var(--color-muted)]">{weekday(e.date)}</div>
                 </div>
-                <div className="text-2xs text-[var(--color-muted)]">{weekday(e.date)}</div>
+
+                <MacroEventChip type={e.type} />
+
+                <div className="tnum ml-auto shrink-0 text-right text-sm text-[var(--color-muted)] sm:hidden">
+                  {relativeDays(daysUntilFromDate(e.date))}
+                </div>
               </div>
 
-              <MacroEventChip type={e.type} />
-
               <div className="min-w-0 flex-1">
-                <div className="truncate text-sm text-[var(--color-body)]">{e.label}</div>
+                <div className="text-sm text-[var(--color-body)]">{e.label}</div>
                 {e.meetingStart && (
                   <div className="text-2xs mt-0.5 text-[var(--color-muted)]">
                     2-day meeting: {formatDateShort(e.meetingStart)}–
@@ -125,7 +140,7 @@ export function MacroCalendarList({ events }: { events: MacroEvent[] }) {
                 {e.time}
               </div>
 
-              <div className="tnum shrink-0 text-right text-sm text-[var(--color-muted)]">
+              <div className="tnum hidden shrink-0 text-right text-sm text-[var(--color-muted)] sm:block">
                 {relativeDays(daysUntilFromDate(e.date))}
               </div>
             </li>

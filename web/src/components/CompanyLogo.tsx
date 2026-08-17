@@ -4,9 +4,16 @@ import { useState } from "react";
 
 /**
  * A company's mark, from Google's free favicon service — no API key, no
- * signup, verified working. Clearbit's free logo API (the more obvious
- * choice) was shut down in December 2025 after HubSpot's acquisition; every
- * remaining free-tier alternative either requires a key or is a paid product.
+ * signup. Clearbit's free logo API (the more obvious choice) was shut down
+ * in December 2025 after HubSpot's acquisition; every remaining free-tier
+ * alternative either requires a key or is a paid product.
+ *
+ * The `www.google.com/s2/favicons` URL below actually redirects to
+ * `t{0-3}.gstatic.com/faviconV2` under the hood — CSP is enforced on
+ * redirect targets too, so `img-src` in public/_headers has to allow
+ * `*.gstatic.com`, not just `www.google.com`, or every logo silently falls
+ * back to the letter avatar (this broke once already; the redirect target
+ * isn't guaranteed stable, just currently how the endpoint behaves).
  *
  * Falls back to a ticker-letter avatar on load failure or when there's no
  * domain to look up (most tickers, until the nightly build has run for them)

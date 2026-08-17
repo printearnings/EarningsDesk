@@ -158,12 +158,22 @@ export function OptionsSimulator({
     [state],
   );
 
+  // Filtered by type as well as expiry — a chain doesn't always list both a
+  // call and a put at every strike (common at the wider end of the bracket,
+  // which is exactly the range this simulator now reaches). Not filtering
+  // here let the dropdown offer a strike with no matching contract for the
+  // selected type, silently nulling out `selectedContract` below with no
+  // error shown — the whole build-a-trade panel below just went blank.
   const strikesForExpiry = useMemo(() => {
     if (state.status !== "done") return [];
     return [
-      ...new Set(state.contracts.filter((c) => c.expiry === expiry).map((c) => c.strike)),
+      ...new Set(
+        state.contracts
+          .filter((c) => c.expiry === expiry && c.type === optionType)
+          .map((c) => c.strike),
+      ),
     ].sort((a, b) => a - b);
-  }, [state, expiry]);
+  }, [state, expiry, optionType]);
 
   const selectedContract = useMemo(() => {
     if (state.status !== "done" || strike === null) return null;
@@ -270,8 +280,8 @@ export function OptionsSimulator({
   return (
     <div className="space-y-6">
       <Panel
-        title="Build a trade"
-        subtitle="Single-leg only — one call or put, long. Loads a live chain (metered, so it's a click, not automatic)."
+        title={`Build a trade · ${ticker}`}
+        subtitle="Single-leg only, one call or put, long. Loads a live chain (metered, so it's a click, not automatic)."
       >
         {state.status !== "done" ? (
           <div>
@@ -341,6 +351,16 @@ export function OptionsSimulator({
                     onClick={() => {
                       setOptionType(t);
                       setEntryPriceText("");
+                      // Keep the strike selected if it exists on the other
+                      // side too (the common case near the money); only
+                      // clear it if switching type would otherwise strand
+                      // the picker on a strike with no matching contract.
+                      if (state.status === "done" && strike !== null) {
+                        const stillExists = state.contracts.some(
+                          (c) => c.expiry === expiry && c.strike === strike && c.type === t,
+                        );
+                        if (!stillExists) setStrike(null);
+                      }
                     }}
                     aria-pressed={optionType === t}
                     className={`pressable rounded-[3px] px-3 py-1 text-sm font-medium capitalize transition-colors ${
@@ -390,7 +410,21 @@ export function OptionsSimulator({
 
       {state.status === "done" && scenario && strike !== null && (
         <>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+            <StatCard
+              label="Current price"
+              value={spot !== null ? money(spot) : EMPTY}
+              hint="The underlying stock's live price, quoted with the chain."
+            />
+            <StatCard
+              label="Contract price"
+              value={
+                selectedContract?.price !== null && selectedContract?.price !== undefined
+                  ? money(selectedContract.price)
+                  : EMPTY
+              }
+              hint="This contract's live quoted price, per share, regardless of what's entered as the hypothetical entry price below."
+            />
             <StatCard
               label="Entry cost"
               value={money(scenario.entryCost)}
@@ -413,12 +447,12 @@ export function OptionsSimulator({
                   ? num(selectedContract.delta, 2)
                   : EMPTY
               }
-              hint="This contract's delta as quoted right now — a local slope, not what this simulator's curves are built from."
+              hint="This contract's delta as quoted right now, a local slope, not what this simulator's curves are built from."
             />
           </div>
 
           <Panel
-            title={`PnL at each price — ${formatDateShort(expiry)}`}
+            title={`PnL at each price · ${formatDateShort(expiry)}`}
             subtitle={
               reportDate
                 ? `Green = profit, red = loss, at expiration. Dashed line = the day after the print (${formatDateShort(scenario.postPrintDate)}), assuming IV lands at ${ivCrushPct}% of today's ${entryIv !== null ? pct(entryIv, 0) : "entry"} level.`
@@ -454,7 +488,7 @@ export function OptionsSimulator({
 
             <p className="mt-4 text-sm text-[var(--color-muted)]">
               This is a model output, not a prediction. It re-prices the option with
-              Black-Scholes at a hypothetical spot and IV — it does not know what the stock will
+              Black-Scholes at a hypothetical spot and IV. It does not know what the stock will
               actually do. American-style early exercise isn&rsquo;t modeled.
             </p>
           </Panel>

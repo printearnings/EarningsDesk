@@ -122,6 +122,86 @@ body {
   animation: live-pulse 1.6s linear infinite;
 }
 
+/*
+ * Landing hero background — see AuroraBackground.tsx. Three large, heavily
+ * blurred circles in brand-blue tones drifting slowly behind the content.
+ * `mix-blend-mode: screen` is what keeps overlaps reading as brighter light
+ * rather than muddy color mixing, the same trick real aurora/glow effects
+ * use; it needs the blobs on their own stacking layer above the flat navy
+ * fill but below the actual text, which is what the parent's z-index in
+ * page.tsx handles.
+ */
+.aurora-blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(80px);
+  mix-blend-mode: screen;
+  will-change: transform, opacity;
+}
+
+.aurora-blob-a {
+  top: -10%;
+  left: 5%;
+  width: 32rem;
+  height: 32rem;
+  background: radial-gradient(circle, rgb(90 137 214 / 45%) 0%, transparent 70%);
+  animation: aurora-drift-a 22s ease-in-out infinite;
+}
+
+.aurora-blob-b {
+  top: 10%;
+  right: -5%;
+  width: 28rem;
+  height: 28rem;
+  background: radial-gradient(circle, rgb(143 180 236 / 35%) 0%, transparent 70%);
+  animation: aurora-drift-b 26s ease-in-out infinite;
+}
+
+.aurora-blob-c {
+  bottom: -20%;
+  left: 30%;
+  width: 34rem;
+  height: 34rem;
+  background: radial-gradient(circle, rgb(47 90 168 / 40%) 0%, transparent 70%);
+  animation: aurora-drift-c 30s ease-in-out infinite;
+}
+
+@keyframes aurora-drift-a {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translate(4%, 6%) scale(1.08);
+    opacity: 1;
+  }
+}
+
+@keyframes aurora-drift-b {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translate(-6%, 4%) scale(0.95);
+    opacity: 0.85;
+  }
+}
+
+@keyframes aurora-drift-c {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translate(3%, -5%) scale(1.1);
+    opacity: 0.8;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

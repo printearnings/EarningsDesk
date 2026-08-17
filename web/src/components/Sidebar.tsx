@@ -163,14 +163,10 @@ function NavItem({
 }) {
   // Ticker pages are reached from the calendar, so highlight Calendar while
   // you're on one — otherwise the sidebar shows nothing active and the user
-  // loses their sense of place. A ticker's own /simulator/ sub-page is the
-  // one exception: that's reached from the Simulator nav item just as often
-  // as from Calendar, so it highlights Simulator instead.
-  const isTickerSimulator = /^\/t\/[^/]+\/simulator\/?$/.test(pathname);
-  const active =
-    pathname === href ||
-    (href === "/simulator/" && isTickerSimulator) ||
-    (href === "/calendar/" && pathname.startsWith("/t/") && !isTickerSimulator);
+  // loses their sense of place. (There used to be a ticker's own /simulator/
+  // sub-page carved out as an exception here; it's gone now — simulating a
+  // trade happens inline on the ticker page's Options tab instead.)
+  const active = pathname === href || (href === "/calendar/" && pathname.startsWith("/t/"));
 
   return (
     <li>

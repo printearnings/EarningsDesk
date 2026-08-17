@@ -76,8 +76,14 @@ const YAHOO_QUOTE_SUMMARY_BASE =
 
 const CHART_CACHE_SECONDS = 60;
 
-/** Matches the engine's daily_radar.STRIKE_BRACKET. */
+/** Matches the engine's daily_radar.STRIKE_BRACKET. Used for the narrow,
+ * ATM-only lookup (/api/refresh's straddle selection). */
 const STRIKE_BRACKET = 0.15;
+/** The simulator (/api/chain, fullDepth) wants strikes a trader would
+ * actually consider, not just the ATM neighborhood the verdict engine cares
+ * about — deep OTM lottery plays and wide strangles both live well outside
+ * ±15%. ±60% comfortably covers those without fetching the entire chain. */
+const SIMULATOR_STRIKE_BRACKET = 0.6;
 
 const DEFAULT_LIMIT_PER_HOUR = 10;
 const DEFAULT_SEARCH_PER_HOUR = 60;
@@ -1252,6 +1258,139 @@ const FINANCIALS_CACHE_SECONDS = 86_400; // a company files a new 10-Q/10-K a fe
 const QUARTERLY_LIMIT = 40; // ~10 years
 const ANNUAL_LIMIT = 20; // ~20 years
 
+// CPI updates once a month (mid-month release), so a day-long edge cache on
+// a single shared key (not per-request) costs no real freshness while
+// cutting FRED calls to about one per day site-wide, regardless of traffic.
+const CPI_CACHE_SECONDS = 86_400;
+const CPI_MONTHS = 12;
+
+export interface CpiMonth {
+  month: string; // "YYYY-MM"
+  index: number;
+  core_index: number | null;
+  mom_pct: number | null;
+  yoy_pct: number | null;
+  core_mom_pct: number | null;
+  core_yoy_pct: number | null;
+}
+
+export interface CpiHistoryResponse {
+  months: CpiMonth[]; // most recent first
+  source: string;
+}
+
+/** FRED's plain CSV export — "DATE,VALUE\n2026-07-01,332.813" — with blank
+ * values for months not yet finalized. No API key: this is the same public,
+ * unauthenticated endpoint fred.stlouisfed.org serves its own graphs from. */
+function parseFredCsv(text: string): Map<string, number> {
+  const out = new Map<string, number>();
+  for (const line of text.trim().split("\n").slice(1)) {
+    const [date, value] = line.split(",");
+    // A month FRED hasn't finalized yet is a blank field ("2025-10-01,\n"),
+    // not a zero — `Number("")` is 0, not NaN, so this has to be checked
+    // explicitly or a missing month silently becomes a real (wrong) value.
+    if (!value || value.trim() === "") continue;
+    const n = Number(value);
+    if (date && Number.isFinite(n)) out.set(date.slice(0, 7), n);
+  }
+  return out;
+}
+
+function shiftMonth(key: string, delta: number): string {
+  const [y, m] = key.split("-").map(Number);
+  const d = new Date(Date.UTC(y, m - 1 + delta, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+function pctChange(
+  curr: number | undefined,
+  prev: number | undefined,
+): number | null {
+  if (curr === undefined || prev === undefined || prev === 0) return null;
+  return ((curr - prev) / prev) * 100;
+}
+
+/**
+ * Headline and core CPI, month-over-month and year-over-year, computed from
+ * the Fed's own FRED series (CPIAUCSL, CPILFESL) rather than a static
+ * table — inflation data every month would otherwise go stale exactly the
+ * way this app avoids everywhere else. FRED keeps decades of history per
+ * series, so year-over-year deltas are computed against the full fetched
+ * range even though only the most recent CPI_MONTHS are returned.
+ */
+async function handleCpiHistory(
+  env: Env,
+  ctx: ExecutionContext,
+): Promise<Response> {
+  const cache = caches.default;
+  // v2: bumped after fixing a blank-month-parses-as-zero bug — the Cache API
+  // persists across deploys, so a stale cached response under the old key
+  // would otherwise keep serving the broken values for up to 24h.
+  const cacheKey = new Request("https://cache.internal/macro/cpi-history-v2", {
+    method: "GET",
+  });
+  const cached = await cache.match(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const [headlineRes, coreRes] = await Promise.all([
+      fetch("https://fred.stlouisfed.org/graph/fredgraph.csv?id=CPIAUCSL", {
+        signal: AbortSignal.timeout(10_000),
+      }),
+      fetch("https://fred.stlouisfed.org/graph/fredgraph.csv?id=CPILFESL", {
+        signal: AbortSignal.timeout(10_000),
+      }),
+    ]);
+    if (!headlineRes.ok || !coreRes.ok) {
+      return json({ error: "CPI data temporarily unavailable." }, 502);
+    }
+
+    const headline = parseFredCsv(await headlineRes.text());
+    const core = parseFredCsv(await coreRes.text());
+    const recentKeys = [...headline.keys()].sort().slice(-CPI_MONTHS);
+
+    const months: CpiMonth[] = recentKeys
+      .map((key): CpiMonth | null => {
+        const index = headline.get(key);
+        if (index === undefined) return null;
+        const coreIndex = core.get(key) ?? null;
+        const prevMonthKey = shiftMonth(key, -1);
+        const prevYearKey = shiftMonth(key, -12);
+        return {
+          month: key,
+          index,
+          core_index: coreIndex,
+          mom_pct: pctChange(index, headline.get(prevMonthKey)),
+          yoy_pct: pctChange(index, headline.get(prevYearKey)),
+          core_mom_pct:
+            coreIndex !== null
+              ? pctChange(coreIndex, core.get(prevMonthKey))
+              : null,
+          core_yoy_pct:
+            coreIndex !== null
+              ? pctChange(coreIndex, core.get(prevYearKey))
+              : null,
+        };
+      })
+      .filter((m): m is CpiMonth => m !== null)
+      .reverse();
+
+    const payload: CpiHistoryResponse = {
+      months,
+      source:
+        "FRED (Federal Reserve Bank of St. Louis), series CPIAUCSL & CPILFESL",
+    };
+    const response = json(payload, 200, {
+      "cache-control": `public, max-age=${CPI_CACHE_SECONDS}`,
+    });
+    ctx.waitUntil(cache.put(cacheKey, response.clone()));
+    return response;
+  } catch (err) {
+    console.error("cpi history fetch failed", { err: String(err) });
+    return json({ error: "Couldn't reach the CPI data provider." }, 502);
+  }
+}
+
 /**
  * Quarterly or annual income-statement figures — revenue, margins, net
  * income, diluted EPS — from SEC filings via Massive's financials API.
@@ -2022,9 +2161,11 @@ async function handleSearch(
 // Bound on the strike-bracketed follow-up pages `fetchChain` will fetch when
 // `fullDepth` is requested. Confirmed empirically against AAPL (a wide,
 // weekly-heavy chain): 3 bracketed pages already reached every expiry out to
-// 2028 LEAPS. 5 leaves headroom without letting one click fan out unbounded
-// Massive spend.
-const CHAIN_MAX_DEPTH_PAGES = 5;
+// 2028 LEAPS at the (narrower) 15% bracket. Bumped from 5 to 8 alongside
+// SIMULATOR_STRIKE_BRACKET's widening — a bigger strike window eats more of
+// each page's 250-result budget before the pagination cursor reaches later
+// expiries, so it takes more pages to cover the same depth.
+const CHAIN_MAX_DEPTH_PAGES = 8;
 // Expiries this far out are practically irrelevant to an earnings-print
 // trade — stop paginating once we're past it even if pages remain.
 const CHAIN_MAX_DEPTH_DAYS = 400;
@@ -2038,7 +2179,10 @@ async function fetchChainPage(
     signal: AbortSignal.timeout(10_000),
   });
   if (!res.ok) throw new Error(`upstream ${res.status}`);
-  const body = (await res.json()) as { results?: RawContract[]; next_url?: string };
+  const body = (await res.json()) as {
+    results?: RawContract[];
+    next_url?: string;
+  };
   return { results: body.results ?? [], nextUrl: body.next_url ?? null };
 }
 
@@ -2073,12 +2217,14 @@ async function fetchChain(
 
   // The strike bracket is applied here rather than upstream because the spot
   // isn't known until the response arrives. Narrowing keeps the ATM search
-  // honest on names with hundreds of listed strikes.
+  // honest on names with hundreds of listed strikes. fullDepth (the
+  // simulator) wants the wider bracket — see SIMULATOR_STRIKE_BRACKET.
   const spot = underlyingPrice(first.results);
   if (spot === null) return first.results;
 
-  const lo = spot * (1 - STRIKE_BRACKET);
-  const hi = spot * (1 + STRIKE_BRACKET);
+  const bracket = opts.fullDepth ? SIMULATOR_STRIKE_BRACKET : STRIKE_BRACKET;
+  const lo = spot * (1 - bracket);
+  const hi = spot * (1 + bracket);
   const inBracket = (r: RawContract) => {
     const k = r.details?.strike_price;
     return typeof k === "number" && k >= lo && k <= hi;
@@ -2166,6 +2312,10 @@ export default {
 
     if (url.pathname === "/api/financials") {
       return handleFinancials(request, env, ctx);
+    }
+
+    if (url.pathname === "/api/macro/cpi") {
+      return handleCpiHistory(env, ctx);
     }
 
     if (url.pathname === "/api/insiders") {

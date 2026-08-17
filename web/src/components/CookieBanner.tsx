@@ -53,8 +53,8 @@ export function CookieBanner() {
             Cookie preferences
           </p>
           <p className="mt-1 text-sm text-[var(--color-body)]">
-            We use exactly one cookie, set by Cloudflare to keep the site secure — not for
-            tracking, personalization, or ads.{" "}
+            We use exactly one cookie, set by Cloudflare to keep the site secure. It&rsquo;s not
+            used for tracking, personalization, or ads.{" "}
             <Link href="/privacy/" className="underline underline-offset-2">
               Learn more
             </Link>

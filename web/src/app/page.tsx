@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { FlickeringGrid } from "@/components/FlickeringGrid";
+import { AuroraBackground } from "@/components/AuroraBackground";
 import { Footer } from "@/components/Footer";
 import { Logo } from "@/components/Logo";
 import { TickerSearch } from "@/components/TickerSearch";
@@ -25,11 +25,12 @@ export const metadata = {
  * surfaces like this one; every other panel/button stays on white/cream.
  *
  * The flat band reads a little static as a hero, so it carries one subtle
- * animated layer underneath the text: `FlickeringGrid`, a canvas of small
- * squares that flicker independently — the "live data board" texture common
- * to fintech/terminal UIs, on-theme for a chart product without being a
- * literal chart competing with the real ones on every other page. Low
- * opacity, freezes to a static frame under `prefers-reduced-motion`.
+ * animated layer underneath the text: `AuroraBackground`, three large,
+ * heavily blurred blobs of brand blue drifting slowly behind the content —
+ * after two more literal attempts (a price-line texture, then a flickering
+ * dot grid) both read as too busy for a serious data product's hero, this
+ * goes quieter: ambient light, not a pattern. Freezes to its resting
+ * position under `prefers-reduced-motion`.
  *
  * This page lives outside the (app) route group (no sidebar chrome), so it
  * doesn't inherit that layout's Footer — rendered explicitly here instead,
@@ -43,8 +44,8 @@ export default async function LandingPage() {
   return (
     <main>
       <section className="relative overflow-hidden" style={{ background: "var(--color-band)" }}>
-        <FlickeringGrid className="absolute inset-0" />
-        {/* Fades the grid out toward the bottom edge so it recedes into the
+        <AuroraBackground className="absolute inset-0" />
+        {/* Fades the glow out toward the bottom edge so it recedes into the
             band rather than cutting off hard at the section boundary. */}
         <div
           className="absolute inset-0"
@@ -111,6 +112,24 @@ export default async function LandingPage() {
             </Link>
           </p>
         </div>
+
+        {/* A wavy handoff into the cream page instead of a hard horizontal
+            edge — the shape is the cream color painted over the navy band's
+            bottom slice, so it reads as the page curving up into the band
+            rather than a seam between two rectangles. preserveAspectRatio
+            ="none" lets it stretch to any section width without distorting
+            into visibly different curves at different viewport sizes. */}
+        <svg
+          className="absolute right-0 bottom-0 left-0 h-12 w-full sm:h-16"
+          viewBox="0 0 1440 64"
+          preserveAspectRatio="none"
+          aria-hidden
+        >
+          <path
+            d="M0,32 C240,58 480,6 720,20 C960,34 1200,58 1440,28 L1440,64 L0,64 Z"
+            fill="var(--color-page)"
+          />
+        </svg>
       </section>
 
       <section className="mx-auto max-w-[1280px] px-6 py-16">

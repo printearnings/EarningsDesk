@@ -72,7 +72,7 @@ export function SupportForm() {
     if (!turnstileToken) {
       setState({
         status: "error",
-        message: "Verification still loading — try again in a moment.",
+        message: "Verification still loading, try again in a moment.",
       });
       return;
     }
@@ -111,7 +111,7 @@ export function SupportForm() {
   if (state.status === "done") {
     return (
       <div className="px-5 py-8 text-center">
-        <p className="text-sm font-medium text-[var(--color-heading)]">Thanks — we got it.</p>
+        <p className="text-sm font-medium text-[var(--color-heading)]">Thanks, we got it.</p>
         <p className="mt-1 text-sm text-[var(--color-muted)]">
           We read every submission, though not every one gets a reply.
         </p>

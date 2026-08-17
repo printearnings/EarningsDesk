@@ -1,3 +1,4 @@
+import { CpiHistoryTable } from "@/components/CpiHistoryTable";
 import { MacroCalendarList } from "@/components/MacroCalendarList";
 import { Panel } from "@/components/Panel";
 import { TopBar } from "@/components/TopBar";
@@ -17,7 +18,7 @@ export default async function MacroCalendarPage() {
         tickers={index.tickers}
       />
 
-      <div className="px-6 py-6">
+      <div className="space-y-6 px-6 py-6">
         <Panel
           title="FOMC & CPI"
           subtitle="The two macro dates that move every ticker at once, not just the one reporting that week"
@@ -26,7 +27,9 @@ export default async function MacroCalendarPage() {
           <MacroCalendarList events={MACRO_EVENTS} />
         </Panel>
 
-        <p className="mt-4 text-sm text-[var(--color-muted)]">
+        <CpiHistoryTable />
+
+        <p className="text-sm text-[var(--color-muted)]">
           Dates from the Federal Reserve&rsquo;s published FOMC calendar and the BLS CPI release
           schedule. Both are announced 12&ndash;18 months out and rarely move, but always
           confirm against{" "}

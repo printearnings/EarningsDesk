@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { motion } from "motion/react";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { DirectionChip, SessionChip, VerdictChip } from "@/components/Chip";
@@ -11,6 +10,7 @@ import { ImpliedVsRealized } from "@/components/ImpliedVsRealized";
 import { InsidersPanel } from "@/components/InsidersPanel";
 import { NewsThumbnail } from "@/components/NewsThumbnail";
 import { OpenInterestChart } from "@/components/OpenInterestChart";
+import { OptionsSimulator } from "@/components/OptionsSimulator";
 import { Panel, Stat } from "@/components/Panel";
 import { PriceChart } from "@/components/PriceChart";
 import type { PricePoint, TickerPage as TickerData } from "@/lib/api";
@@ -163,6 +163,12 @@ export function TickerTabs({ data }: { data: TickerData }) {
 
 function OptionsPanelCard({ data }: { data: TickerData }) {
   const o = data.options;
+  // Reveals the simulator in place instead of navigating to a dedicated
+  // /t/[ticker]/simulator/ page — that route existed only to hold this same
+  // component, so a click there was a whole extra page load for nothing the
+  // Options tab couldn't show directly. autoLoad since clicking "Simulate a
+  // trade" already *is* the explicit "load this" action.
+  const [simulatorOpen, setSimulatorOpen] = useState(false);
 
   if (!o) {
     return (
@@ -182,90 +188,104 @@ function OptionsPanelCard({ data }: { data: TickerData }) {
   const tone = o.verdict === "RICH" ? "rich" : o.verdict === "CHEAP" ? "cheap" : "default";
 
   return (
-    <Panel
-      subtitle={
-        typeof o.richness === "number"
-          ? `${pct(Math.abs(o.richness), 0)} ${
-              o.richness > 0 ? "above" : "below"
-            } this stock's typical post-earnings move`
-          : undefined
-      }
-      action={
-        <Link
-          href={`/t/${data.ticker}/simulator/`}
-          className="pressable inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] px-4 py-2 text-sm font-semibold whitespace-nowrap text-[var(--color-on-brand)] transition-opacity hover:opacity-90"
-          style={{ background: "var(--gradient-brand)" }}
-        >
-          Simulate a trade →
-        </Link>
-      }
-    >
-      <dl className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-3">
-        <Stat
-          label="Edge score"
-          value={num(o.edge_score, 1)}
-          tone={tone}
-          hint="0-10. Distance from the historical average."
-        />
-        <Stat
-          label="ATM open interest"
-          value={compact(o.atm_open_interest)}
-          hint="Contracts at the at-the-money strike. Low = wide spreads."
-        />
-        <Stat
-          label="Call volume"
-          value={compact(o.call_volume)}
-          hint="Call contracts traded today, all strikes and expiries."
-        />
-        <Stat
-          label="Put volume"
-          value={compact(o.put_volume)}
-          hint="Put contracts traded today, all strikes and expiries."
-        />
-        <Stat
-          label="IV term"
-          value={
-            o.iv_inverted === null || o.iv_inverted === undefined
-              ? EMPTY
-              : o.iv_inverted
-                ? "Inverted"
-                : "Normal"
-          }
-          tone={o.iv_inverted ? "rich" : "default"}
-          hint="Inverted: near-dated options cost more than later ones. The earnings premium."
-        />
-        <Stat
-          label="Front IV"
-          value={pct(o.iv_front)}
-          hint="Implied volatility, nearest expiry."
-        />
-        <Stat
-          label="Back IV"
-          value={pct(o.iv_back)}
-          hint="Implied volatility, next expiry out."
-        />
-        <Stat
-          label="Verdict"
-          value={o.verdict ?? EMPTY}
-          tone={tone}
-          hint="Premium versus this stock's own history: rich, cheap, or fair."
-        />
-      </dl>
+    <div className="space-y-6">
+      <Panel
+        subtitle={
+          typeof o.richness === "number"
+            ? `${pct(Math.abs(o.richness), 0)} ${
+                o.richness > 0 ? "above" : "below"
+              } this stock's typical post-earnings move`
+            : undefined
+        }
+        action={
+          <button
+            type="button"
+            onClick={() => setSimulatorOpen((v) => !v)}
+            aria-expanded={simulatorOpen}
+            className="pressable inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] px-4 py-2 text-sm font-semibold whitespace-nowrap text-[var(--color-on-brand)] transition-opacity hover:opacity-90"
+            style={{ background: "var(--gradient-brand)" }}
+          >
+            {simulatorOpen ? "Hide simulator" : "Simulate a trade →"}
+          </button>
+        }
+      >
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-3">
+          <Stat
+            label="Edge score"
+            value={num(o.edge_score, 1)}
+            tone={tone}
+            hint="0-10. Distance from the historical average."
+          />
+          <Stat
+            label="ATM open interest"
+            value={compact(o.atm_open_interest)}
+            hint="Contracts at the at-the-money strike. Low = wide spreads."
+          />
+          <Stat
+            label="Call volume"
+            value={compact(o.call_volume)}
+            hint="Call contracts traded today, all strikes and expiries."
+          />
+          <Stat
+            label="Put volume"
+            value={compact(o.put_volume)}
+            hint="Put contracts traded today, all strikes and expiries."
+          />
+          <Stat
+            label="IV term"
+            value={
+              o.iv_inverted === null || o.iv_inverted === undefined
+                ? EMPTY
+                : o.iv_inverted
+                  ? "Inverted"
+                  : "Normal"
+            }
+            tone={o.iv_inverted ? "rich" : "default"}
+            hint="Inverted: near-dated options cost more than later ones. The earnings premium."
+          />
+          <Stat
+            label="Front IV"
+            value={pct(o.iv_front)}
+            hint="Implied volatility, nearest expiry."
+          />
+          <Stat
+            label="Back IV"
+            value={pct(o.iv_back)}
+            hint="Implied volatility, next expiry out."
+          />
+          <Stat
+            label="Verdict"
+            value={o.verdict ?? EMPTY}
+            tone={tone}
+            hint="Premium versus this stock's own history: rich, cheap, or fair."
+          />
+        </dl>
 
-      {o.atm_strike && o.atm_expiry && (
-        <p className="mt-5 border-t border-[var(--color-border-subtle)] pt-4 text-sm text-[var(--color-muted)]">
-          Measured from the {money(o.atm_strike, 0)} straddle expiring{" "}
-          {formatDateShort(o.atm_expiry)}.
-        </p>
-      )}
+        {o.atm_strike && o.atm_expiry && (
+          <p className="mt-5 border-t border-[var(--color-border-subtle)] pt-4 text-sm text-[var(--color-muted)]">
+            Measured from the {money(o.atm_strike, 0)} straddle expiring{" "}
+            {formatDateShort(o.atm_expiry)}.
+          </p>
+        )}
 
-      {o.oi_by_strike && o.oi_by_strike.length > 0 && (
-        <div className="mt-5 border-t border-[var(--color-border-subtle)] pt-5">
-          <p className="eyebrow mb-3">Open interest by strike</p>
-          <OpenInterestChart rows={o.oi_by_strike} atmStrike={o.atm_strike} />
-        </div>
+        {o.oi_by_strike && o.oi_by_strike.length > 0 && (
+          <div className="mt-5 border-t border-[var(--color-border-subtle)] pt-5">
+            <p className="eyebrow mb-3">Open interest by strike</p>
+            <OpenInterestChart rows={o.oi_by_strike} atmStrike={o.atm_strike} />
+          </div>
+        )}
+      </Panel>
+
+      {simulatorOpen && (
+        <OptionsSimulator
+          key={data.ticker}
+          ticker={data.ticker}
+          reportDate={data.next_report_date ?? null}
+          reportSession={data.next_report_session ?? null}
+          autoLoad
+        />
       )}
-    </Panel>
+    </div>
   );
 }
 

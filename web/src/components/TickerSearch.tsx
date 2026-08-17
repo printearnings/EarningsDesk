@@ -45,7 +45,6 @@ export function TickerSearch({
   size = "md",
   autoFocus = false,
   compact = false,
-  destination = "ticker",
   onSelectTracked,
 }: {
   tickers: TickerIndexEntry[];
@@ -57,11 +56,6 @@ export function TickerSearch({
    * on a placeholder nobody can finish reading anyway. Ignored at `sm` and
    * up, where there's room for the real thing. */
   compact?: boolean;
-  /** Where picking a *tracked* result navigates, when `onSelectTracked` is
-   * not given. "ticker" (default) goes to the ticker page itself;
-   * "simulator" goes to that ticker's /simulator/ sub-page. Ignored once
-   * `onSelectTracked` is provided. */
-  destination?: "ticker" | "simulator";
   /** When given, picking ANY result (tracked or cold/untracked) calls this
    * instead of navigating — used by the standalone Simulator page, which
    * renders the trade builder inline for the picked ticker rather than
@@ -202,9 +196,7 @@ export function TickerSearch({
       });
       return;
     }
-    router.push(
-      destination === "simulator" ? `/t/${item.ticker}/simulator/` : `/t/${item.ticker}/`,
-    );
+    router.push(`/t/${item.ticker}/`);
   }
 
   function lookup(ticker: string) {

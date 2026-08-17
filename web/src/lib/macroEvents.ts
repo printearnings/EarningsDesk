@@ -44,13 +44,13 @@ export const MACRO_EVENTS: MacroEvent[] = [
   {
     date: "2026-02-13",
     type: "CPI",
-    label: "CPI report — January 2026 data",
+    label: "CPI report: January 2026 data",
     time: "8:30 AM ET",
   },
   {
     date: "2026-03-11",
     type: "CPI",
-    label: "CPI report — February 2026 data",
+    label: "CPI report: February 2026 data",
     time: "8:30 AM ET",
   },
   {
@@ -64,7 +64,7 @@ export const MACRO_EVENTS: MacroEvent[] = [
   {
     date: "2026-04-10",
     type: "CPI",
-    label: "CPI report — March 2026 data",
+    label: "CPI report: March 2026 data",
     time: "8:30 AM ET",
   },
   {
@@ -77,13 +77,13 @@ export const MACRO_EVENTS: MacroEvent[] = [
   {
     date: "2026-05-12",
     type: "CPI",
-    label: "CPI report — April 2026 data",
+    label: "CPI report: April 2026 data",
     time: "8:30 AM ET",
   },
   {
     date: "2026-06-10",
     type: "CPI",
-    label: "CPI report — May 2026 data",
+    label: "CPI report: May 2026 data",
     time: "8:30 AM ET",
   },
   {
@@ -97,7 +97,7 @@ export const MACRO_EVENTS: MacroEvent[] = [
   {
     date: "2026-07-14",
     type: "CPI",
-    label: "CPI report — June 2026 data",
+    label: "CPI report: June 2026 data",
     time: "8:30 AM ET",
   },
   {
@@ -110,13 +110,13 @@ export const MACRO_EVENTS: MacroEvent[] = [
   {
     date: "2026-08-12",
     type: "CPI",
-    label: "CPI report — July 2026 data",
+    label: "CPI report: July 2026 data",
     time: "8:30 AM ET",
   },
   {
     date: "2026-09-11",
     type: "CPI",
-    label: "CPI report — August 2026 data",
+    label: "CPI report: August 2026 data",
     time: "8:30 AM ET",
   },
   {
@@ -130,7 +130,7 @@ export const MACRO_EVENTS: MacroEvent[] = [
   {
     date: "2026-10-14",
     type: "CPI",
-    label: "CPI report — September 2026 data",
+    label: "CPI report: September 2026 data",
     time: "8:30 AM ET",
   },
   {
@@ -143,7 +143,7 @@ export const MACRO_EVENTS: MacroEvent[] = [
   {
     date: "2026-11-10",
     type: "CPI",
-    label: "CPI report — October 2026 data",
+    label: "CPI report: October 2026 data",
     time: "8:30 AM ET",
   },
   {
@@ -157,7 +157,7 @@ export const MACRO_EVENTS: MacroEvent[] = [
   {
     date: "2026-12-10",
     type: "CPI",
-    label: "CPI report — November 2026 data",
+    label: "CPI report: November 2026 data",
     time: "8:30 AM ET",
   },
 ];
