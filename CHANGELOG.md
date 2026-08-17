@@ -7,6 +7,30 @@ Notable changes to EarningsDesk, kept succinct. Format loosely follows
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-08-16
+
+### Added
+
+- Standalone Simulator page now loads the trade builder inline for the
+  picked ticker (auto-loading the chain) instead of navigating to that
+  ticker's own /simulator/ sub-page and requiring a second click.
+- New logo: a navy mark + wordmark, replacing the old plain-text-only
+  lockup — sidebar, mobile nav, and a bigger version on the landing hero.
+
+### Changed
+
+- Brand color is navy again (a brief detour through a scoped
+  Starbucks-inspired green palette didn't stick). Kept from that pass: the
+  warm cream canvas, soft card shadows, full-pill CTA buttons.
+- Page/panel titles now render as a navy gradient (bg-clip-text), every
+  data table's header row carries a light navy wash, and the navy gradient
+  is back on primary CTA buttons and the sidebar's active-page highlight —
+  addressing "too much white" more directly than a background wash alone.
+- Chart tooltips (price, simulator, financials, implied-vs-realized,
+  open-interest) get a consistent header-row + separator treatment; a
+  stray `shadow-sm` that had crept into three of them (this app doesn't
+  use shadows for card depth) is gone.
+
 ## [1.1.0] - 2026-08-16
 
 ### Added
