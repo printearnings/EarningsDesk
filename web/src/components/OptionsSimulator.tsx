@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Panel, StatCard } from "@/components/Panel";
 import {
@@ -397,22 +397,25 @@ export function OptionsSimulator({
           </div>
 
           <Panel
-            title="Payoff"
-            subtitle={`At expiration vs. the day after the print (${formatDateShort(scenario.postPrintDate)}), assuming IV falls to ${ivCrushPct}% of today's ${entryIv !== null ? pct(entryIv, 0) : "entry"} level`}
+            title={`PnL at each price — ${formatDateShort(expiry)}`}
+            subtitle={`Green = profit, red = loss, at expiration. Dashed line = the day after the print (${formatDateShort(scenario.postPrintDate)}), assuming IV lands at ${ivCrushPct}% of today's ${entryIv !== null ? pct(entryIv, 0) : "entry"} level.`}
           >
-            <div className="mb-4 flex items-center gap-3">
+            <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1.5">
               <label className="eyebrow shrink-0 text-[var(--color-muted)]">
                 Post-print IV assumption
               </label>
               <input
                 type="range"
                 min={20}
-                max={100}
+                max={150}
                 value={ivCrushPct}
                 onChange={(e) => setIvCrushPct(Number(e.target.value))}
-                className="w-48 accent-[var(--color-viz-realized)]"
+                className="w-full max-w-48 accent-[var(--color-viz-realized)]"
               />
               <span className="tnum text-sm text-[var(--color-heading)]">{ivCrushPct}%</span>
+              <span className="text-2xs w-full text-[var(--color-muted)] sm:w-auto">
+                (100% = no crush; above 100% models IV expanding further)
+              </span>
             </div>
 
             <PayoffChart
@@ -445,6 +448,8 @@ function PayoffChart({
   hoverIdx: number | null;
   onHover: (idx: number | null) => void;
 }) {
+  const svgRef = useRef<SVGSVGElement | null>(null);
+
   const chart = useMemo(() => {
     const values = points.flatMap((p) => [
       p.atExpiry,
@@ -473,33 +478,115 @@ function PayoffChart({
     const zeroY = y(0);
     const spotX = x(spot);
 
+    // The area between the "at expiration" line and the zero baseline —
+    // closed back along the baseline so it can be filled, then clipped into
+    // a green (profit) half and a red (loss) half below.
+    const plotLeft = PAD.left;
+    const plotRight = W - PAD.right;
+    const atExpiryArea =
+      `M${plotLeft},${zeroY} ` +
+      points.map((p) => `L${x(p.spot)},${y(p.atExpiry)}`).join(" ") +
+      ` L${plotRight},${zeroY} Z`;
+
     // Gridlines at round-ish P&L levels, not raw min/max — matches the
     // "recessive grid, real ticks" rule the price chart already follows.
     const ticks: number[] = [];
     const step = (yHi - yLo) / 4;
     for (let i = 0; i <= 4; i++) ticks.push(yLo + step * i);
 
-    return { x, y, atExpiryPath, postPrintPath, zeroY, spotX, ticks, xLo, xHi };
+    return {
+      x,
+      y,
+      atExpiryPath,
+      atExpiryArea,
+      postPrintPath,
+      zeroY,
+      spotX,
+      ticks,
+      xLo,
+      xHi,
+      plotLeft,
+      plotRight,
+    };
   }, [points, spot]);
 
   const point = hoverIdx !== null ? points[hoverIdx] : null;
 
+  function hoverFromClientX(clientX: number, rect: DOMRect) {
+    const localX = ((clientX - rect.left) / rect.width) * W;
+    const frac = (localX - PAD.left) / (W - PAD.left - PAD.right);
+    const idx = Math.round(frac * (points.length - 1));
+    onHover(Math.max(0, Math.min(points.length - 1, idx)));
+  }
+
+  // A React onTouchMove prop is attached passive — preventDefault() inside it
+  // is silently ignored, so a finger dragging horizontally across the chart
+  // would scroll the page instead of moving the crosshair. A native listener
+  // registered with { passive: false } is the only way to actually claim the
+  // gesture — same escape hatch PriceChart's touch handling uses.
+  useEffect(() => {
+    const el = svgRef.current;
+    if (!el) return;
+
+    const onTouchStart = (e: TouchEvent) => {
+      e.preventDefault();
+      if (e.touches.length !== 1) return;
+      hoverFromClientX(e.touches[0].clientX, el.getBoundingClientRect());
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      e.preventDefault();
+      if (e.touches.length !== 1) return;
+      hoverFromClientX(e.touches[0].clientX, el.getBoundingClientRect());
+    };
+    const onTouchEnd = () => onHover(null);
+
+    el.addEventListener("touchstart", onTouchStart, { passive: false });
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    el.addEventListener("touchend", onTouchEnd, { passive: false });
+    el.addEventListener("touchcancel", onTouchEnd, { passive: false });
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+      el.removeEventListener("touchend", onTouchEnd);
+      el.removeEventListener("touchcancel", onTouchEnd);
+    };
+  });
+
+  const gainClip = `payoff-gain-${chart.zeroY.toFixed(1)}`;
+  const lossClip = `payoff-loss-${chart.zeroY.toFixed(1)}`;
+
   return (
     <div className="relative">
       <svg
+        ref={svgRef}
         viewBox={`0 0 ${W} ${H}`}
         className="w-full touch-none select-none"
         role="img"
         aria-label="P&L versus hypothetical stock price at expiration and the day after the print"
         onMouseLeave={() => onHover(null)}
-        onMouseMove={(e) => {
-          const rect = e.currentTarget.getBoundingClientRect();
-          const localX = ((e.clientX - rect.left) / rect.width) * W;
-          const frac = (localX - PAD.left) / (W - PAD.left - PAD.right);
-          const idx = Math.round(frac * (points.length - 1));
-          onHover(Math.max(0, Math.min(points.length - 1, idx)));
-        }}
+        onMouseMove={(e) =>
+          hoverFromClientX(e.clientX, e.currentTarget.getBoundingClientRect())
+        }
       >
+        <defs>
+          <clipPath id={gainClip}>
+            <rect
+              x={chart.plotLeft}
+              y={PAD.top}
+              width={chart.plotRight - chart.plotLeft}
+              height={Math.max(0, chart.zeroY - PAD.top)}
+            />
+          </clipPath>
+          <clipPath id={lossClip}>
+            <rect
+              x={chart.plotLeft}
+              y={chart.zeroY}
+              width={chart.plotRight - chart.plotLeft}
+              height={Math.max(0, H - PAD.bottom - chart.zeroY)}
+            />
+          </clipPath>
+        </defs>
+
         {chart.ticks.map((t) => (
           <g key={t}>
             <line
@@ -555,20 +642,51 @@ function PayoffChart({
           spot {money(spot, 0)}
         </text>
 
+        {/* "At expiration" — the primary curve. Colored by sign (status),
+            not by series identity: green where the position is profitable,
+            red where it isn't, matching the y=0 line every reader already
+            treats as the breakeven boundary. */}
+        <path
+          d={chart.atExpiryArea}
+          fill="var(--color-positive)"
+          opacity={0.12}
+          clipPath={`url(#${gainClip})`}
+        />
+        <path
+          d={chart.atExpiryArea}
+          fill="var(--color-negative)"
+          opacity={0.12}
+          clipPath={`url(#${lossClip})`}
+        />
         <path
           d={chart.atExpiryPath}
           fill="none"
-          stroke="var(--color-viz-implied)"
-          strokeWidth={2}
+          stroke="var(--color-positive)"
+          strokeWidth={2.5}
           strokeLinejoin="round"
           strokeLinecap="round"
+          clipPath={`url(#${gainClip})`}
         />
+        <path
+          d={chart.atExpiryPath}
+          fill="none"
+          stroke="var(--color-negative)"
+          strokeWidth={2.5}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+          clipPath={`url(#${lossClip})`}
+        />
+
+        {/* "Day after the print" — a second point in time for the same
+            position, not a sign indicator, so it stays one neutral hue and
+            is told apart by line style (dashed) instead of color. */}
         {chart.postPrintPath && (
           <path
             d={chart.postPrintPath}
             fill="none"
             stroke="var(--color-viz-realized)"
             strokeWidth={2}
+            strokeDasharray="6 4"
             strokeLinejoin="round"
             strokeLinecap="round"
           />
@@ -596,8 +714,7 @@ function PayoffChart({
           </div>
           <div className="mt-0.5 flex items-center gap-1.5">
             <span
-              className="inline-block h-0.5 w-3"
-              style={{ background: "var(--color-viz-implied)" }}
+              className={`inline-block h-0.5 w-3 ${point.atExpiry >= 0 ? "bg-[var(--color-positive)]" : "bg-[var(--color-negative)]"}`}
             />
             <span
               className={`tnum ${point.atExpiry >= 0 ? "text-[var(--color-positive)]" : "text-[var(--color-negative)]"}`}
@@ -623,19 +740,26 @@ function PayoffChart({
         </div>
       )}
 
-      <div className="mt-2 flex items-center gap-4 text-sm text-[var(--color-body)]">
+      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-[var(--color-body)]">
         <span className="inline-flex items-center gap-2">
-          <span
-            className="inline-block h-0.5 w-4"
-            style={{ background: "var(--color-viz-implied)" }}
-          />
-          At expiration
+          <span className="inline-flex h-2 w-4 overflow-hidden rounded-[2px]">
+            <span className="h-full w-1/2 bg-[var(--color-positive)]" />
+            <span className="h-full w-1/2 bg-[var(--color-negative)]" />
+          </span>
+          At expiration (green = profit, red = loss)
         </span>
         <span className="inline-flex items-center gap-2">
-          <span
-            className="inline-block h-0.5 w-4"
-            style={{ background: "var(--color-viz-realized)" }}
-          />
+          <svg width="16" height="8" className="shrink-0">
+            <line
+              x1={0}
+              y1={4}
+              x2={16}
+              y2={4}
+              stroke="var(--color-viz-realized)"
+              strokeWidth={2}
+              strokeDasharray="4 3"
+            />
+          </svg>
           Day after the print
         </span>
       </div>

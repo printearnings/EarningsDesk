@@ -129,6 +129,26 @@ And on the Python side:
 python -m pytest api/tests && python -m ruff check api/app api/tests
 ```
 
+## Releases
+
+[CHANGELOG.md](./CHANGELOG.md) tracks what shipped in each version. Every
+prod deploy gets a `vX.Y.Z` git tag (SemVer), so a bad release can be rolled
+back by redeploying an earlier tag instead of untangling commits:
+
+```bash
+git checkout vX.Y.Z
+npm run deploy
+```
+
+Cutting a release: move the `CHANGELOG.md` `[Unreleased]` section's entries
+under a new `## [vX.Y.Z] - YYYY-MM-DD` heading, then
+
+```bash
+npm version patch   # or minor / major — bumps package.json, commits, tags
+git push && git push --tags
+npm run deploy
+```
+
 ## Conventions that are load-bearing
 
 These are not style preferences — breaking them misrepresents what the engine

@@ -62,10 +62,16 @@
   // for this domain. `destination_address` is the owner's real inbox; the
   // support@printearnings.com address is only ever the From/Reply-To the
   // recipient sees, never something the browser/page source exposes.
+  //
+  // The placeholder below is filled in by `npm run gen:wrangler-config`
+  // (reads SUPPORT_DESTINATION_EMAIL from .env or the environment) into a
+  // gitignored wrangler.generated.jsonc — every `dev`/`deploy*` script
+  // already runs the generator first. This file is the one committed to
+  // git, so the real personal inbox address never lands in source control.
   "send_email": [
     {
       "name": "SUPPORT_EMAIL",
-      "destination_address": "patrickkhai98@gmail.com",
+      "destination_address": "__SUPPORT_DESTINATION_EMAIL__",
     },
   ],
 
@@ -116,7 +122,7 @@
       "send_email": [
         {
           "name": "SUPPORT_EMAIL",
-          "destination_address": "patrickkhai98@gmail.com",
+          "destination_address": "__SUPPORT_DESTINATION_EMAIL__",
         },
       ],
       "vars": {

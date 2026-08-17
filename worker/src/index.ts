@@ -149,6 +149,13 @@ function parseDate(raw: string | null): string | null {
   return /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : null;
 }
 
+function addDaysIso(iso: string, days: number): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() + days);
+  return dt.toISOString().slice(0, 10);
+}
+
 /**
  * Fixed-window per-IP counter.
  *
@@ -374,7 +381,7 @@ async function handleChain(request: Request, env: Env): Promise<Response> {
 
   let results: RawContract[];
   try {
-    results = await fetchChain(env, ticker, reportDate);
+    results = await fetchChain(env, ticker, reportDate, { fullDepth: true });
   } catch (err) {
     console.error("massive fetch failed", { ticker, err: String(err) });
     return json({ error: "Couldn't reach the options data provider." }, 502);
@@ -2012,39 +2019,113 @@ async function handleSearch(
   return response;
 }
 
-async function fetchChain(
-  env: Env,
-  ticker: string,
-  reportDate: string,
-): Promise<RawContract[]> {
-  const url = new URL(`${MASSIVE_BASE}/v3/snapshot/options/${ticker}`);
-  url.searchParams.set("expiration_date.gte", reportDate);
-  url.searchParams.set("limit", "250");
-  url.searchParams.set("sort", "expiration_date");
-  url.searchParams.set("order", "asc");
-  url.searchParams.set("apiKey", env.MASSIVE_API_KEY);
+// Bound on the strike-bracketed follow-up pages `fetchChain` will fetch when
+// `fullDepth` is requested. Confirmed empirically against AAPL (a wide,
+// weekly-heavy chain): 3 bracketed pages already reached every expiry out to
+// 2028 LEAPS. 5 leaves headroom without letting one click fan out unbounded
+// Massive spend.
+const CHAIN_MAX_DEPTH_PAGES = 5;
+// Expiries this far out are practically irrelevant to an earnings-print
+// trade — stop paginating once we're past it even if pages remain.
+const CHAIN_MAX_DEPTH_DAYS = 400;
 
+async function fetchChainPage(
+  env: Env,
+  url: URL,
+): Promise<{ results: RawContract[]; nextUrl: string | null }> {
   const res = await fetch(url.toString(), {
     // A hung upstream must not hold a Worker request open indefinitely.
     signal: AbortSignal.timeout(10_000),
   });
   if (!res.ok) throw new Error(`upstream ${res.status}`);
+  const body = (await res.json()) as { results?: RawContract[]; next_url?: string };
+  return { results: body.results ?? [], nextUrl: body.next_url ?? null };
+}
 
-  const body = (await res.json()) as { results?: RawContract[] };
-  const results = body.results ?? [];
+/**
+ * `fullDepth: false` (default, used by /api/refresh) fetches one unfiltered
+ * page — plenty to find the front expiry's ATM straddle, which is all that
+ * path needs.
+ *
+ * `fullDepth: true` (used by /api/chain, the P&L simulator) additionally
+ * paginates strike-bracketed follow-up requests so every expiry Massive
+ * lists — not just whichever ones happen to fall inside the first 250
+ * unfiltered rows — comes back. A liquid, weekly-heavy name like AAPL can
+ * exhaust a 250-row unfiltered page within its first couple of expiries;
+ * filtering by strike server-side (`strike_price.gte`/`.lte`, confirmed
+ * supported by direct API testing) instead of after the fact makes each
+ * page almost entirely useful rows.
+ */
+async function fetchChain(
+  env: Env,
+  ticker: string,
+  reportDate: string,
+  opts: { fullDepth?: boolean } = {},
+): Promise<RawContract[]> {
+  const firstUrl = new URL(`${MASSIVE_BASE}/v3/snapshot/options/${ticker}`);
+  firstUrl.searchParams.set("expiration_date.gte", reportDate);
+  firstUrl.searchParams.set("limit", "250");
+  firstUrl.searchParams.set("sort", "expiration_date");
+  firstUrl.searchParams.set("order", "asc");
+  firstUrl.searchParams.set("apiKey", env.MASSIVE_API_KEY);
+
+  const first = await fetchChainPage(env, firstUrl);
 
   // The strike bracket is applied here rather than upstream because the spot
   // isn't known until the response arrives. Narrowing keeps the ATM search
   // honest on names with hundreds of listed strikes.
-  const spot = underlyingPrice(results);
-  if (spot === null) return results;
+  const spot = underlyingPrice(first.results);
+  if (spot === null) return first.results;
 
   const lo = spot * (1 - STRIKE_BRACKET);
   const hi = spot * (1 + STRIKE_BRACKET);
-  return results.filter((r) => {
+  const inBracket = (r: RawContract) => {
     const k = r.details?.strike_price;
     return typeof k === "number" && k >= lo && k <= hi;
-  });
+  };
+
+  const byTicker = new Map<string, RawContract>();
+  for (const r of first.results) {
+    if (!inBracket(r)) continue;
+    const t = r.details?.ticker;
+    if (t) byTicker.set(t, r);
+  }
+
+  if (opts.fullDepth) {
+    const depthUrl = new URL(`${MASSIVE_BASE}/v3/snapshot/options/${ticker}`);
+    depthUrl.searchParams.set("expiration_date.gte", reportDate);
+    depthUrl.searchParams.set("strike_price.gte", String(lo));
+    depthUrl.searchParams.set("strike_price.lte", String(hi));
+    depthUrl.searchParams.set("limit", "250");
+    depthUrl.searchParams.set("sort", "expiration_date");
+    depthUrl.searchParams.set("order", "asc");
+    depthUrl.searchParams.set("apiKey", env.MASSIVE_API_KEY);
+
+    const cutoff = addDaysIso(reportDate, CHAIN_MAX_DEPTH_DAYS);
+    let nextUrl: string | null = depthUrl.toString();
+    for (let page = 0; page < CHAIN_MAX_DEPTH_PAGES && nextUrl; page++) {
+      const pageUrl = new URL(nextUrl);
+      if (!pageUrl.searchParams.get("apiKey")) {
+        pageUrl.searchParams.set("apiKey", env.MASSIVE_API_KEY);
+      }
+      const { results, nextUrl: next } = await fetchChainPage(env, pageUrl);
+      let sawPastCutoff = false;
+      for (const r of results) {
+        const exp = r.details?.expiration_date;
+        if (exp && exp > cutoff) {
+          sawPastCutoff = true;
+          continue;
+        }
+        if (!inBracket(r)) continue;
+        const t = r.details?.ticker;
+        if (t) byTicker.set(t, r);
+      }
+      if (sawPastCutoff) break;
+      nextUrl = next;
+    }
+  }
+
+  return [...byTicker.values()];
 }
 
 export default {

@@ -7,11 +7,12 @@
   "scripts": {
     "//": "The full production pipeline. `gen:data` needs DB credentials; see README.",
     "build": "npm run gen:data --prefix web && npm run build --prefix web",
-    "dev": "wrangler dev",
-    "deploy": "npm run build && wrangler deploy",
-    "deploy:dry": "wrangler deploy --dry-run",
-    "deploy:dev": "npm run build && wrangler deploy --env dev",
-    "deploy:dev:dry": "wrangler deploy --env dev --dry-run",
+    "gen:wrangler-config": "node scripts/gen-wrangler-config.mjs",
+    "dev": "npm run gen:wrangler-config && wrangler dev --config wrangler.generated.jsonc",
+    "deploy": "npm run build && npm run gen:wrangler-config && wrangler deploy --config wrangler.generated.jsonc",
+    "deploy:dry": "npm run gen:wrangler-config && wrangler deploy --config wrangler.generated.jsonc --dry-run",
+    "deploy:dev": "npm run build && npm run gen:wrangler-config && wrangler deploy --env dev --config wrangler.generated.jsonc",
+    "deploy:dev:dry": "npm run gen:wrangler-config && wrangler deploy --env dev --config wrangler.generated.jsonc --dry-run",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
