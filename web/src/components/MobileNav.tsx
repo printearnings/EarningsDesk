@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { Logo } from "@/components/Logo";
 import { CONTACT, MAIN, OTHER } from "@/components/Sidebar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -70,9 +71,7 @@ export function MobileNav() {
             className="fixed inset-y-0 left-0 z-40 flex w-64 origin-left translate-x-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-panel)] opacity-100 transition-[opacity,transform] duration-[var(--duration-base)] ease-[var(--ease-out)] starting:translate-x-[-100%] starting:opacity-0"
           >
             <div className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4">
-              <span className="font-mono text-sm font-medium tracking-[0.08em] uppercase">
-                Print<span className="text-[var(--color-muted)]">Earnings</span>
-              </span>
+              <Logo size="sm" />
               <div className="flex items-center gap-1">
                 <ThemeToggle />
                 <button
@@ -132,9 +131,10 @@ function DrawerItem({
       <Link
         href={href}
         aria-current={active ? "page" : undefined}
+        style={active ? { background: "var(--gradient-brand)" } : undefined}
         className={`pressable flex items-center gap-3 rounded-[var(--radius-sm)] px-3 py-2.5 text-sm transition-colors ${
           active
-            ? "bg-[var(--color-brand)] text-[var(--color-on-brand)]"
+            ? "text-[var(--color-on-brand)]"
             : "text-[var(--color-body)] hover:bg-[var(--color-panel-soft)]"
         }`}
       >

@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { Logo } from "@/components/Logo";
 import { TickerSearch } from "@/components/TickerSearch";
 import { getCalendar, getIndex } from "@/lib/api";
 import { formatDateShort, pctRange } from "@/lib/format";
@@ -16,10 +17,11 @@ export const metadata = {
  * grid: there is nothing to sign up for, and a trader who lands here already
  * knows what they came to look up.
  *
- * The navy gradient band is Vertical's marketing treatment, adapted — the
- * system frames content between brand bands rather than using photography.
- * The gradient itself (--gradient-brand) is scoped to marketing surfaces
- * like this one; every other panel/button in the app stays flat.
+ * The dark House Green band is the source design system's own marketing
+ * treatment — solid color-block, not a gradient (the system has none). It
+ * frames content between brand bands rather than using photography.
+ * --color-band is scoped to marketing surfaces like this one; every other
+ * panel/button in the app stays on the white/cream surfaces.
  */
 export default async function LandingPage() {
   const [index, calendar] = await Promise.all([getIndex(), getCalendar(14)]);
@@ -27,11 +29,11 @@ export default async function LandingPage() {
 
   return (
     <main>
-      <section style={{ background: "var(--gradient-brand)" }}>
+      <section style={{ background: "var(--color-band)" }}>
         <div className="mx-auto max-w-[1280px] px-6 py-20 sm:py-28">
-          <p className="eyebrow !text-[var(--color-on-brand-muted)]">PrintEarnings</p>
+          <Logo size="lg" onBrand />
 
-          <h1 className="display mt-4 max-w-3xl text-5xl !text-[var(--color-on-brand)] sm:text-6xl">
+          <h1 className="display mt-6 max-w-3xl text-5xl !text-[var(--color-on-brand)] sm:text-6xl">
             Implied move vs. history,
             <br />
             before the print.
@@ -79,7 +81,7 @@ export default async function LandingPage() {
           <p className="mt-8">
             <Link
               href="/dashboard/"
-              className="inline-flex items-center gap-2 rounded-[var(--radius-sm)] bg-[var(--color-on-brand)] px-4 py-2.5 text-sm font-medium text-[var(--color-brand)] transition-colors hover:bg-white"
+              className="inline-flex items-center gap-2 rounded-[var(--radius-pill)] bg-[var(--color-on-brand)] px-5 py-2.5 text-sm font-semibold text-[var(--color-brand)] transition-colors hover:bg-white"
             >
               Open the dashboard
               <span aria-hidden>→</span>

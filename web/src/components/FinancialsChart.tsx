@@ -187,13 +187,13 @@ export function FinancialsChart({ quarters }: { quarters: FinancialsQuarter[] })
 
         {point && (
           <div
-            className="pointer-events-none absolute top-2 origin-bottom rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-panel)] px-2.5 py-2 text-xs opacity-100 shadow-sm transition-[opacity,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] starting:scale-95 starting:opacity-0"
+            className="pointer-events-none absolute top-2 origin-bottom rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-panel)] px-2.5 py-2 text-xs opacity-100 transition-[opacity,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] starting:scale-95 starting:opacity-0"
             style={{ left: `${tooltipLeftPct}%`, transform: "translateX(-50%)" }}
           >
-            <div className="font-medium text-[var(--color-heading)]">
+            <div className="mb-1 border-b border-[var(--color-border-subtle)] pb-1 font-medium text-[var(--color-heading)]">
               {formatDate(point.date)}
             </div>
-            <div className="tnum mt-1 flex items-center gap-1.5">
+            <div className="tnum flex items-center gap-1.5">
               <span
                 className="inline-block h-2 w-2 rounded-[1px]"
                 style={{ background: "var(--color-viz-sma)" }}

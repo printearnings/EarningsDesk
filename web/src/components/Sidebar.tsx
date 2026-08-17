@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { Logo, LogoMark } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 /**
@@ -84,12 +85,12 @@ export function Sidebar() {
         }`}
       >
         {collapsed ? (
-          <Link href="/" aria-label="PrintEarnings" className="font-mono text-sm font-bold">
-            PE
+          <Link href="/" aria-label="PrintEarnings">
+            <LogoMark size={24} />
           </Link>
         ) : (
-          <Link href="/" className="font-mono text-sm font-medium tracking-[0.08em] uppercase">
-            Print<span className="text-[var(--color-muted)]">Earnings</span>
+          <Link href="/">
+            <Logo size="sm" />
           </Link>
         )}
 
@@ -171,11 +172,12 @@ function NavItem({
         href={href}
         aria-current={active ? "page" : undefined}
         title={collapsed ? label : undefined}
+        style={active ? { background: "var(--gradient-brand)" } : undefined}
         className={`pressable flex items-center gap-3 rounded-[var(--radius-sm)] px-2 py-2 text-sm transition-colors ${
           collapsed ? "justify-center" : ""
         } ${
           active
-            ? "bg-[var(--color-brand)] text-[var(--color-on-brand)]"
+            ? "text-[var(--color-on-brand)]"
             : "text-[var(--color-body)] hover:bg-[var(--color-panel-soft)]"
         }`}
       >

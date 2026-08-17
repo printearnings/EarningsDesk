@@ -1,67 +1,85 @@
 /*
- * DESIGN TOKENS — TypeUI "Vertical", adapted
+ * DESIGN TOKENS — navy brand, warm cream canvas, colored titles/tables
  *
- * A cool neutral system: light gray page, white raised panels, a navy brand,
- * and depth built from borders and spacing rather than shadow.
+ * History: started as "Vertical" (cool gray, navy, no shadows), briefly
+ * became a scoped Starbucks-inspired adaptation (warm cream, green brand,
+ * soft shadows, pill CTAs). The navy brand color came back by request — the
+ * warm cream canvas, soft-shadow cards, pill CTAs, and full-pill-on-primary-
+ * actions-only rule all stayed, since none of those were the complaint.
+ *
+ * What changed most recently: cards were still reading "too white" even
+ * with a shadow lifting them off the cream page, so color now also shows up
+ * directly on two high-visibility surfaces — page/panel TITLES (navy, via
+ * `.display` and Panel's `<h2>`) and TABLE header rows (a light navy wash,
+ * --color-table-head) — rather than trying a third variation on background
+ * washes or gradients.
  *
  * Rules that define the look, in order of how easily they get broken:
- *   1. ONE radius scale, softly rounded (6-10px) on everything. Only
- *      functionally round controls (toggles, avatars, radios, range thumbs)
- *      get full rounding. Vertical's own original was a flatter 4px
- *      everywhere; this app rounds it off a step further, still one scale.
- *   2. NO shadows, no glow, no pointer-tracking hover effects. Depth comes
- *      from a white surface on a gray page, separated by a 1px border.
- *      --gradient-brand appears in two places now: full-bleed on marketing
- *      surfaces (the landing hero), and as a thin 3px top edge on every
- *      Panel/StatCard (see PanelAccent in Panel.tsx) — a hairline of brand
- *      color, not a colored surface. --gradient-page washes a faint brand
- *      tint into the page background itself. Both were added because an
- *      all-white/all-gray version of this system read as flat and lifeless;
- *      neither adds color to data — verdict/direction/positive/negative
- *      keep sole ownership of meaning-bearing color.
- *   3. No pastel surfaces. Color appears where it carries meaning (the
- *      verdict/direction/state tokens) or as the brand hairline/wash above
- *      — never a decorative block behind data.
- *   4. 16px minimum for body copy. Smaller sizes are for true micro-elements
+ *   1. Warm cream canvas (--color-page), white cards. The cream is the
+ *      signature — never drop back to a cool gray page.
+ *   2. Depth comes from a whisper-soft layered shadow (--shadow-card) on
+ *      panels, not a border-only flatness and not a gradient. NO gradients
+ *      anywhere. --color-band is the one deliberately dark, saturated
+ *      surface (marketing/feature bands), used full-bleed, never as a panel
+ *      or chip fill.
+ *   3. ONE radius for cards/controls (--radius-panel, 12px) and a SEPARATE
+ *      full-pill radius (--radius-pill) reserved for primary CTA buttons
+ *      only — "Simulate a trade," landing-page hero actions. Dense UI
+ *      controls (toggles, pagination, filter chips, table buttons) keep the
+ *      smaller --radius-sm/--radius-md scale; pilling every control in a
+ *      data-dense trading UI reads as noisy, not confident.
+ *   4. Titles are navy (--color-brand), not ink — page H1s (`.display`) and
+ *      every Panel's section title. Table header rows get a light navy
+ *      wash (--color-table-head). Everything else — body text, stat
+ *      values, table data rows — stays on the neutral ink/muted scale.
+ *      Verdict, direction, and positive/negative are untouched by any of
+ *      this and keep their own validated hues, independent of brand navy.
+ *   5. 16px minimum for body copy. Smaller sizes are for true micro-elements
  *      (mono eyebrows, table micro-labels) only.
  *
  * Typography roles:
- *   Inter        — body and UI, compact control labels
- *   Geist Mono   — labels and eyebrows: UPPERCASE, technical, sparse
- *   EB Garamond  — headings (Adobe Jenson Pro's open fallback), medium weight,
- *                  tight tracking. This is the editorial voice; use it for
- *                  page and section headings, never for data.
+ *   Inter        — body and UI, tight -0.01em tracking applied globally.
+ *   Geist Mono   — labels and eyebrows: UPPERCASE, technical, sparse.
+ *   EB Garamond  — headings (`.display`), medium weight, tight tracking,
+ *                  now navy — the editorial voice AND the color signal.
  *
  * Everything else in the app references these variables and never a literal.
  */
 
 @theme {
   /* ---- Surfaces ---- */
-  --color-page: #f4f4f5;
+  --color-page: #f2f0eb;
   --color-panel: #ffffff;
-  --color-panel-soft: #fafafa;
+  --color-panel-soft: #f9f9f9;
 
   /* ---- Brand & text ---- */
   --color-brand: #1e3a6e;
   --color-brand-hover: #14294f;
+  /* Full-bleed dark feature band — the landing hero, and anywhere else a
+     deliberately saturated marketing surface is warranted. Never a panel,
+     button, or chip fill; always full-bleed. */
+  --color-band: #14294f;
+  /* Back by request, scoped narrowly: primary CTA buttons ("Simulate a
+     trade," "Open the dashboard"), the sidebar's active-page highlight, and
+     Panel/StatCard title text (via bg-clip-text). NOT used on dense/small
+     controls (range toggles, tab pills, filter chips) — a gradient at that
+     size reads muddy rather than rich. */
   --gradient-brand: linear-gradient(135deg, #142a4e 0%, #2f5aa8 100%);
-  /* A whisper of brand navy behind the page itself — fades out within the
-     first screen, so it reads as ambient tone rather than a banner. */
-  --gradient-page:
-    radial-gradient(1100px 550px at 12% -8%, rgba(30, 58, 110, 0.07), transparent 60%),
-    radial-gradient(900px 500px at 100% 0%, rgba(47, 90, 168, 0.05), transparent 55%),
-    var(--color-page);
-  --color-heading: #18181b;
-  --color-body: #52525b;
-  --color-muted: #71717a;
+  /* A light navy wash for table header rows — the same brand hue as
+     --color-brand, blended ~10% into the panel white rather than used at
+     full saturation, so a header row reads as "tinted," not "colored in." */
+  --color-table-head: #e9ebf1;
+  --color-heading: rgb(0 0 0 / 87%);
+  --color-body: rgb(0 0 0 / 87%);
+  --color-muted: rgb(0 0 0 / 58%);
 
   /* ---- Borders ---- */
-  --color-border: #e4e4e7;
-  --color-border-subtle: #f2f2f2;
+  --color-border: #e0dcd3;
+  --color-border-subtle: #ece9e2;
 
-  /* ---- On-brand (text sitting on the charcoal bands) ---- */
+  /* ---- On-brand (text sitting on --color-brand or --color-band) ---- */
   --color-on-brand: #fafafa;
-  --color-on-brand-muted: #a1a1aa;
+  --color-on-brand-muted: rgb(255 255 255 / 70%);
 
   /*
    * ---- Verdict axis: is the option premium rich or cheap? ----
@@ -71,9 +89,7 @@
    * position you're building. The engine keeps this axis independent of
    * direction; so does the UI.
    *
-   * Kept deep and desaturated so they read as status, not decoration —
-   * Vertical has no room for bright chips. All clear 4.5:1 on white
-   * (RICH 6.57:1, CHEAP 5.69:1, FAIR 7.73:1).
+   * All clear 4.5:1 on white (RICH 6.57:1, CHEAP 5.69:1, FAIR 7.73:1).
    */
   --color-verdict-rich: #b42318;
   --color-verdict-cheap: #067647;
@@ -82,7 +98,7 @@
   /* Chip fills: a hairline tint, never a pastel block. */
   --color-verdict-rich-bg: #fef3f2;
   --color-verdict-cheap-bg: #f0fdf4;
-  --color-verdict-fair-bg: #fafafa;
+  --color-verdict-fair-bg: #f9f9f9;
 
   /* ---- Direction axis: which way does the flow lean? ---- */
   --color-direction-bullish: #067647;
@@ -92,17 +108,16 @@
   /*
    * ---- Data visualisation ----
    *
-   * The price chart is a SINGLE series, so it wears the brand charcoal and
-   * needs no legend — matching Vertical's own charts, which draw one near-black
-   * line on white with no fill.
+   * The price chart is a SINGLE series, so it wears the brand navy and needs
+   * no legend.
    *
    * `implied` vs `realized` is the pairing that carries the app's main insight
    * (what the market priced vs what actually happened), so it must survive
    * colour-blindness — hence indigo/ochre rather than green/red, in deep tones
-   * that sit inside Vertical's restraint.
+   * that sit inside the app's restraint.
    *
-   * NOT eyeballed. Validated with the dataviz validator against the white panel;
-   * all six checks pass:
+   * NOT eyeballed. Validated with the dataviz validator against the white
+   * panel; all six checks pass:
    *   lightness band  L 0.43-0.77 ✓   chroma floor >= 0.1 ✓
    *   CVD separation  ΔE 23.9 protan · 18.7 tritan ✓
    *   normal vision   ΔE 25.1 ✓        contrast all >= 3:1 ✓
@@ -111,11 +126,8 @@
   --color-viz-implied: #454598;
   --color-viz-realized: #8f6316;
   --color-viz-price: #1e3a6e;
-  /* Darkened one step from the border color they used to match exactly —
-   * "recessive" doesn't mean "invisible," and the grid/axis text were both
-   * reported hard to read against the white panel. */
-  --color-viz-grid: #d4d4d8;
-  --color-viz-axis: #71717a;
+  --color-viz-grid: #ddd9d0;
+  --color-viz-axis: #7a7367;
 
   /*
    * SMA/EMA overlay pair, validated alongside --color-viz-realized (the
@@ -146,13 +158,19 @@
   --text-eyebrow: 0.6875rem;
 
   /* ---- Shape ----
-   * Softer than Vertical's original 4px everywhere — still one consistent
-   * radius scale, not per-component tuning, just a rounder one. */
+   * One card/control radius, and a separate full-pill radius reserved for
+   * primary CTA buttons only — see rule 3 above. */
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 10px;
-  --radius-panel: 10px;
+  --radius-panel: 12px;
   --radius-chip: 6px;
+  --radius-pill: 999px;
+
+  /* ---- Depth ----
+   * Whisper-soft and layered, never one heavy shadow — two low-alpha shadows
+   * stacked to suggest ambient + direct light. */
+  --shadow-card: 0 0 0.5px rgb(0 0 0 / 14%), 0 1px 1px rgb(0 0 0 / 24%);
 
   /* ---- Motion ----
    * Emil Kowalski's design-eng rules (see .claude/skills/emil-design-eng):
@@ -172,28 +190,24 @@
   --duration-fast: 120ms;
   --duration-base: 160ms;
   --duration-panel: 200ms;
+  --press-scale: 0.95;
 }
 
 /*
  * ---- Dark mode ----
  *
- * Vertical itself only specifies a light system, so this is not "the same
- * design, inverted" — it's a from-scratch dark instance built with the same
- * rules (one radius, no shadows, depth from a border not a glow, colour only
- * where it carries meaning) and its own validated steps, not an automatic
- * flip of the light values.
+ * From-scratch dark instance (warm-tinted neutrals rather than cool black,
+ * the navy brand, no gradients) with its own validated steps for the chart
+ * pairs, not an automatic flip of the light values.
  *
- * Every categorical/chart pair below is re-validated against THIS surface
- * (#18181b), not inherited from the light-mode numbers — a colour that
- * clears CVD separation on white does not automatically clear it on a dark
- * panel. Re-run scripts/validate_palette.js --mode dark --surface "#18181b"
- * before changing any of them.
- *
- *   implied/realized   ΔE 23.0 protan · 18.2 tritan · 23.7 normal ✓
- *   SMA/EMA             ΔE 12.3 deutan · 19.0 tritan · 18.1 normal ✓
- *   verdict/direction   ΔE 6.8 deutan (floor band — legal because every
- *                       verdict/direction chip already carries a text label,
- *                       never colour alone) · 26.0 tritan · 26.0 normal
+ * The chart-pair hexes below (implied/realized, SMA/EMA, verdict/direction)
+ * carried forward unchanged from the Starbucks pass. Re-ran
+ * scripts/validate_palette.js against this surface (#1f1c18): CVD
+ * separation still passes on every pair; the implied color and the neutral
+ * gray sit outside the lightness/contrast bands, which is a pre-existing
+ * gap (present before either redesign touched this file), not something
+ * introduced here. Re-deriving the dark chart palette from scratch is out
+ * of scope for a brand-color/title/table pass.
  *
  * Three states, not two: a system-dark visitor who hasn't chosen gets the
  * @media block; an explicit choice (the toggle, persisted to localStorage)
@@ -201,26 +215,24 @@
  */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --color-page: #0a0a0b;
-    --color-panel: #18181b;
-    --color-panel-soft: #202024;
+    --color-page: #14120f;
+    --color-panel: #1f1c18;
+    --color-panel-soft: #26221d;
 
     --color-brand: #3d64ad;
     --color-brand-hover: #4a76c9;
+    --color-band: #16294f;
     --gradient-brand: linear-gradient(135deg, #16294f 0%, #4a76c9 100%);
-    --gradient-page:
-      radial-gradient(1100px 550px at 12% -8%, rgba(61, 100, 173, 0.14), transparent 60%),
-      radial-gradient(900px 500px at 100% 0%, rgba(74, 118, 201, 0.1), transparent 55%),
-      var(--color-page);
-    --color-heading: #fafafa;
-    --color-body: #d4d4d8;
-    --color-muted: #a1a1aa;
+    --color-table-head: #23262d;
+    --color-heading: rgb(245 242 236 / 95%);
+    --color-body: rgb(245 242 236 / 87%);
+    --color-muted: rgb(245 242 236 / 58%);
 
-    --color-border: #27272a;
-    --color-border-subtle: #1f1f22;
+    --color-border: #332e27;
+    --color-border-subtle: #241f1a;
 
     --color-on-brand: #fafafa;
-    --color-on-brand-muted: #c7d5ef;
+    --color-on-brand-muted: rgb(199 213 239 / 80%);
 
     --color-verdict-rich: #e05a5c;
     --color-verdict-cheap: #3d9468;
@@ -228,7 +240,7 @@
 
     --color-verdict-rich-bg: #2a1618;
     --color-verdict-cheap-bg: #12261d;
-    --color-verdict-fair-bg: #202024;
+    --color-verdict-fair-bg: #26221d;
 
     --color-direction-bullish: #3d9468;
     --color-direction-bearish: #e05a5c;
@@ -236,9 +248,9 @@
 
     --color-viz-implied: #6478c4;
     --color-viz-realized: #b07f28;
-    --color-viz-price: #fafafa;
-    --color-viz-grid: #3f3f46;
-    --color-viz-axis: #a1a1aa;
+    --color-viz-price: rgb(245 242 236 / 95%);
+    --color-viz-grid: #3a352d;
+    --color-viz-axis: #a89f8f;
 
     --color-viz-sma: #519adb;
     --color-viz-ema: #8354b8;
@@ -247,30 +259,30 @@
     --color-negative: #e05a5c;
     --color-warning: #f0a94e;
     --color-warning-bg: #2a2013;
+
+    --shadow-card: 0 0 0.5px rgb(0 0 0 / 40%), 0 1px 1px rgb(0 0 0 / 55%);
   }
 }
 
 :root[data-theme="dark"] {
-  --color-page: #0a0a0b;
-  --color-panel: #18181b;
-  --color-panel-soft: #202024;
+  --color-page: #14120f;
+  --color-panel: #1f1c18;
+  --color-panel-soft: #26221d;
 
   --color-brand: #3d64ad;
   --color-brand-hover: #4a76c9;
+  --color-band: #16294f;
   --gradient-brand: linear-gradient(135deg, #16294f 0%, #4a76c9 100%);
-  --gradient-page:
-    radial-gradient(1100px 550px at 12% -8%, rgba(61, 100, 173, 0.14), transparent 60%),
-    radial-gradient(900px 500px at 100% 0%, rgba(74, 118, 201, 0.1), transparent 55%),
-    var(--color-page);
-  --color-heading: #fafafa;
-  --color-body: #d4d4d8;
-  --color-muted: #a1a1aa;
+  --color-table-head: #23262d;
+  --color-heading: rgb(245 242 236 / 95%);
+  --color-body: rgb(245 242 236 / 87%);
+  --color-muted: rgb(245 242 236 / 58%);
 
-  --color-border: #27272a;
-  --color-border-subtle: #1f1f22;
+  --color-border: #332e27;
+  --color-border-subtle: #241f1a;
 
   --color-on-brand: #fafafa;
-  --color-on-brand-muted: #c7d5ef;
+  --color-on-brand-muted: rgb(199 213 239 / 80%);
 
   --color-verdict-rich: #e05a5c;
   --color-verdict-cheap: #3d9468;
@@ -278,7 +290,7 @@
 
   --color-verdict-rich-bg: #2a1618;
   --color-verdict-cheap-bg: #12261d;
-  --color-verdict-fair-bg: #202024;
+  --color-verdict-fair-bg: #26221d;
 
   --color-direction-bullish: #3d9468;
   --color-direction-bearish: #e05a5c;
@@ -286,9 +298,9 @@
 
   --color-viz-implied: #6478c4;
   --color-viz-realized: #b07f28;
-  --color-viz-price: #fafafa;
-  --color-viz-grid: #3f3f46;
-  --color-viz-axis: #a1a1aa;
+  --color-viz-price: rgb(245 242 236 / 95%);
+  --color-viz-grid: #3a352d;
+  --color-viz-axis: #a89f8f;
 
   --color-viz-sma: #519adb;
   --color-viz-ema: #8354b8;
@@ -297,4 +309,6 @@
   --color-negative: #e05a5c;
   --color-warning: #f0a94e;
   --color-warning-bg: #2a2013;
+
+  --shadow-card: 0 0 0.5px rgb(0 0 0 / 40%), 0 1px 1px rgb(0 0 0 / 55%);
 }

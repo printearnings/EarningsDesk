@@ -75,10 +75,18 @@ export function OptionsSimulator({
   ticker,
   reportDate,
   reportSession,
+  autoLoad = false,
 }: {
   ticker: string;
   reportDate: string | null;
   reportSession: string | null;
+  /** Skip the manual "Load live chain" click and fire it on mount instead.
+   * Off by default (the ticker page's own Options tab links here as one of
+   * several things to browse, so spending the metered call still wants an
+   * explicit click) — on for the standalone Simulator page, where picking a
+   * ticker in its search *is* the explicit "load this" action; making the
+   * user click again right after would be the redundant step. */
+  autoLoad?: boolean;
 }) {
   const [state, setState] = useState<ChainState>({ status: "idle" });
   const [expiry, setExpiry] = useState("");
@@ -123,6 +131,19 @@ export function OptionsSimulator({
       setState({ status: "error", message: "Couldn't reach the options data provider." });
     }
   }
+
+  // Mount-only by design — `key={ticker}` on the caller's side (the
+  // standalone Simulator page) remounts this component fresh whenever the
+  // picked ticker changes, so there's no case where autoLoad should fire
+  // again on an already-mounted instance.
+  useEffect(() => {
+    // Kicking off a network fetch on mount has no render-time equivalent —
+    // the same documented exception Sidebar's localStorage-on-mount read
+    // relies on, just for a fetch instead of a synchronous external read.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (autoLoad) loadChain();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const expiries = useMemo(
     () =>
@@ -706,13 +727,13 @@ function PayoffChart({
 
       {point && (
         <div
-          className="pointer-events-none absolute top-0 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-panel)] px-2.5 py-1.5 text-xs"
+          className="pointer-events-none absolute top-0 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-panel)] px-2.5 py-2 text-xs"
           style={{ left: `${(chart.x(point.spot) / W) * 100}%`, transform: "translateX(-50%)" }}
         >
-          <div className="tnum font-semibold text-[var(--color-heading)]">
+          <div className="tnum mb-1 border-b border-[var(--color-border-subtle)] pb-1 font-semibold text-[var(--color-heading)]">
             {money(point.spot)}
           </div>
-          <div className="mt-0.5 flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5">
             <span
               className={`inline-block h-0.5 w-3 ${point.atExpiry >= 0 ? "bg-[var(--color-positive)]" : "bg-[var(--color-negative)]"}`}
             />

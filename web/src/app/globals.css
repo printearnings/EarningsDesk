@@ -22,29 +22,34 @@ html[data-theme="dark"] {
 }
 
 body {
-  /* Anchored to the top of the document, not the viewport — deliberately NOT
-     background-attachment: fixed, which is a known scroll-jank/repaint
-     trigger on mobile Safari. The gradient fades to the flat page color
-     well within the first screen, so it reads the same either way. */
-  background: var(--gradient-page);
+  /* Flat, no wash or gradient — the source system's cream canvas is itself
+     the visual breath between white cards, not a banner effect. */
+  background: var(--color-page);
   color: var(--color-body);
   font-family: var(--font-sans);
   /* 16px floor for body copy — smaller sizes are reserved for mono eyebrows
      and true micro-elements. */
   font-size: 16px;
   line-height: 1.5;
+  /* The source system's tight universal tracking — SoDoSans' signature
+     "confident, slightly compressed" read, applied through Inter instead. */
+  letter-spacing: -0.01em;
   -webkit-font-smoothing: antialiased;
 }
 
 /*
  * The editorial voice. Medium weight and tight tracking, per the system —
- * headings only, never data.
+ * headings only, never data. Navy, not ink — this is the single biggest
+ * lever for "the titles should have color": every page's H1 (TopBar) and
+ * every AI-summary headline route through this class. Surfaces that sit on
+ * a dark band (the landing hero) override this with an explicit
+ * !text-[var(--color-on-brand)], so this default never fights that case.
  */
 .display {
   font-family: var(--font-display);
   font-weight: 500;
   letter-spacing: -0.015em;
-  color: var(--color-heading);
+  color: var(--color-brand);
 }
 
 /*
@@ -81,17 +86,18 @@ body {
 }
 
 /*
- * Press feedback for anything clickable: scale(0.97) on press, per the
- * design-eng skill — instant feedback on pointer-down is what makes a UI feel
- * like it's listening. Gated to fine pointers so a touch tap (which fires
- * :active too) doesn't get a phantom press state that never clears cleanly.
+ * Press feedback for anything clickable: scale(0.95) on press, matching the
+ * source system's own universal button-active value — instant feedback on
+ * pointer-down is what makes a UI feel like it's listening. Gated to fine
+ * pointers so a touch tap (which fires :active too) doesn't get a phantom
+ * press state that never clears cleanly.
  */
 @media (hover: hover) and (pointer: fine) {
   .pressable {
     transition: transform var(--duration-fast) var(--ease-out);
   }
   .pressable:active {
-    transform: scale(0.97);
+    transform: scale(var(--press-scale));
   }
 }
 

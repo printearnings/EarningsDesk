@@ -234,7 +234,7 @@ export function FinancialsPanel({ ticker }: { ticker: string }) {
                 <div className="overflow-x-auto">
                   <table className="tnum w-full min-w-[44rem] text-sm">
                     <thead>
-                      <tr className="border-b border-[var(--color-border)] bg-[var(--color-panel-soft)] text-left">
+                      <tr className="border-b border-[var(--color-border)] bg-[var(--color-table-head)] text-left">
                         {[
                           "Period",
                           "Revenue",

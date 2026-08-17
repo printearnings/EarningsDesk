@@ -958,9 +958,12 @@ function ChartBody({
 
         {point && (
           <div
-            className="pointer-events-none absolute top-0 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-panel)] px-2 py-1.5 text-xs"
+            className="pointer-events-none absolute top-0 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-panel)] px-2.5 py-2 text-xs"
             style={{ left: `${(chart.x(hover!) / W) * 100}%`, transform: "translateX(-50%)" }}
           >
+            <div className="mb-1 border-b border-[var(--color-border-subtle)] pb-1 text-[var(--color-muted)]">
+              {point.label}
+            </div>
             {chartType === "candle" && point.open !== undefined ? (
               <div className="tnum grid grid-cols-2 gap-x-2 gap-y-0.5 font-semibold text-[var(--color-heading)]">
                 <span className="text-[var(--color-muted)]">O</span>
@@ -977,9 +980,8 @@ function ChartBody({
                 {money(point.close)}
               </div>
             )}
-            <div className="mt-0.5 text-[var(--color-muted)]">{point.label}</div>
             {onMarker && (
-              <div className="mt-0.5 font-mono tracking-[0.06em] text-[var(--color-viz-realized)] text-[var(--text-2xs)] uppercase">
+              <div className="mt-1 font-mono tracking-[0.06em] text-[var(--color-viz-realized)] text-[var(--text-2xs)] uppercase">
                 Earnings
               </div>
             )}

@@ -193,7 +193,7 @@ function OptionsPanelCard({ data }: { data: TickerData }) {
       action={
         <Link
           href={`/t/${data.ticker}/simulator/`}
-          className="pressable inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] px-3.5 py-2 text-sm font-semibold whitespace-nowrap text-[var(--color-on-brand)] transition-opacity hover:opacity-90"
+          className="pressable inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] px-4 py-2 text-sm font-semibold whitespace-nowrap text-[var(--color-on-brand)] transition-opacity hover:opacity-90"
           style={{ background: "var(--gradient-brand)" }}
         >
           Simulate a trade →
@@ -448,7 +448,7 @@ function HistoryTable({ data }: { data: TickerData }) {
       <div className="overflow-x-auto">
         <table className="tnum w-full min-w-[48rem] text-sm">
           <thead>
-            <tr className="border-b border-[var(--color-border)] bg-[var(--color-panel-soft)] text-left">
+            <tr className="border-b border-[var(--color-border)] bg-[var(--color-table-head)] text-left">
               {[
                 "Date",
                 "EPS est",

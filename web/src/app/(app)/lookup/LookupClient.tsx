@@ -185,7 +185,7 @@ export function LookupClient({ trackedTickers }: { trackedTickers: string[] }) {
               <div className="overflow-x-auto">
                 <table className="tnum w-full min-w-[28rem] text-sm">
                   <thead>
-                    <tr className="border-b border-[var(--color-border)] bg-[var(--color-panel-soft)] text-left">
+                    <tr className="border-b border-[var(--color-border)] bg-[var(--color-table-head)] text-left">
                       {["Quarter ended", "EPS est", "EPS actual", "Surprise"].map((h) => (
                         <th key={h} className="eyebrow px-4 py-2.5 font-medium">
                           {h}

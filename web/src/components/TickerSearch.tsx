@@ -46,6 +46,7 @@ export function TickerSearch({
   autoFocus = false,
   compact = false,
   destination = "ticker",
+  onSelectTracked,
 }: {
   tickers: TickerIndexEntry[];
   placeholder?: string;
@@ -56,13 +57,22 @@ export function TickerSearch({
    * on a placeholder nobody can finish reading anyway. Ignored at `sm` and
    * up, where there's room for the real thing. */
   compact?: boolean;
-  /** Where picking a *tracked* result navigates. "ticker" (default) goes to
-   * the ticker page itself; "simulator" goes straight to that ticker's
-   * /simulator/ sub-page — used by the standalone Simulator nav page, whose
-   * whole point is "pick a ticker, land in the simulator." A cold/untracked
-   * pick always goes through /lookup/ regardless, since a symbol with no
-   * confirmed report date has nothing to simulate yet. */
+  /** Where picking a *tracked* result navigates, when `onSelectTracked` is
+   * not given. "ticker" (default) goes to the ticker page itself;
+   * "simulator" goes to that ticker's /simulator/ sub-page. Ignored once
+   * `onSelectTracked` is provided. */
   destination?: "ticker" | "simulator";
+  /** When given, picking a *tracked* result calls this instead of
+   * navigating — used by the standalone Simulator page, which renders the
+   * trade builder inline for the picked ticker rather than routing through
+   * that ticker's own page. A cold/untracked pick still always goes through
+   * /lookup/, with or without this prop: a symbol with no confirmed report
+   * date has nothing to simulate yet, so there's nowhere inline to send it. */
+  onSelectTracked?: (entry: {
+    ticker: string;
+    nextReportDate: string | null;
+    nextReportSession: string | null;
+  }) => void;
 }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -145,7 +155,8 @@ export function TickerSearch({
             ticker: t.ticker,
             name: t.company_name,
             domain: t.company_domain,
-            nextReportDate: t.next_report_date,
+            nextReportDate: t.next_report_date ?? null,
+            nextReportSession: t.next_report_session ?? null,
             tracked: true as const,
           }))
         : remote.map((r) => ({
@@ -153,6 +164,7 @@ export function TickerSearch({
             name: r.name,
             domain: null,
             nextReportDate: null,
+            nextReportSession: null,
             tracked: trackedSet.has(r.ticker),
           })),
     [matches, remote, trackedSet],
@@ -178,10 +190,20 @@ export function TickerSearch({
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
 
-  function go(ticker: string) {
+  function go(item: (typeof items)[number]) {
     setOpen(false);
     setQuery("");
-    router.push(destination === "simulator" ? `/t/${ticker}/simulator/` : `/t/${ticker}/`);
+    if (onSelectTracked) {
+      onSelectTracked({
+        ticker: item.ticker,
+        nextReportDate: item.nextReportDate,
+        nextReportSession: item.nextReportSession,
+      });
+      return;
+    }
+    router.push(
+      destination === "simulator" ? `/t/${item.ticker}/simulator/` : `/t/${item.ticker}/`,
+    );
   }
 
   function lookup(ticker: string) {
@@ -191,7 +213,7 @@ export function TickerSearch({
   }
 
   function pick(item: (typeof items)[number]) {
-    return item.tracked ? go(item.ticker) : lookup(item.ticker);
+    return item.tracked ? go(item) : lookup(item.ticker);
   }
 
   // Ticker-shaped and nothing found anywhere (local, or remote once it's
