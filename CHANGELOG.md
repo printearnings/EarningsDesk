@@ -7,6 +7,31 @@ Notable changes to EarningsDesk, kept succinct. Format loosely follows
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-08-16
+
+### Added
+
+- Cookie consent banner (Accept/Reject), non-blocking. The only cookie this
+  site sets is Cloudflare's own `cf_clearance` (bot/security mitigation,
+  not tracking) — the standard "strictly necessary" exemption in
+  cookie-consent law, so the choice doesn't disable anything today but is
+  wired to gate anything non-essential added later.
+- Copyright line in the footer.
+
+### Fixed
+
+- Dark mode: the gradient text on panel/page titles had a dark stop
+  (`#16294f`) that measured 1.18:1 against the dark panel — effectively
+  invisible. Replaced with a lighter gradient pair that clears 4.5:1 at
+  both stops.
+
+### Changed
+
+- Privacy page now explicitly discloses `cf_clearance` and what it's for.
+- Panel subtitles use a new solid `--color-brand-muted` color instead of
+  gradient text — they're often full sentences, and a gradient reads worse
+  the longer the string.
+
 ## [1.2.0] - 2026-08-16
 
 ### Added
