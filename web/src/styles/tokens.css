@@ -65,7 +65,7 @@
      button, or chip fill; always full-bleed. */
   --color-band: #14294f;
   /* Back by request, scoped narrowly: primary CTA buttons ("Simulate a
-     trade," "Open the dashboard"), the sidebar's active-page highlight, and
+     trade," the landing hero CTA), the sidebar's active-page highlight, and
      Panel/StatCard title text (via bg-clip-text). NOT used on dense/small
      controls (range toggles, tab pills, filter chips) — a gradient at that
      size reads muddy rather than rich. */
@@ -74,6 +74,17 @@
      --color-brand, blended ~10% into the panel white rather than used at
      full saturation, so a header row reads as "tinted," not "colored in." */
   --color-table-head: #e9ebf1;
+  /* Same idea as --color-table-head, as a diagonal wash instead of a flat
+     tint: Panel headers ("Next to report," "Track record," ...) get this
+     behind the title/subtitle so cards read as colored, not just
+     white-with-a-navy-heading. Contrast-checked against both header text
+     colors at the wash's darkest corner (7.0:1+); never used behind dense
+     data (tables keep the flat --color-table-head instead). */
+  --gradient-panel-header: linear-gradient(
+    135deg,
+    rgb(30 58 110 / 16%) 0%,
+    rgb(47 90 168 / 6%) 100%
+  );
   --color-heading: rgb(0 0 0 / 87%);
   --color-body: rgb(0 0 0 / 87%);
   --color-muted: rgb(0 0 0 / 58%);
@@ -230,6 +241,11 @@
     --color-band: #16294f;
     --gradient-brand: linear-gradient(135deg, #5a89d6 0%, #8fb4ec 100%);
     --color-table-head: #23262d;
+    --gradient-panel-header: linear-gradient(
+      135deg,
+      rgb(61 100 173 / 22%) 0%,
+      rgb(90 137 214 / 6%) 100%
+    );
     --color-heading: rgb(245 242 236 / 95%);
     --color-body: rgb(245 242 236 / 87%);
     --color-muted: rgb(245 242 236 / 58%);
@@ -281,6 +297,11 @@
   --color-band: #16294f;
   --gradient-brand: linear-gradient(135deg, #5a89d6 0%, #8fb4ec 100%);
   --color-table-head: #23262d;
+  --gradient-panel-header: linear-gradient(
+    135deg,
+    rgb(61 100 173 / 22%) 0%,
+    rgb(90 137 214 / 6%) 100%
+  );
   --color-heading: rgb(245 242 236 / 95%);
   --color-body: rgb(245 242 236 / 87%);
   --color-muted: rgb(245 242 236 / 58%);

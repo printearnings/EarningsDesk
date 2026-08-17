@@ -12,6 +12,10 @@ import type { ReactNode } from "react";
  * mode gradient's own dark stop was briefly too close to the dark panel
  * color to read reliably — --color-brand-muted is a plain, contrast-
  * checked color precisely so this doesn't repeat.
+ * The header band itself carries a diagonal navy wash (--gradient-panel-
+ * header) so cards read as colored at a glance, not just white-with-a-
+ * navy-heading — kept to the header only (not the body) so dense data
+ * underneath stays on a plain, high-contrast surface.
  */
 export function Panel({
   title,
@@ -45,7 +49,10 @@ export function Panel({
       style={{ boxShadow: "var(--shadow-card)" }}
     >
       {(title || subtitle || action) && (
-        <header className="flex flex-wrap items-baseline justify-between gap-3 border-b border-[var(--color-border)] px-5 py-4">
+        <header
+          className="flex flex-wrap items-baseline justify-between gap-3 rounded-t-[var(--radius-panel)] border-b border-[var(--color-border)] px-5 py-4"
+          style={{ backgroundImage: "var(--gradient-panel-header)" }}
+        >
           <div>
             {title && (
               <h2

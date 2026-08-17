@@ -16,6 +16,12 @@ import {
 
 export const metadata = { title: "Dashboard | PrintEarnings" };
 
+// A solid chip, not a plain underlined link — these sit inside the Panel
+// header's colored wash, where bare text reads as decoration rather than
+// something clickable. The white chip pops against that tint in both modes.
+const PANEL_ACTION_CLASS =
+  "pressable inline-flex shrink-0 items-center gap-1 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-panel)] px-2.5 py-1 text-xs font-medium text-[var(--color-heading)] transition-colors hover:border-[var(--color-brand)] hover:text-[var(--color-brand)]";
+
 /**
  * The overview: what's coming, what the engine has said lately, and how those
  * calls have actually worked out. Everything here is a summary that links to a
@@ -73,11 +79,9 @@ export default async function DashboardPage() {
             subtitle={`${calendar.entries.length} in the next ${calendar.window_days} days`}
             bodyClassName="px-0 py-0"
             action={
-              <Link
-                href="/calendar/"
-                className="text-sm text-[var(--color-body)] underline-offset-4 hover:underline"
-              >
+              <Link href="/calendar/" className={PANEL_ACTION_CLASS}>
                 Full calendar
+                <span aria-hidden>→</span>
               </Link>
             }
             empty={
@@ -118,11 +122,9 @@ export default async function DashboardPage() {
               title="Track record"
               subtitle="Every call, scored against what happened"
               action={
-                <Link
-                  href="/track-record/"
-                  className="text-sm text-[var(--color-body)] underline-offset-4 hover:underline"
-                >
+                <Link href="/track-record/" className={PANEL_ACTION_CLASS}>
                   Detail
+                  <span aria-hidden>→</span>
                 </Link>
               }
             >
@@ -158,11 +160,9 @@ export default async function DashboardPage() {
               title="Recent signals"
               bodyClassName="px-0 py-0"
               action={
-                <Link
-                  href="/signals/"
-                  className="text-sm text-[var(--color-body)] underline-offset-4 hover:underline"
-                >
+                <Link href="/signals/" className={PANEL_ACTION_CLASS}>
                   All signals
+                  <span aria-hidden>→</span>
                 </Link>
               }
               empty={signals.rows.length === 0 ? "No signals recorded yet." : undefined}

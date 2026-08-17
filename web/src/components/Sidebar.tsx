@@ -33,13 +33,19 @@ export const MAIN = [
   { href: "/simulator/", label: "Simulator", icon: SimulatorIcon },
 ];
 
-export const OTHER = [
+// Cross-ticker, supplementary data — as opposed to MAIN's single-ticker /
+// live-tool pages. "Others" was a catch-all that told a reader nothing about
+// what they'd find there; this at least says what kind of page it is.
+export const MORE_DATA = [
   { href: "/past-earnings/", label: "Past earnings", icon: HistoryIcon },
   { href: "/macro-calendar/", label: "Macro calendar", icon: LandmarkIcon },
-  { href: "/methodology/", label: "Methodology", icon: BookIcon },
 ];
 
-export const CONTACT = [
+// Understand-the-site pages, not just "reach a human" — Methodology explains
+// how the numbers are computed, which belongs next to FAQ/Support rather
+// than filed under supplementary data.
+export const HELP = [
+  { href: "/methodology/", label: "Methodology", icon: BookIcon },
   { href: "/faq/", label: "FAQ", icon: QuestionIcon },
   { href: "/support/", label: "Support", icon: MailIcon },
 ];
@@ -116,16 +122,16 @@ export function Sidebar() {
           ))}
         </ul>
 
-        {!collapsed && <p className="eyebrow px-2 pt-6 pb-2">Others</p>}
+        {!collapsed && <p className="eyebrow px-2 pt-6 pb-2">More data</p>}
         <ul className={`space-y-0.5 ${collapsed ? "mt-2" : ""}`}>
-          {OTHER.map((item) => (
+          {MORE_DATA.map((item) => (
             <NavItem key={item.href} {...item} pathname={pathname} collapsed={collapsed} />
           ))}
         </ul>
 
-        {!collapsed && <p className="eyebrow px-2 pt-6 pb-2">Contact us</p>}
+        {!collapsed && <p className="eyebrow px-2 pt-6 pb-2">Help</p>}
         <ul className={`space-y-0.5 ${collapsed ? "mt-2" : ""}`}>
-          {CONTACT.map((item) => (
+          {HELP.map((item) => (
             <NavItem key={item.href} {...item} pathname={pathname} collapsed={collapsed} />
           ))}
         </ul>

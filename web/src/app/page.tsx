@@ -17,11 +17,18 @@ export const metadata = {
  * grid: there is nothing to sign up for, and a trader who lands here already
  * knows what they came to look up.
  *
- * The dark House Green band is the source design system's own marketing
- * treatment — solid color-block, not a gradient (the system has none). It
- * frames content between brand bands rather than using photography.
- * --color-band is scoped to marketing surfaces like this one; every other
- * panel/button in the app stays on the white/cream surfaces.
+ * The dark band is the source design system's own marketing treatment —
+ * solid color-block, not a gradient. It frames content between brand bands
+ * rather than using photography. --color-band is scoped to marketing
+ * surfaces like this one; every other panel/button stays on white/cream.
+ *
+ * The flat band reads a little static as a hero, so it carries one subtle
+ * animated layer: a drifting price-line texture (`.hero-ticker-bg`, defined
+ * in globals.css) rather than a stock photo or an abstract blob — it's the
+ * one motif that's actually on-theme for a chart product. Low opacity, thin
+ * strokes, slow drift; it never competes with the text sitting on top, and
+ * the app-wide `prefers-reduced-motion` rule in globals.css already freezes
+ * it for anyone who's asked for that.
  */
 export default async function LandingPage() {
   const [index, calendar] = await Promise.all([getIndex(), getCalendar(14)]);
@@ -29,8 +36,9 @@ export default async function LandingPage() {
 
   return (
     <main>
-      <section style={{ background: "var(--color-band)" }}>
-        <div className="mx-auto max-w-[1280px] px-6 py-20 sm:py-28">
+      <section className="relative overflow-hidden" style={{ background: "var(--color-band)" }}>
+        <div className="hero-ticker-bg absolute inset-0" aria-hidden />
+        <div className="relative z-10 mx-auto max-w-[1280px] px-6 py-20 sm:py-28">
           <Logo size="lg" onBrand />
 
           <h1 className="display mt-6 max-w-3xl text-5xl !text-[var(--color-on-brand)] sm:text-6xl">
@@ -83,7 +91,7 @@ export default async function LandingPage() {
               href="/dashboard/"
               className="inline-flex items-center gap-2 rounded-[var(--radius-pill)] bg-[var(--color-on-brand)] px-5 py-2.5 text-sm font-semibold text-[var(--color-brand)] transition-colors hover:bg-white"
             >
-              Open the dashboard
+              Explore for free
               <span aria-hidden>→</span>
             </Link>
           </p>

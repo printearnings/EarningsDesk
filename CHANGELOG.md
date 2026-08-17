@@ -7,6 +7,42 @@ Notable changes to EarningsDesk, kept succinct. Format loosely follows
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-08-16
+
+### Added
+
+- `robots.txt`, declaring an explicit Content Signals policy
+  (`search=yes, ai-input=yes, ai-train=no`) &mdash; search and live
+  AI-answer crawling allowed, AI training crawling disallowed. Previously no
+  policy was declared at all.
+- New Terms of Service page (`/terms/`), linked from the footer &mdash;
+  scoped to what this site actually is (no accounts, no execution, no
+  custody), not a broker-dealer template.
+- Panel headers ("Next to report," "Track record," ...) now carry a diagonal
+  navy wash instead of a plain white bar, so cards read as colored at a
+  glance.
+- The landing hero's flat color band now carries a slow, subtle drifting
+  price-line texture instead of a static fill.
+- The intraday price chart's hover tooltip now labels its time with the
+  viewer's own local timezone abbreviation (e.g. PDT/EDT) &mdash; previously
+  ambiguous whether a shown time was market time or local time.
+- FAQ entries are now a collapsible accordion (native `<details>`, no JS) —
+  question only until expanded, instead of nine always-open panels.
+
+### Changed
+
+- Dashboard panel action links ("Full calendar," "Detail," "All signals")
+  are now visible bordered chips instead of plain underlined text.
+- Sidebar/mobile nav: the catch-all "Others" and "Contact us" groups are now
+  "More data" (Past earnings, Macro calendar) and "Help" (Methodology, FAQ,
+  Support) &mdash; Methodology moved out of the data group since it's
+  documentation, not a data page.
+- Landing hero CTA copy: "Open the dashboard" &rarr; "Explore for free."
+- Cookie banner: added a heading and relabeled the buttons ("Reject
+  non-essential" / "Accept all"), keeping the copy honest about the single
+  Cloudflare security cookie rather than borrowing generic
+  tracking-cookie language.
+
 ## [1.3.0] - 2026-08-16
 
 ### Added

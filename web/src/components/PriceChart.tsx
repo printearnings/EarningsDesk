@@ -144,9 +144,14 @@ export function PriceChart({
     if (!intraday.data) return [];
     return intraday.data.points.map((p) => ({
       key: p.t,
+      // `timeZoneName: "short"` labels the reader's own local time (PDT,
+      // EDT, whatever `undefined` locale/timezone resolves to in their
+      // browser) — this is a US-market chart, and without the label there's
+      // no way to tell whether the hover time is market time or local time.
       label: new Date(p.t).toLocaleTimeString(undefined, {
         hour: "numeric",
         minute: "2-digit",
+        timeZoneName: "short",
       }),
       close: p.close,
       open: p.open,

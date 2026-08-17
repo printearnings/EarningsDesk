@@ -1,0 +1,19 @@
+# PrintEarnings (printearnings.com) — public, informational, no accounts.
+
+User-agent: *
+Allow: /
+Content-Signal: search=yes, ai-input=yes, ai-train=no
+
+# Content Signals (https://contentsignals.org): a declared policy, not a
+# technical block — well-behaved crawlers honor it, others don't. The actual
+# enforcement for bots that ignore it is Cloudflare's per-crawler Block
+# Crawler toggle (Security > AI Crawl Control), set separately.
+#
+# search:   build a search index and return results (links + short
+#           excerpts). Allowed — this is how people find the site.
+# ai-input: use content for a live AI-generated answer (RAG/grounding), e.g.
+#           an AI search engine citing this page in response to a query.
+#           Allowed, same reasoning as search.
+# ai-train: use content to train or fine-tune a model. Disallowed — the
+#           computed verdicts and track record are this site's actual
+#           differentiated content, not just public price data.

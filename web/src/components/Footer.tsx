@@ -24,6 +24,10 @@ export function Footer() {
           Privacy
         </Link>
         {" · "}
+        <Link href="/terms/" className="underline underline-offset-2">
+          Terms
+        </Link>
+        {" · "}
         <Link href="/faq/" className="underline underline-offset-2">
           FAQ
         </Link>
