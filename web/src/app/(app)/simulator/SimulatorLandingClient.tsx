@@ -29,7 +29,7 @@ export function SimulatorLandingClient({ tickers }: { tickers: TickerIndexEntry[
     return (
       <Panel
         title="Earnings-day options P&L simulator"
-        subtitle="Pick a ticker to build a single-leg call or put and see its payoff at expiration and the day after the print, re-priced with Black-Scholes."
+        subtitle="Pick a ticker to build a single-leg call or put and see its payoff at expiration and on any date up to then, re-priced with Black-Scholes."
       >
         <div className="mx-auto max-w-md py-8">
           <TickerSearch
