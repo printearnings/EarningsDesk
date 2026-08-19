@@ -105,6 +105,33 @@ export function OptionsSimulator({
   const [entryPriceText, setEntryPriceText] = useState("");
   const [ivCrushPct, setIvCrushPct] = useState(55);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+  const [decayHoverIdx, setDecayHoverIdx] = useState<number | null>(null);
+
+  // "Right after the print" — same session for BMO (reacts against that
+  // day's own close), the next session for AMC/unknown — the identical
+  // convention TickerTabs' History table already uses for its price
+  // before/after columns. This is the slider's floor: the earliest date a
+  // "post-crush" repricing means anything.
+  const earliestDate = reportDate
+    ? reportSession === "BMO"
+      ? reportDate
+      : addDays(reportDate, 1)
+    : todayIso();
+  const maxOffsetDays = expiry ? Math.max(0, daysBetween(earliestDate, expiry)) : 0;
+
+  const [dateOffsetDays, setDateOffsetDays] = useState(0);
+  // Reset the slider to its floor whenever the underlying position changes
+  // — a new expiry/strike/etc shouldn't carry over an offset that may not
+  // even be in range anymore. Same render-time reset pattern PriceChart's
+  // zoom/pan state uses for its own "prop changed" case.
+  const dateResetKey = `${ticker}-${expiry}-${reportDate}-${reportSession}`;
+  const [prevDateResetKey, setPrevDateResetKey] = useState(dateResetKey);
+  if (prevDateResetKey !== dateResetKey) {
+    setPrevDateResetKey(dateResetKey);
+    setDateOffsetDays(0);
+  }
+  const clampedOffsetDays = Math.min(dateOffsetDays, maxOffsetDays);
+  const selectedDate = addDays(earliestDate, clampedOffsetDays);
 
   async function loadChain() {
     setState({ status: "loading" });
@@ -196,31 +223,22 @@ export function OptionsSimulator({
       : (selectedContract?.price ?? null);
   const entryIv = selectedContract?.iv ?? null;
 
+  // No confirmed report means no "crush" to model — the second curve (and
+  // the whole time-decay chart) is specifically an earnings-IV scenario,
+  // not a generic re-pricing tool.
+  const postPrintIv = reportDate && entryIv !== null ? entryIv * (ivCrushPct / 100) : null;
+
   const scenario = useMemo(() => {
     if (spot === null || strike === null || entryPremium === null || !expiry) return null;
 
-    const today = todayIso();
-
-    // "Right after the print" — same session for BMO (reacts against that
-    // day's own close), the next session for AMC/unknown — the identical
-    // convention TickerTabs' History table already uses for its price
-    // before/after columns, not a new rule invented for this chart.
-    const postPrintDate = reportDate
-      ? reportSession === "BMO"
-        ? reportDate
-        : addDays(reportDate, 1)
-      : today;
-    const yearsToExpiryPostPrint = Math.max(0, daysBetween(postPrintDate, expiry)) / 365;
-    // No confirmed report means no "crush" to model — the second curve is
-    // specifically an earnings-IV scenario, not a generic re-pricing tool.
-    const postPrintIv = reportDate && entryIv !== null ? entryIv * (ivCrushPct / 100) : null;
+    const yearsToExpiryAtDate = Math.max(0, daysBetween(selectedDate, expiry)) / 365;
 
     const lo = spot * 0.7;
     const hi = spot * 1.3;
     const points: {
       spot: number;
       atExpiry: number;
-      postPrint: number | null;
+      atDate: number | null;
     }[] = [];
     for (let i = 0; i < SAMPLES; i++) {
       const s = lo + ((hi - lo) * i) / (SAMPLES - 1);
@@ -228,7 +246,7 @@ export function OptionsSimulator({
         { type: optionType, strike, entryPremium, contracts, yearsToExpiry: 0, iv: 0 },
         s,
       ).pnl;
-      const postPrint =
+      const atDate =
         postPrintIv !== null
           ? positionPnl(
               {
@@ -236,24 +254,24 @@ export function OptionsSimulator({
                 strike,
                 entryPremium,
                 contracts,
-                yearsToExpiry: yearsToExpiryPostPrint,
+                yearsToExpiry: yearsToExpiryAtDate,
                 iv: postPrintIv,
               },
               s,
             ).pnl
           : null;
-      points.push({ spot: s, atExpiry, postPrint });
+      points.push({ spot: s, atExpiry, atDate });
     }
 
     const entryCost = entryPremium * contracts * CONTRACT_MULTIPLIER;
     const breakeven = breakevenAtExpiry(optionType, strike, entryPremium);
-    const postPrintValueAtSpot =
+    const atDateValueAtSpot =
       postPrintIv !== null
         ? blackScholesPrice({
             type: optionType,
             spot,
             strike,
-            yearsToExpiry: yearsToExpiryPostPrint,
+            yearsToExpiry: yearsToExpiryAtDate,
             iv: postPrintIv,
           })
         : null;
@@ -262,13 +280,38 @@ export function OptionsSimulator({
       points,
       entryCost,
       breakeven,
-      postPrintIv,
-      postPrintDate,
-      postPrintPnlAtCurrentSpot:
-        postPrintValueAtSpot !== null
-          ? postPrintValueAtSpot * contracts * CONTRACT_MULTIPLIER - entryCost
+      atDatePnlAtCurrentSpot:
+        atDateValueAtSpot !== null
+          ? atDateValueAtSpot * contracts * CONTRACT_MULTIPLIER - entryCost
           : null,
     };
+  }, [spot, strike, entryPremium, expiry, optionType, contracts, postPrintIv, selectedDate]);
+
+  // The time-decay series: same position, spot held flat at today's price,
+  // swept across every calendar day from the earliest post-crush date
+  // through expiration — "what does theta cost me if the stock doesn't
+  // move." Independent of the slider (the slider just marks a point on
+  // this line, via decayHoverIdx staying in sync below), so this is its
+  // own memo rather than living inside `scenario`.
+  const decayScenario = useMemo(() => {
+    if (spot === null || strike === null || entryPremium === null || !expiry) return null;
+    if (postPrintIv === null) return null;
+
+    const entryCost = entryPremium * contracts * CONTRACT_MULTIPLIER;
+    const points: { date: string; pnl: number }[] = [];
+    for (let d = 0; d <= maxOffsetDays; d++) {
+      const date = addDays(earliestDate, d);
+      const yearsToExpiry = Math.max(0, daysBetween(date, expiry)) / 365;
+      const price = blackScholesPrice({
+        type: optionType,
+        spot,
+        strike,
+        yearsToExpiry,
+        iv: postPrintIv,
+      });
+      points.push({ date, pnl: price * contracts * CONTRACT_MULTIPLIER - entryCost });
+    }
+    return { points, entryCost };
   }, [
     spot,
     strike,
@@ -276,10 +319,9 @@ export function OptionsSimulator({
     expiry,
     optionType,
     contracts,
-    entryIv,
-    ivCrushPct,
-    reportDate,
-    reportSession,
+    postPrintIv,
+    earliestDate,
+    maxOffsetDays,
   ]);
 
   return (
@@ -461,27 +503,54 @@ export function OptionsSimulator({
             title={`PnL at each price · ${formatDateShort(expiry)}`}
             subtitle={
               reportDate
-                ? `Green = profit, red = loss, at expiration. Dashed line = the day after the print (${formatDateShort(scenario.postPrintDate)}), assuming IV lands at ${ivCrushPct}% of today's ${entryIv !== null ? pct(entryIv, 0) : "entry"} level.`
+                ? `Green = profit, red = loss, at expiration. Dashed line = pricing as of ${formatDateShort(selectedDate)}, assuming IV lands at ${ivCrushPct}% of today's ${entryIv !== null ? pct(entryIv, 0) : "entry"} level.`
                 : "Green = profit, red = loss, at expiration."
             }
           >
             {reportDate && (
-              <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-                <label className="eyebrow shrink-0 text-[var(--color-muted)]">
-                  Post-print IV assumption
-                </label>
-                <input
-                  type="range"
-                  min={20}
-                  max={150}
-                  value={ivCrushPct}
-                  onChange={(e) => setIvCrushPct(Number(e.target.value))}
-                  className="w-full max-w-48 accent-[var(--color-viz-realized)]"
-                />
-                <span className="tnum text-sm text-[var(--color-heading)]">{ivCrushPct}%</span>
-                <span className="text-2xs w-full text-[var(--color-muted)] sm:w-auto">
-                  (100% = no crush; above 100% models IV expanding further)
-                </span>
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                  <label className="eyebrow shrink-0 text-[var(--color-muted)]">
+                    Post-print IV assumption
+                  </label>
+                  <input
+                    type="range"
+                    min={20}
+                    max={150}
+                    value={ivCrushPct}
+                    onChange={(e) => setIvCrushPct(Number(e.target.value))}
+                    className="w-full max-w-48 accent-[var(--color-viz-realized)]"
+                  />
+                  <span className="tnum text-sm text-[var(--color-heading)]">{ivCrushPct}%</span>
+                  <span className="text-2xs w-full text-[var(--color-muted)] sm:w-auto">
+                    (100% = no crush; above 100% models IV expanding further)
+                  </span>
+                </div>
+
+                {/* Drags the dashed curve to any date between the earliest
+                    post-crush day and expiration — "how much will I have
+                    made by a certain day," not just the two fixed points
+                    (day-after-print, at-expiration) the chart used to show. */}
+                <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                  <label className="eyebrow shrink-0 text-[var(--color-muted)]">
+                    Pricing date
+                  </label>
+                  <input
+                    type="range"
+                    min={0}
+                    max={maxOffsetDays}
+                    value={clampedOffsetDays}
+                    disabled={maxOffsetDays === 0}
+                    onChange={(e) => setDateOffsetDays(Number(e.target.value))}
+                    className="w-full max-w-48 accent-[var(--color-viz-realized)] disabled:opacity-50"
+                  />
+                  <span className="tnum text-sm text-[var(--color-heading)]">
+                    {formatDateShort(selectedDate)}
+                  </span>
+                  <span className="text-2xs w-full text-[var(--color-muted)] sm:w-auto">
+                    ({formatDateShort(earliestDate)} through expiration)
+                  </span>
+                </div>
               </div>
             )}
 
@@ -490,7 +559,7 @@ export function OptionsSimulator({
               spot={spot!}
               hoverIdx={hoverIdx}
               onHover={setHoverIdx}
-              postPrintDate={scenario.postPrintDate}
+              selectedDate={selectedDate}
             />
 
             <p className="mt-4 text-sm text-[var(--color-muted)]">
@@ -499,6 +568,20 @@ export function OptionsSimulator({
               actually do. American-style early exercise isn&rsquo;t modeled.
             </p>
           </Panel>
+
+          {decayScenario && (
+            <Panel
+              title="PnL over time"
+              subtitle={`Spot held flat at ${money(spot)} — what time decay alone costs (or gains) this position between ${formatDateShort(earliestDate)} and expiration, at ${ivCrushPct}% of today's ${entryIv !== null ? pct(entryIv, 0) : "entry"} IV.`}
+            >
+              <TimeDecayChart
+                points={decayScenario.points}
+                selectedDate={selectedDate}
+                hoverIdx={decayHoverIdx}
+                onHover={setDecayHoverIdx}
+              />
+            </Panel>
+          )}
         </>
       )}
     </div>
@@ -510,25 +593,22 @@ function PayoffChart({
   spot,
   hoverIdx,
   onHover,
-  postPrintDate,
+  selectedDate,
 }: {
-  points: { spot: number; atExpiry: number; postPrint: number | null }[];
+  points: { spot: number; atExpiry: number; atDate: number | null }[];
   spot: number;
   hoverIdx: number | null;
   onHover: (idx: number | null) => void;
-  /** Shown in the legend next to "Day after the print" — the panel subtitle
-   * above the chart already states it once, but a reader scanning the
-   * legend at the chart itself shouldn't have to scroll up to find out
-   * which date the dashed line is for. */
-  postPrintDate?: string | null;
+  /** Shown in the legend next to "As of" — the panel subtitle above the
+   * chart already states it once, but a reader scanning the legend at the
+   * chart itself shouldn't have to scroll up to find out which date the
+   * dashed line is for. */
+  selectedDate?: string | null;
 }) {
   const svgRef = useRef<SVGSVGElement | null>(null);
 
   const chart = useMemo(() => {
-    const values = points.flatMap((p) => [
-      p.atExpiry,
-      ...(p.postPrint !== null ? [p.postPrint] : []),
-    ]);
+    const values = points.flatMap((p) => [p.atExpiry, ...(p.atDate !== null ? [p.atDate] : [])]);
     const minY = Math.min(0, ...values);
     const maxY = Math.max(0, ...values);
     const padY = (maxY - minY) * 0.08 || 1;
@@ -545,8 +625,8 @@ function PayoffChart({
     const atExpiryPath = points
       .map((p, i) => `${i === 0 ? "M" : "L"}${x(p.spot)},${y(p.atExpiry)}`)
       .join(" ");
-    const postPrintPath = points.every((p) => p.postPrint !== null)
-      ? points.map((p, i) => `${i === 0 ? "M" : "L"}${x(p.spot)},${y(p.postPrint!)}`).join(" ")
+    const atDatePath = points.every((p) => p.atDate !== null)
+      ? points.map((p, i) => `${i === 0 ? "M" : "L"}${x(p.spot)},${y(p.atDate!)}`).join(" ")
       : null;
 
     const zeroY = y(0);
@@ -573,7 +653,7 @@ function PayoffChart({
       y,
       atExpiryPath,
       atExpiryArea,
-      postPrintPath,
+      atDatePath,
       zeroY,
       spotX,
       ticks,
@@ -637,8 +717,8 @@ function PayoffChart({
         className="w-full touch-none select-none"
         role="img"
         aria-label={
-          chart.postPrintPath
-            ? "P&L versus hypothetical stock price at expiration and the day after the print"
+          chart.atDatePath
+            ? "P&L versus hypothetical stock price, at expiration and at the selected date"
             : "P&L versus hypothetical stock price at expiration"
         }
         onMouseLeave={() => onHover(null)}
@@ -755,12 +835,12 @@ function PayoffChart({
           clipPath={`url(#${lossClip})`}
         />
 
-        {/* "Day after the print" — a second point in time for the same
+        {/* The selected date — a second point in time for the same
             position, not a sign indicator, so it stays one neutral hue and
             is told apart by line style (dashed) instead of color. */}
-        {chart.postPrintPath && (
+        {chart.atDatePath && (
           <path
-            d={chart.postPrintPath}
+            d={chart.atDatePath}
             fill="none"
             stroke="var(--color-viz-realized)"
             strokeWidth={2}
@@ -801,17 +881,17 @@ function PayoffChart({
               {money(point.atExpiry)}
             </span>
           </div>
-          {point.postPrint !== null && (
+          {point.atDate !== null && (
             <div className="mt-0.5 flex items-center gap-1.5">
               <span
                 className="inline-block h-0.5 w-3"
                 style={{ background: "var(--color-viz-realized)" }}
               />
               <span
-                className={`tnum ${point.postPrint >= 0 ? "text-[var(--color-positive)]" : "text-[var(--color-negative)]"}`}
+                className={`tnum ${point.atDate >= 0 ? "text-[var(--color-positive)]" : "text-[var(--color-negative)]"}`}
               >
-                {point.postPrint >= 0 ? "+" : ""}
-                {money(point.postPrint)}
+                {point.atDate >= 0 ? "+" : ""}
+                {money(point.atDate)}
               </span>
             </div>
           )}
@@ -826,7 +906,7 @@ function PayoffChart({
           </span>
           At expiration (green = profit, red = loss)
         </span>
-        {chart.postPrintPath && (
+        {chart.atDatePath && (
           <span className="inline-flex items-center gap-2">
             <svg width="16" height="8" className="shrink-0">
               <line
@@ -839,10 +919,288 @@ function PayoffChart({
                 strokeDasharray="4 3"
               />
             </svg>
-            Day after the print{postPrintDate ? ` (${formatDateShort(postPrintDate)})` : ""}
+            As of{selectedDate ? ` ${formatDateShort(selectedDate)}` : ""}
           </span>
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * P&L against the calendar, not against a hypothetical spot — every other
+ * chart in this file/component sweeps price at a fixed point in time; this
+ * one holds price fixed (today's spot) and sweeps time, from the earliest
+ * post-crush date through expiration. Answers "what does theta alone cost
+ * me if the stock doesn't move," which the spot-price chart can't show no
+ * matter how many curves get added to it.
+ *
+ * Same visual language as PayoffChart (gain/loss fill split at zero,
+ * crosshair, edge-clamped tooltip) so the two charts read as one system —
+ * just x = index-into-dates here instead of x = spot value.
+ */
+function TimeDecayChart({
+  points,
+  selectedDate,
+  hoverIdx,
+  onHover,
+}: {
+  points: { date: string; pnl: number }[];
+  selectedDate: string;
+  hoverIdx: number | null;
+  onHover: (idx: number | null) => void;
+}) {
+  const svgRef = useRef<SVGSVGElement | null>(null);
+
+  const chart = useMemo(() => {
+    const values = points.map((p) => p.pnl);
+    const minY = Math.min(0, ...values);
+    const maxY = Math.max(0, ...values);
+    const padY = (maxY - minY) * 0.08 || 1;
+    const yLo = minY - padY;
+    const yHi = maxY + padY;
+
+    const plotW = W - PAD.left - PAD.right;
+    const x = (i: number) => PAD.left + (points.length > 1 ? (i / (points.length - 1)) * plotW : 0);
+    const y = (v: number) =>
+      PAD.top + (1 - (v - yLo) / (yHi - yLo)) * (H - PAD.top - PAD.bottom);
+
+    const path = points.map((p, i) => `${i === 0 ? "M" : "L"}${x(i)},${y(p.pnl)}`).join(" ");
+
+    const zeroY = y(0);
+    const plotLeft = PAD.left;
+    const plotRight = W - PAD.right;
+    const area =
+      `M${plotLeft},${zeroY} ` +
+      points.map((p, i) => `L${x(i)},${y(p.pnl)}`).join(" ") +
+      ` L${plotRight},${zeroY} Z`;
+
+    const selectedIdx = points.findIndex((p) => p.date === selectedDate);
+    const selectedX = selectedIdx >= 0 ? x(selectedIdx) : null;
+
+    const ticks: number[] = [];
+    const step = (yHi - yLo) / 4;
+    for (let i = 0; i <= 4; i++) ticks.push(yLo + step * i);
+
+    // Evenly spaced by index (same approach PriceChart's x-axis uses), so
+    // this reads fine whether the window is a handful of days or a couple
+    // of months, and the first/last labels get their own edge anchor
+    // (below) instead of a center anchor that would clip past the card.
+    const tickCount = Math.min(6, points.length);
+    const seenIdx = new Set<number>();
+    const dateTicks = Array.from({ length: tickCount }, (_, i) =>
+      Math.round((i / Math.max(1, tickCount - 1)) * (points.length - 1)),
+    )
+      .filter((idx) => (seenIdx.has(idx) ? false : (seenIdx.add(idx), true)))
+      .map((idx) => ({ x: x(idx), label: formatDateShort(points[idx].date) }));
+
+    return { x, y, path, area, zeroY, plotLeft, plotRight, ticks, selectedX, dateTicks };
+  }, [points, selectedDate]);
+
+  const point = hoverIdx !== null ? points[hoverIdx] : null;
+
+  function hoverFromClientX(clientX: number, rect: DOMRect) {
+    const localX = ((clientX - rect.left) / rect.width) * W;
+    const frac = (localX - PAD.left) / (W - PAD.left - PAD.right);
+    const idx = Math.round(frac * (points.length - 1));
+    onHover(Math.max(0, Math.min(points.length - 1, idx)));
+  }
+
+  // Same native-listener escape hatch PayoffChart's touch handling uses —
+  // a passive React onTouchMove can't preventDefault, so a finger drag
+  // would scroll the page instead of moving the crosshair.
+  useEffect(() => {
+    const el = svgRef.current;
+    if (!el) return;
+
+    const onTouchStart = (e: TouchEvent) => {
+      e.preventDefault();
+      if (e.touches.length !== 1) return;
+      hoverFromClientX(e.touches[0].clientX, el.getBoundingClientRect());
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      e.preventDefault();
+      if (e.touches.length !== 1) return;
+      hoverFromClientX(e.touches[0].clientX, el.getBoundingClientRect());
+    };
+    const onTouchEnd = () => onHover(null);
+
+    el.addEventListener("touchstart", onTouchStart, { passive: false });
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    el.addEventListener("touchend", onTouchEnd, { passive: false });
+    el.addEventListener("touchcancel", onTouchEnd, { passive: false });
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+      el.removeEventListener("touchend", onTouchEnd);
+      el.removeEventListener("touchcancel", onTouchEnd);
+    };
+  });
+
+  if (points.length < 2) {
+    return (
+      <p className="py-10 text-center text-sm text-[var(--color-muted)]">
+        Not enough runway between now and expiration to chart.
+      </p>
+    );
+  }
+
+  const gainClip = `decay-gain-${chart.zeroY.toFixed(1)}`;
+  const lossClip = `decay-loss-${chart.zeroY.toFixed(1)}`;
+
+  return (
+    <div className="relative">
+      <svg
+        ref={svgRef}
+        viewBox={`0 0 ${W} ${H}`}
+        className="w-full touch-none select-none"
+        role="img"
+        aria-label="P&L versus date, at today's spot price held flat"
+        onMouseLeave={() => onHover(null)}
+        onMouseMove={(e) => hoverFromClientX(e.clientX, e.currentTarget.getBoundingClientRect())}
+      >
+        <defs>
+          <clipPath id={gainClip}>
+            <rect
+              x={chart.plotLeft}
+              y={PAD.top}
+              width={chart.plotRight - chart.plotLeft}
+              height={Math.max(0, chart.zeroY - PAD.top)}
+            />
+          </clipPath>
+          <clipPath id={lossClip}>
+            <rect
+              x={chart.plotLeft}
+              y={chart.zeroY}
+              width={chart.plotRight - chart.plotLeft}
+              height={Math.max(0, H - PAD.bottom - chart.zeroY)}
+            />
+          </clipPath>
+        </defs>
+
+        {chart.ticks.map((t) => (
+          <g key={t}>
+            <line
+              x1={PAD.left}
+              x2={W - PAD.right}
+              y1={chart.y(t)}
+              y2={chart.y(t)}
+              stroke="var(--color-viz-grid)"
+              strokeWidth={1}
+            />
+            <text
+              x={PAD.left - 8}
+              y={chart.y(t) + 3}
+              textAnchor="end"
+              className="tnum"
+              fontSize={10}
+              fill="var(--color-viz-axis)"
+            >
+              {t >= 0 ? "+" : ""}
+              {Math.round(t)}
+            </text>
+          </g>
+        ))}
+
+        {chart.dateTicks.map((t, i) => (
+          <text
+            key={i}
+            x={t.x}
+            y={H - PAD.bottom + 16}
+            textAnchor={i === 0 ? "start" : i === chart.dateTicks.length - 1 ? "end" : "middle"}
+            fontSize={10}
+            fill="var(--color-viz-axis)"
+          >
+            {t.label}
+          </text>
+        ))}
+
+        <line
+          x1={PAD.left}
+          x2={W - PAD.right}
+          y1={chart.zeroY}
+          y2={chart.zeroY}
+          stroke="var(--color-border)"
+          strokeWidth={1.5}
+        />
+
+        {/* Marks where the payoff chart's date slider currently sits, so
+            the two charts read as one story rather than two disconnected
+            numbers. */}
+        {chart.selectedX !== null && (
+          <line
+            x1={chart.selectedX}
+            x2={chart.selectedX}
+            y1={PAD.top}
+            y2={H - PAD.bottom}
+            stroke="var(--color-viz-realized)"
+            strokeWidth={1.5}
+            strokeDasharray="3 3"
+          />
+        )}
+
+        <path
+          d={chart.area}
+          fill="var(--color-positive)"
+          opacity={0.12}
+          clipPath={`url(#${gainClip})`}
+        />
+        <path
+          d={chart.area}
+          fill="var(--color-negative)"
+          opacity={0.12}
+          clipPath={`url(#${lossClip})`}
+        />
+        <path
+          d={chart.path}
+          fill="none"
+          stroke="var(--color-positive)"
+          strokeWidth={2.5}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+          clipPath={`url(#${gainClip})`}
+        />
+        <path
+          d={chart.path}
+          fill="none"
+          stroke="var(--color-negative)"
+          strokeWidth={2.5}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+          clipPath={`url(#${lossClip})`}
+        />
+
+        {hoverIdx !== null && (
+          <line
+            x1={chart.x(hoverIdx)}
+            x2={chart.x(hoverIdx)}
+            y1={PAD.top}
+            y2={H - PAD.bottom}
+            stroke="var(--color-border)"
+            strokeWidth={1}
+          />
+        )}
+      </svg>
+
+      {point && (
+        <div
+          className="pointer-events-none absolute top-0 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-panel)] px-2.5 py-2 text-xs"
+          style={{
+            left: `${Math.min(92, Math.max(8, (chart.x(hoverIdx!) / W) * 100))}%`,
+            transform: "translateX(-50%)",
+          }}
+        >
+          <div className="mb-1 border-b border-[var(--color-border-subtle)] pb-1 text-[var(--color-muted)]">
+            {formatDateShort(point.date)}
+          </div>
+          <div
+            className={`tnum font-semibold ${point.pnl >= 0 ? "text-[var(--color-positive)]" : "text-[var(--color-negative)]"}`}
+          >
+            {point.pnl >= 0 ? "+" : ""}
+            {money(point.pnl)}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
