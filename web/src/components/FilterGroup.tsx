@@ -2,6 +2,7 @@
 
 export const VERDICTS = ["RICH", "CHEAP", "FAIR"] as const;
 export const DIRECTIONS = ["BULLISH", "BEARISH", "NEUTRAL"] as const;
+export const SESSIONS = ["BMO", "AMC"] as const;
 
 export const VERDICT_DOT: Record<string, string> = {
   RICH: "bg-[var(--color-verdict-rich)]",
@@ -13,6 +14,13 @@ export const DIRECTION_DOT: Record<string, string> = {
   BULLISH: "bg-[var(--color-direction-bullish)]",
   BEARISH: "bg-[var(--color-direction-bearish)]",
   NEUTRAL: "bg-[var(--color-direction-neutral)]",
+};
+
+// BMO/AMC isn't a value judgment like verdict or direction — SessionChip
+// renders both the same neutral muted color, and the filter dot matches.
+export const SESSION_DOT: Record<string, string> = {
+  BMO: "bg-[var(--color-muted)]",
+  AMC: "bg-[var(--color-muted)]",
 };
 
 /**

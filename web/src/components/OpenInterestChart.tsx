@@ -36,12 +36,78 @@ export function OpenInterestChart({
   atmStrike: number | null | undefined;
 }) {
   const [hover, setHover] = useState<number | null>(null);
+  const [view, setView] = useState<"chart" | "table">("chart");
 
   if (rows.length === 0) {
     return (
       <p className="px-5 py-8 text-sm text-[var(--color-muted)]">
         No per-strike open interest to chart yet.
       </p>
+    );
+  }
+
+  const toggle = (
+    <div className="mb-3 inline-flex rounded-[var(--radius-sm)] border border-[var(--color-border)] p-0.5">
+      {(["chart", "table"] as const).map((v) => (
+        <button
+          key={v}
+          type="button"
+          onClick={() => setView(v)}
+          aria-pressed={view === v}
+          className={`pressable rounded-[3px] px-2.5 py-1 text-sm font-medium capitalize transition-colors ${
+            view === v
+              ? "bg-[var(--color-panel-soft)] text-[var(--color-heading)]"
+              : "text-[var(--color-muted)] hover:bg-[var(--color-panel-soft)]"
+          }`}
+        >
+          {v}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (view === "table") {
+    return (
+      <div>
+        {toggle}
+        <div className="overflow-x-auto">
+          <table className="tnum w-full text-sm">
+            <thead>
+              <tr className="border-b border-[var(--color-border)] bg-[var(--color-table-head)] text-left">
+                <th className="eyebrow px-4 py-2.5 font-medium">Strike</th>
+                <th className="eyebrow px-4 py-2.5 font-medium">Call OI</th>
+                <th className="eyebrow px-4 py-2.5 font-medium">Put OI</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => {
+                const isAtm = atmStrike != null && Math.abs(r.strike - atmStrike) < 1e-6;
+                return (
+                  <tr
+                    key={r.strike}
+                    className={`border-b border-[var(--color-border-subtle)] last:border-b-0 ${
+                      isAtm ? "bg-[var(--color-panel-soft)]" : ""
+                    }`}
+                  >
+                    <td className="px-4 py-2.5 font-medium text-[var(--color-heading)]">
+                      {money(r.strike, 0)}
+                      {isAtm && (
+                        <span className="eyebrow ml-1.5 text-[var(--color-muted)]">ATM</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 text-[var(--color-positive)]">
+                      {compact(r.call_oi)}
+                    </td>
+                    <td className="px-4 py-2.5 text-[var(--color-negative)]">
+                      {compact(r.put_oi)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
     );
   }
 
@@ -61,6 +127,7 @@ export function OpenInterestChart({
 
   return (
     <figure className="m-0">
+      {toggle}
       <div className="relative">
         <svg
           viewBox={`0 0 ${W} ${H}`}

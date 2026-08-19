@@ -5,7 +5,7 @@ import { useState } from "react";
 
 import { SessionChip, VerdictChip } from "@/components/Chip";
 import { Pagination } from "@/components/Pagination";
-import { pctRange, relativeDays } from "@/lib/format";
+import { pctRange, relativeDays, sessionLabel } from "@/lib/format";
 import type { CalendarEntry } from "@/lib/types";
 
 const PAGE_SIZE = 8;
@@ -25,31 +25,43 @@ export function NextToReportList({ entries }: { entries: CalendarEntry[] }) {
   return (
     <div>
       <ul>
-        {paged.map((entry) => (
-          <li
-            key={`${entry.ticker}-${entry.report_date}`}
-            className="border-b border-[var(--color-border-subtle)] last:border-b-0"
-          >
-            <Link
-              href={`/t/${entry.ticker}/`}
-              className="flex items-center gap-3 px-5 py-3 hover:bg-[var(--color-panel-soft)]"
+        {paged.map((entry) => {
+          // A bare "today" doesn't say whether that print already happened
+          // (BMO, before the open) or is still ahead (AMC, after the close)
+          // — the session chip carries the badge, this carries the same fact
+          // into the sentence next to the day count.
+          const when = relativeDays(entry.days_until);
+          const session = sessionLabel(entry.session);
+          return (
+            <li
+              key={`${entry.ticker}-${entry.report_date}`}
+              className="border-b border-[var(--color-border-subtle)] last:border-b-0"
             >
-              <span className="w-14 font-mono text-sm font-medium text-[var(--color-heading)]">
-                {entry.ticker}
-              </span>
-              <SessionChip session={entry.session} />
-              <VerdictChip verdict={entry.verdict} />
-              <span className="ml-auto text-right">
-                <span className="tnum block text-sm font-medium text-[var(--color-heading)]">
-                  {pctRange(entry.implied_move)}
+              <Link
+                href={`/t/${entry.ticker}/`}
+                className="flex items-center gap-3 px-5 py-3 hover:bg-[var(--color-panel-soft)]"
+              >
+                <span className="w-14 font-mono text-sm font-medium text-[var(--color-heading)]">
+                  {entry.ticker}
                 </span>
-                <span className="text-sm text-[var(--color-muted)]">
-                  {relativeDays(entry.days_until)}
+                <SessionChip session={entry.session} />
+                <VerdictChip verdict={entry.verdict} />
+                <span className="ml-auto text-right">
+                  <span className="tnum block text-sm font-medium text-[var(--color-heading)]">
+                    {pctRange(entry.implied_move)}
+                  </span>
+                  <span className="text-sm text-[var(--color-muted)]">
+                    {when}
+                    {/* The session chip to the left already carries this on
+                        narrow screens where every character of row width is
+                        scarce; wider screens get the fuller sentence. */}
+                    {session && <span className="hidden sm:inline">, {session}</span>}
+                  </span>
                 </span>
-              </span>
-            </Link>
-          </li>
-        ))}
+              </Link>
+            </li>
+          );
+        })}
       </ul>
       <Pagination
         page={page}

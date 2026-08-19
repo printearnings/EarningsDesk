@@ -115,7 +115,7 @@ export function TickerTabs({ data }: { data: TickerData }) {
       <div className="pt-6">
         {visited.has("price") && (
           <div hidden={active !== "price"}>
-            <Panel subtitle="Daily and intraday prices. Earnings dates marked on the 1Y view.">
+            <Panel subtitle="Daily and intraday prices. Earnings dates marked on every view.">
               <PriceChart prices={data.prices} events={data.history} ticker={data.ticker} />
             </Panel>
           </div>

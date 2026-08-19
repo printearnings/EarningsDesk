@@ -23,10 +23,11 @@ import { useIntradayChart } from "@/lib/useIntradayChart";
  * chart is zoomable without a modifier key. Double-click, or the
  * "Reset zoom" control that appears once zoomed, zooms back out.
  *
- * Earnings markers only make sense on the 1Y view — a single intraday bar
- * can't meaningfully carry "this is where the stock gapped," and on a day
- * that isn't an earnings day there's nothing to mark at all. 1D/5D show the
- * line/candles alone, per Vertical's chart language.
+ * Earnings markers render on every range, including 1D/5D — on those, the
+ * marker lands on the first intraday bar of the report's calendar date
+ * (matched in market time, not the reader's own timezone) rather than on
+ * a specific minute, since the point is "a print happened this day," not
+ * pinpointing BMO/AMC to the minute.
  *
  * Hand-rolled SVG rather than a charting library: one series, a handful of
  * interactions, and the component stays smaller than the library import.
@@ -78,6 +79,13 @@ const SUB_PAD = { top: 10, bottom: 18 };
 // Below this many visible points, a zoom stops being useful — the chart
 // would be reading individual bars as a jagged wall rather than a shape.
 const MIN_ZOOM_POINTS = 10;
+
+/** An intraday point's ISO timestamp -> its "YYYY-MM-DD" calendar date in
+ * the exchange's own timezone — matches an earnings event's report_date
+ * (a market-calendar date) regardless of the reader's own timezone. */
+function etDateString(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+}
 
 interface Point {
   key: string;
@@ -144,11 +152,15 @@ export function PriceChart({
     if (!intraday.data) return [];
     return intraday.data.points.map((p) => ({
       key: p.t,
-      // `timeZoneName: "short"` labels the reader's own local time (PDT,
-      // EDT, whatever `undefined` locale/timezone resolves to in their
-      // browser) — this is a US-market chart, and without the label there's
-      // no way to tell whether the hover time is market time or local time.
-      label: new Date(p.t).toLocaleTimeString(undefined, {
+      // Month/day up front, not just the time — 5D spans multiple sessions,
+      // and even on 1D a bare time-of-day is ambiguous once it's converted
+      // out of market time into whatever zone `undefined` locale/timezone
+      // resolves to in the reader's own browser (labeled via
+      // `timeZoneName: "short"` — PDT, EDT, etc — so it's at least never
+      // mistaken for market time).
+      label: new Date(p.t).toLocaleString(undefined, {
+        month: "short",
+        day: "numeric",
         hour: "numeric",
         minute: "2-digit",
         timeZoneName: "short",
@@ -161,6 +173,19 @@ export function PriceChart({
     }));
   }, [range, prices, intraday.data]);
 
+  // A regular NYSE session is 6.5h of 1m bars (390). Early in the trading
+  // day the 1D series only has however many of those have actually printed
+  // — stretching that partial count across the chart's full width would
+  // draw the *shape* of a finished trading day out of a morning's worth of
+  // bars, implying the rest of the day already happened when it hasn't.
+  // `null` (no fraction applied) once the session's worth of bars is in, or
+  // for any range other than 1D, where this scaling doesn't apply.
+  const FULL_SESSION_BARS = 390;
+  const partialSessionFraction =
+    range === "1d" && points.length > 0 && points.length < FULL_SESSION_BARS
+      ? points.length / FULL_SESSION_BARS
+      : null;
+
   // 1D's lookback buffer reaches back past a closed market to the last real
   // session (see RANGE_LOOKBACK_DAYS in the Worker), so outside market hours
   // this is showing where that session ended, not a live-updating today.
@@ -172,17 +197,17 @@ export function PriceChart({
       timeZone: "America/New_York",
     }) === new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
 
-  // Only the 1Y series carries markers — see the module note above.
+  // Every range carries markers — see the module note above. Scored events
+  // only (realized_move present): an unscored upcoming print has nothing to
+  // mark yet, matching what the 1Y view already excluded.
   const markerDates = useMemo(
     () =>
-      range === "1y"
-        ? new Set(
-            events
-              .filter((e) => e.realized_move !== null && e.realized_move !== undefined)
-              .map((e) => e.report_date),
-          )
-        : new Set<string>(),
-    [range, events],
+      new Set(
+        events
+          .filter((e) => e.realized_move !== null && e.realized_move !== undefined)
+          .map((e) => e.report_date),
+      ),
+    [events],
   );
 
   return (
@@ -339,6 +364,7 @@ export function PriceChart({
           ema50={indicators?.ema50}
           rsi14={indicators?.rsi14}
           macd={indicators?.macd}
+          partialSessionFraction={partialSessionFraction}
         />
       )}
     </figure>
@@ -445,6 +471,7 @@ function ChartBody({
   ema50,
   rsi14,
   macd,
+  partialSessionFraction,
 }: {
   points: Point[];
   markerDates: Set<string>;
@@ -456,6 +483,11 @@ function ChartBody({
   ema50?: { date: string; value: number }[];
   rsi14?: { date: string; value: number }[];
   macd?: MACDPoint[];
+  /** Fraction (0,1) of the chart's width the *actual* bars should occupy
+   * when the trading day isn't over yet — the rest stays blank rather than
+   * stretching a partial session to fill the full chart. `null` to use the
+   * full width, same as before this existed. */
+  partialSessionFraction?: number | null;
 }) {
   const [hover, setHover] = useState<number | null>(null);
   const [zoom, setZoom] = useState<ZoomDomain>(null);
@@ -520,14 +552,20 @@ function ChartBody({
     const plotW = W - PAD.left - PAD.right;
     const plotH = H - PAD.top - PAD.bottom;
 
-    const x = (i: number) => PAD.left + (i / (visible.length - 1)) * plotW;
+    // Only the un-zoomed full series honors the session fraction — once
+    // someone's explicitly zoomed into a window, that window is real data
+    // they asked to see filled, not a partial day to leave room for.
+    const effectivePlotW =
+      !zoom && partialSessionFraction ? plotW * partialSessionFraction : plotW;
+
+    const x = (i: number) => PAD.left + (i / (visible.length - 1)) * effectivePlotW;
     const y = (v: number) => PAD.top + (1 - (v - lo) / (hi - lo)) * plotH;
 
     const line = visible.map((p, i) => `${i === 0 ? "M" : "L"}${x(i)} ${y(p.close)}`).join(" ");
 
     // Body/wick width shrinks with density; clamped so a 1Y chart (~252
     // candles) still reads and a 1D chart (~390 1m bars) doesn't overlap.
-    const candleW = Math.min(8, Math.max(1, (plotW / visible.length) * 0.6));
+    const candleW = Math.min(8, Math.max(1, (effectivePlotW / visible.length) * 0.6));
     const candles: Candle[] = visible
       .map((p, i) => ({ p, i }))
       .filter(({ p }) => p.open !== undefined && p.high !== undefined && p.low !== undefined)
@@ -548,13 +586,20 @@ function ChartBody({
         };
       });
 
-    const markers = intraday
-      ? []
-      : visible
-          .map((p, i) =>
-            markerDates.has(p.key) ? { key: p.key, cx: x(i), cy: y(p.close) } : null,
-          )
-          .filter((m): m is { key: string; cx: number; cy: number } => m !== null);
+    // Daily (1Y) points are already keyed by bare date, one point per day —
+    // a straight Set lookup finds the match. Intraday points are keyed by
+    // full timestamp with many bars per day, so matching needs the bar's ET
+    // calendar date instead, and a per-date guard so a report day's ~390
+    // one-minute bars don't each draw their own marker — only the first.
+    const seenMarkerDates = new Set<string>();
+    const markers = visible
+      .map((p, i) => {
+        const d = intraday ? etDateString(p.key) : p.key;
+        if (!markerDates.has(d) || seenMarkerDates.has(d)) return null;
+        seenMarkerDates.add(d);
+        return { key: p.key, cx: x(i), cy: y(p.close) };
+      })
+      .filter((m): m is { key: string; cx: number; cy: number } => m !== null);
 
     const smaLine =
       enabledIndicators.has("sma20") && sma20?.length
@@ -567,8 +612,22 @@ function ChartBody({
 
     const ticks = [lo + (hi - lo) * 0.08, (lo + hi) / 2, hi - (hi - lo) * 0.08];
 
-    return { x, y, line, candles, markers, smaLine, emaLine, ticks, plotW, plotH, min, max };
-  }, [visible, markerDates, intraday, sma20, ema50, enabledIndicators]);
+    return {
+      x,
+      y,
+      line,
+      candles,
+      markers,
+      smaLine,
+      emaLine,
+      ticks,
+      plotW,
+      effectivePlotW,
+      plotH,
+      min,
+      max,
+    };
+  }, [visible, markerDates, intraday, sma20, ema50, enabledIndicators, zoom, partialSessionFraction]);
 
   // Volume/RSI/MACD sub-panels — each its own tiny chart, sharing `chart.x`
   // (and so the same horizontal alignment) with the candles above them.
@@ -586,7 +645,7 @@ function ChartBody({
     // keep the same "value -> pixel" shape anyway so the axis-label loop
     // below can treat it like the others.
     const y = (v: number) => baseline - (v / max) * plotH;
-    const barW = Math.min(8, Math.max(1, (chart.plotW / visible.length) * 0.6));
+    const barW = Math.min(8, Math.max(1, (chart.effectivePlotW / visible.length) * 0.6));
     const bars = visible.map((p, i) => {
       const v = p.volume ?? 0;
       const up = p.open === undefined || p.close >= p.open;
@@ -638,7 +697,7 @@ function ChartBody({
       chart.x,
       y,
     );
-    const barW = Math.min(8, Math.max(1, (chart.plotW / visible.length) * 0.6));
+    const barW = Math.min(8, Math.max(1, (chart.effectivePlotW / visible.length) * 0.6));
     const zeroY = y(0);
     const bars = inView.map(({ p, i, m }) => {
       const barY = y(m.histogram);
@@ -663,7 +722,7 @@ function ChartBody({
    * called conditionally. */
   function localIndexAt(clientX: number, rect: DOMRect): number {
     const rel = ((clientX - rect.left) / rect.width) * W;
-    const frac = (rel - PAD.left) / chart!.plotW;
+    const frac = (rel - PAD.left) / chart!.effectivePlotW;
     const idx = Math.round(frac * (visible.length - 1));
     return Math.max(0, Math.min(visible.length - 1, idx));
   }
@@ -801,7 +860,8 @@ function ChartBody({
   // behind) — bounds-check rather than trust it, or a drag-to-zoom that
   // lands the mouse near the old far edge throws on the very next render.
   const point = hover !== null && hover < visible.length ? visible[hover] : null;
-  const onMarker = point !== null && markerDates.has(point.key);
+  const onMarker =
+    point !== null && markerDates.has(intraday ? etDateString(point.key) : point.key);
 
   return (
     <div>
@@ -969,7 +1029,10 @@ function ChartBody({
             <div className="mb-1 border-b border-[var(--color-border-subtle)] pb-1 text-[var(--color-muted)]">
               {point.label}
             </div>
-            {chartType === "candle" && point.open !== undefined ? (
+            {/* O/H/L/C whenever the bar actually carries them, regardless of
+                whether the line or candle mark is on screen — the line mode
+                hides the candle bodies, not the underlying OHLC data. */}
+            {point.open !== undefined ? (
               <div className="tnum grid grid-cols-2 gap-x-2 gap-y-0.5 font-semibold text-[var(--color-heading)]">
                 <span className="text-[var(--color-muted)]">O</span>
                 <span>{money(point.open)}</span>
@@ -1217,7 +1280,7 @@ function ChartBody({
             EMA 50
           </span>
         )}
-        {!intraday && chart.markers.length > 0 && (
+        {chart.markers.length > 0 && (
           <span className="inline-flex items-center gap-2">
             <span
               className="inline-block h-2 w-2 rounded-full"

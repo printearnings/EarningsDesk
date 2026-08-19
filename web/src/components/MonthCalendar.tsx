@@ -4,16 +4,19 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import type { CalendarEntry } from "@/lib/api";
+import { SessionChip } from "@/components/Chip";
 import {
   DIRECTION_DOT,
   DIRECTIONS,
   FilterDivider,
   FilterGroup,
+  SESSION_DOT,
+  SESSIONS,
   VERDICT_DOT,
   VERDICTS,
   toggleInSet,
 } from "@/components/FilterGroup";
-import { money, pctRange } from "@/lib/format";
+import { money, pctRange, sessionLabel } from "@/lib/format";
 
 const MONTH_NAMES = [
   "January",
@@ -77,11 +80,13 @@ export function MonthCalendar({ entries }: { entries: CalendarEntry[] }) {
 
   const [verdicts, setVerdicts] = useState<Set<string>>(() => new Set());
   const [directions, setDirections] = useState<Set<string>>(() => new Set());
-  const filtersActive = verdicts.size > 0 || directions.size > 0;
+  const [sessions, setSessions] = useState<Set<string>>(() => new Set());
+  const filtersActive = verdicts.size > 0 || directions.size > 0 || sessions.size > 0;
 
   function clearFilters() {
     setVerdicts(new Set());
     setDirections(new Set());
+    setSessions(new Set());
   }
 
   const filtered = useMemo(() => {
@@ -90,9 +95,10 @@ export function MonthCalendar({ entries }: { entries: CalendarEntry[] }) {
       const verdictOk = verdicts.size === 0 || (e.verdict != null && verdicts.has(e.verdict));
       const directionOk =
         directions.size === 0 || (e.direction != null && directions.has(e.direction));
-      return verdictOk && directionOk;
+      const sessionOk = sessions.size === 0 || (e.session != null && sessions.has(e.session));
+      return verdictOk && directionOk && sessionOk;
     });
-  }, [entries, verdicts, directions, filtersActive]);
+  }, [entries, verdicts, directions, sessions, filtersActive]);
 
   const byDate = useMemo(() => {
     const map = new Map<string, CalendarEntry[]>();
@@ -178,6 +184,14 @@ export function MonthCalendar({ entries }: { entries: CalendarEntry[] }) {
           active={directions}
           dotClass={DIRECTION_DOT}
           onToggle={(v) => toggleInSet(directions, setDirections, v)}
+        />
+        <FilterDivider />
+        <FilterGroup
+          label="Session"
+          options={SESSIONS}
+          active={sessions}
+          dotClass={SESSION_DOT}
+          onToggle={(v) => toggleInSet(sessions, setSessions, v)}
         />
         {filtersActive && (
           <button
@@ -294,6 +308,7 @@ function AgendaView({
                       <span className="font-mono font-medium text-[var(--color-heading)]">
                         {e.ticker}
                       </span>
+                      <SessionChip session={e.session} />
                       <span className="ml-auto shrink-0 text-[var(--color-muted)]">
                         {pctRange(e.implied_move)}
                       </span>
@@ -345,19 +360,27 @@ function DayCellView({ cell }: { cell: DayCell }) {
       </span>
 
       <div className="mt-1 space-y-0.5">
-        {cell.entries.slice(0, MAX_VISIBLE_PER_DAY).map((e) => (
-          <Link
-            key={e.ticker}
-            href={`/t/${e.ticker}/`}
-            title={`${e.ticker}${e.spot != null ? ` · ${money(e.spot)}` : ""} · implied ${pctRange(e.implied_move)}`}
-            className="pressable text-2xs flex items-center gap-1 rounded-[3px] px-1 py-0.5 transition-colors hover:bg-[var(--color-panel-soft)]"
-          >
-            <VerdictDot verdict={e.verdict} />
-            <span className="truncate font-mono font-medium text-[var(--color-heading)]">
-              {e.ticker}
-            </span>
-          </Link>
-        ))}
+        {cell.entries.slice(0, MAX_VISIBLE_PER_DAY).map((e) => {
+          const session = sessionLabel(e.session);
+          return (
+            <Link
+              key={e.ticker}
+              href={`/t/${e.ticker}/`}
+              title={`${e.ticker}${e.spot != null ? ` · ${money(e.spot)}` : ""} · implied ${pctRange(e.implied_move)}${session ? ` · reports ${session}` : ""}`}
+              className="pressable text-2xs flex items-center gap-1 rounded-[3px] px-1 py-0.5 transition-colors hover:bg-[var(--color-panel-soft)]"
+            >
+              <VerdictDot verdict={e.verdict} />
+              <span className="truncate font-mono font-medium text-[var(--color-heading)]">
+                {e.ticker}
+              </span>
+              {(e.session === "BMO" || e.session === "AMC") && (
+                <span className="ml-auto shrink-0 font-mono text-[9px] text-[var(--color-muted)]">
+                  {e.session}
+                </span>
+              )}
+            </Link>
+          );
+        })}
         {overflow > 0 && (
           <p className="text-2xs px-1 text-[var(--color-muted)]">+{overflow} more</p>
         )}

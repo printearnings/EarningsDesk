@@ -96,7 +96,12 @@ export function OptionsSimulator({
   const [expiry, setExpiry] = useState("");
   const [strike, setStrike] = useState<number | null>(null);
   const [optionType, setOptionType] = useState<OptionType>("call");
-  const [contracts, setContracts] = useState(1);
+  const [contractsText, setContractsText] = useState("1");
+  // Clamped numeric value calculations use; kept separate from the raw text
+  // above so the field can sit empty or mid-edit (typing "30" over a
+  // previous value) without every keystroke snapping back to a minimum and
+  // stacking digits onto a stale "1".
+  const contracts = Math.max(1, Math.min(1000, Math.round(Number(contractsText)) || 1));
   const [entryPriceText, setEntryPriceText] = useState("");
   const [ivCrushPct, setIvCrushPct] = useState(55);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
@@ -383,8 +388,9 @@ export function OptionsSimulator({
                 type="number"
                 min={1}
                 max={1000}
-                value={contracts}
-                onChange={(e) => setContracts(Math.max(1, Number(e.target.value) || 1))}
+                value={contractsText}
+                onChange={(e) => setContractsText(e.target.value)}
+                onBlur={() => setContractsText(String(contracts))}
                 className={`${fieldClass} w-20`}
               />
             </div>
@@ -484,6 +490,7 @@ export function OptionsSimulator({
               spot={spot!}
               hoverIdx={hoverIdx}
               onHover={setHoverIdx}
+              postPrintDate={scenario.postPrintDate}
             />
 
             <p className="mt-4 text-sm text-[var(--color-muted)]">
@@ -503,11 +510,17 @@ function PayoffChart({
   spot,
   hoverIdx,
   onHover,
+  postPrintDate,
 }: {
   points: { spot: number; atExpiry: number; postPrint: number | null }[];
   spot: number;
   hoverIdx: number | null;
   onHover: (idx: number | null) => void;
+  /** Shown in the legend next to "Day after the print" — the panel subtitle
+   * above the chart already states it once, but a reader scanning the
+   * legend at the chart itself shouldn't have to scroll up to find out
+   * which date the dashed line is for. */
+  postPrintDate?: string | null;
 }) {
   const svgRef = useRef<SVGSVGElement | null>(null);
 
@@ -826,7 +839,7 @@ function PayoffChart({
                 strokeDasharray="4 3"
               />
             </svg>
-            Day after the print
+            Day after the print{postPrintDate ? ` (${formatDateShort(postPrintDate)})` : ""}
           </span>
         )}
       </div>

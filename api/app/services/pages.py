@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 from datetime import UTC, date, datetime
+from zoneinfo import ZoneInfo
 
 from earnings.core.llm_context import TickerContext
 from earnings.store import repo
@@ -45,6 +46,13 @@ from app.schemas import (
 
 # Two years of quarterly prints. The dashboard's stated history window.
 HISTORY_LIMIT = 8
+
+# Earnings dates and sessions are US-market-calendar concepts (see
+# earnings.core.clock.market_today) — comparing a report date against a bare
+# `.date()` of a UTC instant reads as tomorrow for anyone west of Greenwich
+# once it's past ~8pm ET, the same class of bug that module's docstring
+# warns about.
+_EASTERN = ZoneInfo("America/New_York")
 
 
 def _richness(implied: float | None, hist: float | None) -> float | None:
@@ -398,7 +406,9 @@ def ticker_page(
     page.next_report_date = snap.next_report_date
     page.next_report_session = snap.next_report_session
     page.days_until_report = (
-        (snap.next_report_date - now.date()).days if snap.next_report_date else None
+        (snap.next_report_date - now.astimezone(_EASTERN).date()).days
+        if snap.next_report_date
+        else None
     )
     # Only surface the read when it's actually about the *next* report —
     # latest_direction_signal returns whichever Workflow-B row is newest

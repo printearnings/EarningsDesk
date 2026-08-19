@@ -322,6 +322,18 @@ def test_days_until_report(s):
     assert pages.ticker_page(s, "NVDA", now=NOW).days_until_report == 18
 
 
+def test_days_until_report_uses_market_timezone_not_utc(s):
+    """02:00 UTC on the 19th is still 22:00 ET on the 18th — a report dated
+    the 19th is tomorrow, not today. A bare `now.date()` on the UTC instant
+    would read 0 days (today) here; that's the exact class of bug
+    earnings.core.clock.market_today() exists to prevent, and ticker_page
+    must apply the same fix."""
+    late_evening_et = datetime(2026, 8, 19, 2, 0, tzinfo=UTC)
+    _snap(s, as_of=late_evening_et, next_report_date=date(2026, 8, 19))
+    page = pages.ticker_page(s, "NVDA", now=late_evening_et)
+    assert page.days_until_report == 1
+
+
 def test_cold_ticker_renders_with_empty_states(s):
     page = pages.ticker_page(s, "ZZZZ", now=NOW)
 
