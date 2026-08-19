@@ -49,13 +49,22 @@ def price_series(ticker: str, *, days: int = DEFAULT_DAYS) -> list[PricePoint]:
         PricePoint(
             date=idx.date(),
             close=round(float(row.Close), 4),
-            open=round(float(row.Open), 4),
-            high=round(float(row.High), 4),
-            low=round(float(row.Low), 4),
+            open=None if math.isnan(row.Open) else round(float(row.Open), 4),
+            high=None if math.isnan(row.High) else round(float(row.High), 4),
+            low=None if math.isnan(row.Low) else round(float(row.Low), 4),
             volume=None if math.isnan(row.Volume) else round(float(row.Volume)),
         )
         for idx, row in bars.iterrows()
-        if idx.date() >= cutoff
+        # `close` is the one required field on PricePoint (see schemas.py) —
+        # yfinance occasionally hands back a row with a NaN close (a data
+        # gap, not a real $0 or missing-but-known price). A NaN there isn't
+        # valid JSON once serialized (Python's json module writes it as the
+        # bare token `NaN`, which every spec-compliant JSON.parse rejects),
+        # so a single bad row silently broke the static build for every
+        # ticker whose latest bar happened to land on one. Drop the row
+        # entirely rather than pretend it has a close — there's nothing
+        # meaningful to plot for a day with no real trade data anyway.
+        if idx.date() >= cutoff and not math.isnan(row.Close)
     ]
 
     _cache[key] = series

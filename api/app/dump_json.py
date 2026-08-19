@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import math
 from pathlib import Path
 
 from app import bootstrap  # noqa: I001,F401  — must precede any `earnings` import
@@ -43,11 +44,33 @@ log = logging.getLogger("dump_json")
 CALENDAR_WINDOWS = (7, 14, 30, 90)
 
 
+def _sanitize_nan(value):
+    """Replace NaN/Infinity with None, recursively.
+
+    `model_dump(mode="json")` passes a Python float through unchanged —
+    Pydantic's "json mode" converts dates and the like to JSON-friendly
+    types, but a NaN float stays a NaN float. `json.dumps` then writes it as
+    the bare token `NaN`/`Infinity`, which every spec-compliant JSON.parse
+    (i.e. every browser) rejects — one bad value anywhere in one ticker's
+    page took the whole static build down (see quotes.price_series' own
+    NaN-close fix, the specific case this caught). Sanitizing here is the
+    backstop for whichever source produces the next one.
+    """
+    if isinstance(value, float):
+        return None if math.isnan(value) or math.isinf(value) else value
+    if isinstance(value, dict):
+        return {k: _sanitize_nan(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_sanitize_nan(v) for v in value]
+    return value
+
+
 def _write(path: Path, model: BaseModel) -> int:
     path.parent.mkdir(parents=True, exist_ok=True)
     # mode="json" so dates/datetimes serialize to ISO strings rather than
     # Python objects json.dump can't handle.
-    payload = json.dumps(model.model_dump(mode="json"), separators=(",", ":"))
+    data = _sanitize_nan(model.model_dump(mode="json"))
+    payload = json.dumps(data, separators=(",", ":"))
     path.write_text(payload, encoding="utf-8")
     return len(payload)
 
