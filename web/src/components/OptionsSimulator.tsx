@@ -39,6 +39,11 @@ const H = 300;
 const PAD = { top: 12, right: 16, bottom: 28, left: 56 };
 const SAMPLES = 81;
 
+// The default expiry pick wants at least this many days past the report so
+// the date slider and the time-decay chart have a real week to show, not
+// just the day or two a same-week expiry leaves.
+const MIN_DEFAULT_EXPIRY_WINDOW_DAYS = 7;
+
 /** Calendar days between two ISO dates — a rounding error next to the IV
  * crush assumption, so no need for a trading-calendar-aware version here. */
 function daysBetween(fromIso: string, toIso: string): number {
@@ -152,11 +157,18 @@ export function OptionsSimulator({
       const contracts: ChainContract[] = body.contracts ?? [];
       setState({ status: "done", spot: body.spot, contracts });
 
-      // Seed the picker with a sensible default: front expiry, the strike
-      // nearest spot, a call — so the chart has something to show immediately
-      // rather than three empty dropdowns.
+      // Seed the picker with a sensible default: an expiry with real room
+      // after the print, the strike nearest spot, a call — so the chart has
+      // something to show immediately rather than three empty dropdowns.
+      // The very nearest weekly is often just a day or two past the report,
+      // which makes the date slider and the time-decay chart trivially
+      // short no matter how they're built — falls back to the nearest
+      // expiry only when nothing further out exists.
       const expiries = [...new Set(contracts.map((c) => c.expiry))].sort();
-      const frontExpiry = expiries[0];
+      const anchorDate = reportDate ?? todayIso();
+      const frontExpiry =
+        expiries.find((e) => daysBetween(anchorDate, e) >= MIN_DEFAULT_EXPIRY_WINDOW_DAYS) ??
+        expiries[0];
       if (frontExpiry) {
         setExpiry(frontExpiry);
         const calls = contracts.filter((c) => c.expiry === frontExpiry && c.type === "call");

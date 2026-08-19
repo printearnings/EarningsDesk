@@ -80,7 +80,6 @@ export default async function TickerPage({ params }: { params: Promise<{ ticker:
 }
 
 function SubHeader({ data, record }: { data: TickerData; record: TrackRecordPage }) {
-  const session = sessionLabel(data.next_report_session);
   const showVerdictRecord = Boolean(data.options?.verdict);
   const showDirectionRecord = Boolean(data.direction);
 
@@ -101,20 +100,6 @@ function SubHeader({ data, record }: { data: TickerData; record: TrackRecordPage
           {data.options?.verdict && <VerdictChip verdict={data.options.verdict} />}
           {data.direction && <DirectionChip direction={data.direction} />}
         </div>
-
-        <p className="mt-2 text-[var(--color-body)]">
-          {data.next_report_date ? (
-            <>
-              Reports{" "}
-              <strong className="font-medium text-[var(--color-heading)]">
-                {formatDate(data.next_report_date)}
-              </strong>
-              {session && `, ${session}`} · {relativeDays(data.days_until_report)}
-            </>
-          ) : (
-            "No confirmed earnings date."
-          )}
-        </p>
 
         {/* The one number this whole feature lives or dies on, so its
             freshness and confidence are never left implicit — same rule as
@@ -188,9 +173,22 @@ function SubHeader({ data, record }: { data: TickerData; record: TrackRecordPage
 /** Vertical's KPI row: one metric per bordered white card. */
 function KpiRow({ data }: { data: TickerData }) {
   const o = data.options;
+  const session = sessionLabel(data.next_report_session);
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <StatCard
+        label="Next report"
+        value={data.next_report_date ? formatDate(data.next_report_date) : EMPTY}
+        hint="The next scheduled earnings date."
+        delta={
+          <span className="text-[var(--color-muted)]">
+            {data.next_report_date
+              ? `${session ? `${session} · ` : ""}${relativeDays(data.days_until_report)}`
+              : "No confirmed earnings date"}
+          </span>
+        }
+      />
       <StatCard
         label="Implied move"
         value={pctRange(o?.implied_move)}
@@ -206,13 +204,6 @@ function KpiRow({ data }: { data: TickerData }) {
         label="Put/call ratio"
         value={num(o?.put_call_ratio)}
         hint="Below 1: more call volume than put volume."
-      />
-      <StatCard
-        label="Days to report"
-        value={
-          typeof data.days_until_report === "number" ? String(data.days_until_report) : EMPTY
-        }
-        hint="Calendar days to the next scheduled print."
       />
     </div>
   );
