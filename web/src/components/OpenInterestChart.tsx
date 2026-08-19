@@ -28,6 +28,15 @@ const PAD = { top: 16, right: 10, bottom: 34, left: 48 };
 const MAX_BAR = 22;
 const W = 800;
 
+/** A flat `money(strike, 0)` collapses $8.00 and $8.50 into the same "$8"
+ * label — real for sub-$10 names with half-dollar strike increments (see
+ * the strike ladder this fixed a duplicate on). Show the cents only when
+ * the strike actually has a fractional part, so whole-dollar strikes stay
+ * uncluttered and half-dollar ones stay distinct. */
+function strikeLabel(strike: number): string {
+  return Number.isInteger(strike) ? money(strike, 0) : money(strike, 2);
+}
+
 export function OpenInterestChart({
   rows,
   atmStrike,
@@ -90,7 +99,7 @@ export function OpenInterestChart({
                     }`}
                   >
                     <td className="px-4 py-2.5 font-medium text-[var(--color-heading)]">
-                      {money(r.strike, 0)}
+                      {strikeLabel(r.strike)}
                       {isAtm && (
                         <span className="eyebrow ml-1.5 text-[var(--color-muted)]">ATM</span>
                       )}
@@ -225,7 +234,7 @@ export function OpenInterestChart({
                         : "var(--color-viz-axis)"
                   }
                 >
-                  {money(r.strike, 0)}
+                  {strikeLabel(r.strike)}
                 </text>
                 {isAtm && (
                   <text
@@ -251,7 +260,7 @@ export function OpenInterestChart({
             style={{ left: `${tooltipLeftPct}%`, transform: "translateX(-50%)" }}
           >
             <div className="mb-1 border-b border-[var(--color-border-subtle)] pb-1 font-medium text-[var(--color-heading)]">
-              {money(point.strike, 0)}
+              {strikeLabel(point.strike)}
             </div>
             <div className="tnum flex items-center gap-1.5">
               <span

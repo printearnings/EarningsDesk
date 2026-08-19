@@ -64,7 +64,7 @@ const INDICATOR_OPTIONS: { key: IndicatorKey; label: string }[] = [
 // flat, hard-to-scan line on a wide desktop panel. 340 gives daily price
 // swings enough vertical room to actually show their shape.
 const H = 340;
-const PAD = { top: 16, right: 14, bottom: 28, left: 56 };
+const PAD = { top: 16, right: 14, bottom: 34, left: 56 };
 const W = 800;
 
 // Sub-panels (volume/RSI/MACD) share the main chart's left/right padding —
@@ -85,6 +85,27 @@ const MIN_ZOOM_POINTS = 10;
  * (a market-calendar date) regardless of the reader's own timezone. */
 function etDateString(iso: string): string {
   return new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+}
+
+// How many x-axis ticks to draw. Independent of point density — the same
+// count reads fine whether there are 30 daily bars or 390 one-minute ones,
+// since ticks are picked by evenly spacing *indices*, not raw point count.
+const X_TICK_COUNT = 6;
+
+/** Short axis-tick text for a point's key — deliberately terser than the
+ * hover tooltip's label (no timezone suffix, no year): 1D gets a bare
+ * time-of-day, 5D/1Y get a date, since a reader scanning six ticks along
+ * the bottom needs a shape, not the full precision the tooltip already
+ * gives on demand. */
+function axisLabel(range: Range, key: string): string {
+  if (range === "1d") {
+    return new Date(key).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  }
+  if (range === "5d") {
+    return new Date(key).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  }
+  const [y, m, d] = key.slice(0, 10).split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
 interface Point {
@@ -357,6 +378,7 @@ export function PriceChart({
           points={points}
           markerDates={markerDates}
           intraday={range !== "1y"}
+          range={range}
           chartType={chartType}
           zoomResetKey={range}
           enabledIndicators={enabledIndicators}
@@ -464,6 +486,7 @@ function ChartBody({
   points,
   markerDates,
   intraday,
+  range,
   chartType,
   zoomResetKey,
   enabledIndicators,
@@ -476,6 +499,7 @@ function ChartBody({
   points: Point[];
   markerDates: Set<string>;
   intraday: boolean;
+  range: Range;
   chartType: ChartType;
   zoomResetKey: string;
   enabledIndicators: Set<IndicatorKey>;
@@ -612,6 +636,18 @@ function ChartBody({
 
     const ticks = [lo + (hi - lo) * 0.08, (lo + hi) / 2, hi - (hi - lo) * 0.08];
 
+    // Evenly spaced by index, not by pixel — so on a partial 1D session
+    // (effectivePlotW < plotW) the ticks land only across the real bars,
+    // never out in the blank "future" region. Deduped by index so a short
+    // series (fewer points than X_TICK_COUNT) doesn't repeat a label.
+    const tickCount = Math.min(X_TICK_COUNT, visible.length);
+    const seenTickIdx = new Set<number>();
+    const xTicks = Array.from({ length: tickCount }, (_, i) =>
+      Math.round((i / Math.max(1, tickCount - 1)) * (visible.length - 1)),
+    )
+      .filter((idx) => (seenTickIdx.has(idx) ? false : (seenTickIdx.add(idx), true)))
+      .map((idx) => ({ x: x(idx), label: axisLabel(range, visible[idx].key) }));
+
     return {
       x,
       y,
@@ -621,13 +657,24 @@ function ChartBody({
       smaLine,
       emaLine,
       ticks,
+      xTicks,
       plotW,
       effectivePlotW,
       plotH,
       min,
       max,
     };
-  }, [visible, markerDates, intraday, sma20, ema50, enabledIndicators, zoom, partialSessionFraction]);
+  }, [
+    visible,
+    markerDates,
+    intraday,
+    range,
+    sma20,
+    ema50,
+    enabledIndicators,
+    zoom,
+    partialSessionFraction,
+  ]);
 
   // Volume/RSI/MACD sub-panels — each its own tiny chart, sharing `chart.x`
   // (and so the same horizontal alignment) with the candles above them.
@@ -928,6 +975,23 @@ function ChartBody({
                 ${t.toFixed(0)}
               </text>
             </g>
+          ))}
+
+          {/* X-axis: time-of-day on 1D, date on 5D/1Y. Ticks are spaced by
+              index into `visible`, so on a partial 1D session they land only
+              across the real bars — never out in the blank "future" region
+              the effectivePlotW scaling leaves empty. */}
+          {chart.xTicks.map((t, i) => (
+            <text
+              key={i}
+              x={t.x}
+              y={H - PAD.bottom + 16}
+              textAnchor="middle"
+              fontSize={10}
+              fill="var(--color-viz-axis)"
+            >
+              {t.label}
+            </text>
           ))}
 
           {/* SMA/EMA overlays render under the price line so the primary
