@@ -44,14 +44,14 @@ export function NextToReportList({ entries }: { entries: CalendarEntry[] }) {
                   <span className="tnum block text-sm font-medium text-[var(--color-heading)]">
                     {pctRange(entry.implied_move)}
                   </span>
-                  <span className="block text-sm text-[var(--color-muted)]">{when}</span>
-                  {/* BMO/AMC as the tag alone, under the day text — no
-                      "before the open"/"after the close" prose next to it. */}
-                  {(entry.session === "BMO" || entry.session === "AMC") && (
-                    <span className="mt-1 block">
-                      <SessionChip session={entry.session} />
-                    </span>
-                  )}
+                  {/* The day text and the bare BMO/AMC tag share one line,
+                      right-aligned under the implied move — no
+                      "before the open"/"after the close" prose, and no
+                      third stacked line leaving dead space in the row. */}
+                  <span className="mt-0.5 flex items-center justify-end gap-1.5">
+                    <span className="text-sm text-[var(--color-muted)]">{when}</span>
+                    <SessionChip session={entry.session} />
+                  </span>
                 </span>
               </Link>
             </li>
