@@ -986,7 +986,12 @@ function ChartBody({
               key={i}
               x={t.x}
               y={H - PAD.bottom + 16}
-              textAnchor="middle"
+              // Center-anchoring every tick, including the first/last, ran
+              // the edge labels past the card boundary (the last one — e.g.
+              // "Aug 18" — got clipped mid-character). Anchor those two off
+              // their own edge instead, so they grow inward rather than out
+              // past the plot.
+              textAnchor={i === 0 ? "start" : i === chart.xTicks.length - 1 ? "end" : "middle"}
               fontSize={10}
               fill="var(--color-viz-axis)"
             >
@@ -1087,8 +1092,16 @@ function ChartBody({
 
         {point && (
           <div
-            className="pointer-events-none absolute top-0 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-panel)] px-2.5 py-2 text-xs"
-            style={{ left: `${(chart.x(hover!) / W) * 100}%`, transform: "translateX(-50%)" }}
+            className="pointer-events-none absolute top-0 w-max max-w-40 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-panel)] px-2.5 py-2 text-xs"
+            style={{
+              // Clamped the same way OpenInterestChart's tooltip is — an
+              // unclamped `translateX(-50%)` centered on the cursor pushes
+              // half the box past the card edge near either end of the
+              // series, which is what was squeezing the date onto three
+              // wrapped lines in the top-right corner.
+              left: `${Math.min(92, Math.max(8, (chart.x(hover!) / W) * 100))}%`,
+              transform: "translateX(-50%)",
+            }}
           >
             <div className="mb-1 border-b border-[var(--color-border-subtle)] pb-1 text-[var(--color-muted)]">
               {point.label}
