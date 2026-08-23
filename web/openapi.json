@@ -2463,6 +2463,38 @@
               }
             ],
             "title": "Dir Accuracy"
+          },
+          "rich_edge": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rich Edge"
+          },
+          "rich_edge_scored": {
+            "type": "integer",
+            "title": "Rich Edge Scored",
+            "default": 0
+          },
+          "cheap_edge": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cheap Edge"
+          },
+          "cheap_edge_scored": {
+            "type": "integer",
+            "title": "Cheap Edge Scored",
+            "default": 0
           }
         },
         "type": "object",

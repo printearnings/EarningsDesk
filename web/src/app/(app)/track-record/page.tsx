@@ -34,12 +34,44 @@ export default async function TrackRecordPage() {
 
           {typeof record.avg_long_straddle_pnl === "number" && (
             <p className="mt-5 border-t border-[var(--color-border-subtle)] pt-4 text-sm text-[var(--color-muted)]">
-              Average long-straddle proxy P&amp;L across scored events:{" "}
+              Average long-straddle proxy P&amp;L across scored events, RICH and CHEAP blended
+              with no sign correction (as if every call had bought a straddle, which is not
+              what either verdict actually recommends):{" "}
               <span className="tnum font-medium text-[var(--color-heading)]">
                 {pct(record.avg_long_straddle_pnl)}
               </span>
+              . See the recommended-structure edge below for the sign-corrected read.
             </p>
           )}
+        </Panel>
+
+        <Panel
+          title="Recommended-structure edge"
+          subtitle="Sign-corrected for the structure each verdict actually recommends: selling premium on RICH, buying it on CHEAP"
+        >
+          <dl className="grid grid-cols-2 gap-5 sm:grid-cols-4">
+            <StatCard label="RICH calls scored" value={String(record.rich_edge_scored)} />
+            <StatCard
+              label="RICH edge"
+              value={record.rich_edge === null ? "Not enough data" : pct(record.rich_edge)}
+              tone={record.rich_edge === null ? "muted" : "default"}
+              hint="Selling premium on a RICH call wins when the realized move stays under implied, i.e. the straddle-proxy pnl negative, sign-flipped here so a win reads positive. Withheld below four scored RICH calls."
+            />
+            <StatCard label="CHEAP calls scored" value={String(record.cheap_edge_scored)} />
+            <StatCard
+              label="CHEAP edge"
+              value={record.cheap_edge === null ? "Not enough data" : pct(record.cheap_edge)}
+              tone={record.cheap_edge === null ? "muted" : "default"}
+              hint="Buying premium on a CHEAP call wins when the realized move beats implied, i.e. the straddle-proxy pnl as-is. Withheld below four scored CHEAP calls."
+            />
+          </dl>
+
+          <p className="mt-5 border-t border-[var(--color-border-subtle)] pt-4 text-sm text-[var(--color-muted)]">
+            Kept split by verdict rather than blended into one number, same reason verdict and
+            direction accuracy stay on separate axes above: CHEAP has scored a fraction of
+            RICH&apos;s sample size so far, and blending the two would let CHEAP borrow RICH&apos;s
+            statistical significance.
+          </p>
         </Panel>
 
         <Panel

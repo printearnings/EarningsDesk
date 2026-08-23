@@ -395,6 +395,17 @@ class TrackRecordPage(BaseModel):
     dir_scored: int = 0
     dir_correct: int = 0
     dir_accuracy: float | None = None
+    # Sign-corrected edge of the structure each verdict actually recommends
+    # (sell premium on RICH, buy on CHEAP), unlike avg_long_straddle_pnl
+    # above which blends both un-corrected as if every call bought a
+    # straddle. Kept split rather than merged into one number, same reason
+    # accuracy/dir_accuracy stay split — CHEAP's sample size is currently a
+    # fraction of RICH's, and blending would let it borrow RICH's
+    # significance.
+    rich_edge: float | None = None
+    rich_edge_scored: int = 0
+    cheap_edge: float | None = None
+    cheap_edge_scored: int = 0
 
 
 class TickerIndexEntry(BaseModel):

@@ -13,7 +13,7 @@ from datetime import UTC, date, datetime, timedelta
 import pytest
 from earnings.store import repo
 from earnings.store.models import Base
-from earnings.store.repo import TimelineEvent
+from earnings.store.repo import TimelineEvent, TrackRecord
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
@@ -750,3 +750,36 @@ def test_past_moves_skips_individually_bad_rows(s):
     )
     moves = pages.ticker_page(s, "NVDA", now=NOW).past_moves
     assert [m.report_date for m in moves] == [date(2026, 5, 20), date(2025, 8, 20)]
+
+
+def test_track_record_page_carries_every_field_through():
+    """A field silently dropped between the engine's TrackRecord and the
+    wire schema is exactly the class of bug this guards against — the whole
+    point of rich_edge/cheap_edge existing is that they reach the page."""
+    record = TrackRecord(
+        scored=10,
+        directional=8,
+        correct=5,
+        accuracy=0.625,
+        avg_long_straddle_pnl=-0.05,
+        dir_scored=2,
+        dir_correct=1,
+        dir_accuracy=None,
+        rich_edge=0.277,
+        rich_edge_scored=38,
+        cheap_edge=0.109,
+        cheap_edge_scored=16,
+    )
+    page = pages.track_record_page(record)
+    assert page.scored == 10
+    assert page.directional == 8
+    assert page.correct == 5
+    assert page.accuracy == 0.625
+    assert page.avg_long_straddle_pnl == -0.05
+    assert page.dir_scored == 2
+    assert page.dir_correct == 1
+    assert page.dir_accuracy is None
+    assert page.rich_edge == 0.277
+    assert page.rich_edge_scored == 38
+    assert page.cheap_edge == 0.109
+    assert page.cheap_edge_scored == 16

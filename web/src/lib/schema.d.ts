@@ -892,6 +892,20 @@ export interface components {
             dir_correct: number;
             /** Dir Accuracy */
             dir_accuracy?: number | null;
+            /** Rich Edge */
+            rich_edge?: number | null;
+            /**
+             * Rich Edge Scored
+             * @default 0
+             */
+            rich_edge_scored: number;
+            /** Cheap Edge */
+            cheap_edge?: number | null;
+            /**
+             * Cheap Edge Scored
+             * @default 0
+             */
+            cheap_edge_scored: number;
         };
         /** ValidationError */
         ValidationError: {

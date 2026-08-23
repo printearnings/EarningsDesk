@@ -594,4 +594,8 @@ def track_record_page(record: TrackRecord) -> TrackRecordPage:
         dir_scored=record.dir_scored,
         dir_correct=record.dir_correct,
         dir_accuracy=record.dir_accuracy,
+        rich_edge=record.rich_edge,
+        rich_edge_scored=record.rich_edge_scored,
+        cheap_edge=record.cheap_edge,
+        cheap_edge_scored=record.cheap_edge_scored,
     )
