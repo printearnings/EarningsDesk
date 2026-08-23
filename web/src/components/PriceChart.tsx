@@ -1149,7 +1149,10 @@ function ChartBody({
           )}
         </svg>
 
-        {point && (
+        {/* Suppressed while a badge is pinned: both tooltips anchor to the
+            same x, so showing them together stacks two boxes on one spot.
+            A pin is a deliberate "hold this one", so it wins. */}
+        {point && !pinnedMarkerData && (
           <div
             className="pointer-events-none absolute top-0 w-max max-w-40 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-panel)] px-2.5 py-2 text-xs"
             style={{
@@ -1217,9 +1220,32 @@ function ChartBody({
               </button>
             </div>
             <div className="text-[var(--color-muted)]">{pinnedMarkerData.label}</div>
-            <div className="tnum mt-0.5 font-semibold text-[var(--color-heading)]">
-              {money(pinnedMarkerData.close)}
-            </div>
+            {/* Same OHLC the hover tooltip would have shown for this bar —
+                pinning shouldn't cost the reader detail. `bar` is looked up
+                rather than carried on the marker so it stays correct if the
+                underlying series is re-sliced by a zoom. */}
+            {(() => {
+              const bar = visible.find((p) => p.key === pinnedMarkerData.key);
+              if (bar?.open === undefined) {
+                return (
+                  <div className="tnum mt-0.5 font-semibold text-[var(--color-heading)]">
+                    {money(pinnedMarkerData.close)}
+                  </div>
+                );
+              }
+              return (
+                <div className="tnum mt-1 grid grid-cols-2 gap-x-2 gap-y-0.5 font-semibold text-[var(--color-heading)]">
+                  <span className="text-[var(--color-muted)]">O</span>
+                  <span>{money(bar.open)}</span>
+                  <span className="text-[var(--color-muted)]">H</span>
+                  <span>{money(bar.high)}</span>
+                  <span className="text-[var(--color-muted)]">L</span>
+                  <span>{money(bar.low)}</span>
+                  <span className="text-[var(--color-muted)]">C</span>
+                  <span>{money(bar.close)}</span>
+                </div>
+              );
+            })()}
           </div>
         )}
       </div>
