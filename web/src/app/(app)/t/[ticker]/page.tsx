@@ -101,55 +101,64 @@ function SubHeader({ data, record }: { data: TickerData; record: TrackRecordPage
           {data.direction && <DirectionChip direction={data.direction} />}
         </div>
 
-        {/* The one number this whole feature lives or dies on, so its
-            freshness and confidence are never left implicit — same rule as
-            the snapshot-age label on the right. */}
+        {/* These were two dot-separated prose lines in muted small text —
+            four distinct numbers a reader has to parse a sentence to find.
+            As labelled micro-tiles each value is scannable on its own, and
+            the label carries the meaning the prose was spending words on. */}
+        {(data.direction || showVerdictRecord || showDirectionRecord) && (
+          <div className="mt-3 flex flex-wrap items-stretch gap-2">
+            {data.direction && typeof data.direction_confidence === "number" && (
+              <MicroStat
+                label="Confidence"
+                value={pct(data.direction_confidence, 0)}
+                hint="How strongly the options flow and sentiment agree on this direction."
+              />
+            )}
+            {data.direction && data.direction_as_of && (
+              <MicroStat
+                label="Read as of"
+                value={formatDateShort(data.direction_as_of)}
+                hint="When the directional read was last refreshed."
+              />
+            )}
+            {showVerdictRecord && (
+              <MicroStat
+                label="Verdict calls"
+                value={record.accuracy === null ? "—" : pct(record.accuracy, 0)}
+                sub={record.accuracy === null ? "not enough history" : `${record.correct}/${record.scored} right`}
+                hint="How often a rich/cheap call has been right, site-wide."
+              />
+            )}
+            {showDirectionRecord && (
+              <MicroStat
+                label="Direction calls"
+                value={record.dir_accuracy === null ? "—" : pct(record.dir_accuracy, 0)}
+                sub={
+                  record.dir_accuracy === null
+                    ? "not enough history"
+                    : `${record.dir_correct}/${record.dir_scored} right`
+                }
+                hint="How often a bullish/bearish call has been right, site-wide."
+              />
+            )}
+          </div>
+        )}
+
         {data.direction ? (
-          <p className="mt-1 text-sm text-[var(--color-muted)]">
-            {typeof data.direction_confidence === "number"
-              ? `${pct(data.direction_confidence, 0)} confidence`
-              : null}
-            {data.direction_as_of && ` · as of ${formatDateShort(data.direction_as_of)}`}
-            {" · options flow + sentiment, not a recommendation"}
+          <p className="mt-2 text-sm text-[var(--color-muted)]">
+            Options flow + sentiment, not a recommendation ·{" "}
+            <Link href="/track-record/" className="underline underline-offset-2">
+              Track record
+            </Link>
           </p>
         ) : (
           typeof data.days_until_report === "number" &&
           data.days_until_report >= 0 &&
           data.days_until_report <= DIRECTION_HEADS_UP_DAYS && (
-            <p className="mt-1 text-sm text-[var(--color-muted)]">
+            <p className="mt-2 text-sm text-[var(--color-muted)]">
               Directional read not available yet. It starts a few days before the report.
             </p>
           )
-        )}
-
-        {/* The credibility check for the chip(s) above: how often this exact
-            kind of call has been right, site-wide. Shown next to the call
-            itself, not only on the standalone Track Record page, since that
-            is the moment the number is actually useful for a decision. */}
-        {(showVerdictRecord || showDirectionRecord) && (
-          <p className="mt-1 text-sm text-[var(--color-muted)]">
-            {showVerdictRecord && (
-              <>
-                Verdict calls:{" "}
-                {record.accuracy === null
-                  ? "not enough scored history"
-                  : `${pct(record.accuracy, 0)} right (${record.correct}/${record.scored})`}
-              </>
-            )}
-            {showVerdictRecord && showDirectionRecord && " · "}
-            {showDirectionRecord && (
-              <>
-                Direction calls:{" "}
-                {record.dir_accuracy === null
-                  ? "not enough scored history"
-                  : `${pct(record.dir_accuracy, 0)} right (${record.dir_correct}/${record.dir_scored})`}
-              </>
-            )}
-            {" · "}
-            <Link href="/track-record/" className="underline underline-offset-2">
-              Track record
-            </Link>
-          </p>
         )}
       </div>
 
@@ -167,6 +176,35 @@ function SubHeader({ data, record }: { data: TickerData; record: TrackRecordPage
         )}
       </div>
     </header>
+  );
+}
+
+/**
+ * A compact bordered tile for the sub-header's credibility numbers —
+ * smaller than the KPI row's StatCard, which would overpower the price
+ * and verdict chips it sits under. Same visual language (border, panel
+ * fill, eyebrow label), one step down in scale.
+ */
+function MicroStat({
+  label,
+  value,
+  sub,
+  hint,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  hint?: string;
+}) {
+  return (
+    <div
+      className="rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-panel)] px-3 py-2"
+      title={hint}
+    >
+      <p className="eyebrow text-[var(--color-muted)]">{label}</p>
+      <p className="tnum mt-0.5 text-sm font-semibold text-[var(--color-heading)]">{value}</p>
+      {sub && <p className="tnum text-2xs mt-0.5 text-[var(--color-muted)]">{sub}</p>}
+    </div>
   );
 }
 

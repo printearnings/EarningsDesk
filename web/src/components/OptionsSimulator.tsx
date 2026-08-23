@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Panel, StatCard } from "@/components/Panel";
+import { StrategyLegs } from "@/components/StrategyLegs";
 import {
   blackScholesPrice,
   breakevenAtExpiry,
@@ -84,11 +85,22 @@ export function OptionsSimulator({
   ticker,
   reportDate,
   reportSession,
+  verdict,
+  direction,
+  ivInverted,
   autoLoad = false,
 }: {
   ticker: string;
   reportDate: string | null;
   reportSession: string | null;
+  /** The same three reads the Structure card uses. Passing them in lets
+   * the suggested structure resolve to real strikes off the chain this
+   * component already fetched, instead of paying for a second one.
+   * Optional so the standalone Simulator page — which has no snapshot
+   * context — still works as a plain calculator. */
+  verdict?: string | null;
+  direction?: string | null;
+  ivInverted?: boolean | null;
   /** Skip the manual "Load live chain" click and fire it on mount instead.
    * Off by default (the ticker page's own Options tab links here as one of
    * several things to browse, so spending the metered call still wants an
@@ -467,6 +479,20 @@ export function OptionsSimulator({
           </div>
         )}
       </Panel>
+
+      {/* Above the single-leg builder's own output: it answers "what would
+          the suggested structure actually be", which is the question the
+          Structure card leaves open, and it needs no input from the picker
+          below. Renders only where a verdict exists to derive one from. */}
+      {state.status === "done" && expiry && verdict && (
+        <StrategyLegs
+          verdict={verdict}
+          direction={direction}
+          ivInverted={ivInverted}
+          contracts={state.contracts}
+          expiry={expiry}
+        />
+      )}
 
       {state.status === "done" && scenario && strike !== null && (
         <>

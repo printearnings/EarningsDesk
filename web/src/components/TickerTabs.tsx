@@ -303,6 +303,9 @@ function OptionsPanelCard({ data }: { data: TickerData }) {
           ticker={data.ticker}
           reportDate={data.next_report_date ?? null}
           reportSession={data.next_report_session ?? null}
+          verdict={o.verdict}
+          direction={data.direction}
+          ivInverted={o.iv_inverted}
           autoLoad
         />
       )}

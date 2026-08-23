@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { type ChainContract, recommendStrategy, selectStrikes } from "./strategy";
+import {
+  type ChainContract,
+  recommendStrategy,
+  selectStrikes,
+  strategyEconomics,
+} from "./strategy";
 
 // ---------------------------------------------------------------------------
 // recommendStrategy — the decision matrix
@@ -263,5 +268,148 @@ describe("selectStrikes", () => {
     const plan = selectStrikes("none", CHAIN, EXPIRY);
     expect(plan.legs).toHaveLength(0);
     expect(plan.complete).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// strategyEconomics — cost, risk, breakevens
+// ---------------------------------------------------------------------------
+
+/** A plan built by hand so each case pins exact numbers rather than
+ * whatever the delta matcher happened to pick. */
+function planOf(
+  type: Parameters<typeof strategyEconomics>[0]["type"],
+  legs: Array<{
+    action: "buy" | "sell";
+    type: "call" | "put";
+    strike: number;
+    price: number;
+    expiry?: string;
+  }>,
+) {
+  return {
+    type,
+    complete: true,
+    legs: legs.map((l) => ({
+      action: l.action,
+      type: l.type,
+      expiry: l.expiry ?? EXPIRY,
+      targetDelta: 0.2,
+      contract: {
+        strike: l.strike,
+        expiry: l.expiry ?? EXPIRY,
+        type: l.type,
+        price: l.price,
+        iv: 0.5,
+        delta: 0.2,
+        open_interest: 10,
+      },
+    })),
+  };
+}
+
+describe("strategyEconomics", () => {
+  it("bull put spread: credit, width-minus-credit risk, one breakeven", () => {
+    // Sell 95p for 2.00, buy 90p for 1.00 -> $1.00 credit on a $5 width.
+    const e = strategyEconomics(
+      planOf("bull_put_spread", [
+        { action: "sell", type: "put", strike: 95, price: 2 },
+        { action: "buy", type: "put", strike: 90, price: 1 },
+      ]),
+    )!;
+    expect(e.netCredit).toBe(100);
+    expect(e.maxProfit).toBe(100);
+    expect(e.maxLoss).toBe(400); // (5 - 1) * 100
+    expect(e.breakevens).toEqual([94]); // short strike - credit
+  });
+
+  it("bear call spread mirrors it on the call side", () => {
+    const e = strategyEconomics(
+      planOf("bear_call_spread", [
+        { action: "sell", type: "call", strike: 105, price: 2 },
+        { action: "buy", type: "call", strike: 110, price: 1 },
+      ]),
+    )!;
+    expect(e.netCredit).toBe(100);
+    expect(e.maxLoss).toBe(400);
+    expect(e.breakevens).toEqual([106]); // short strike + credit
+  });
+
+  it("iron condor: risk is the WIDER wing, not the sum of both", () => {
+    // Only one side can finish ITM — charging both would double-count.
+    const e = strategyEconomics(
+      planOf("iron_condor", [
+        { action: "sell", type: "put", strike: 95, price: 1.5 },
+        { action: "buy", type: "put", strike: 90, price: 0.5 }, // $5 wing
+        { action: "sell", type: "call", strike: 105, price: 1.5 },
+        { action: "buy", type: "call", strike: 115, price: 0.5 }, // $10 wing
+      ]),
+    )!;
+    expect(e.netCredit).toBe(200); // (1.5 - 0.5) * 2 * 100
+    expect(e.maxProfit).toBe(200);
+    expect(e.maxLoss).toBe(800); // (10 - 2) * 100, the wider wing only
+    expect(e.breakevens).toEqual([93, 107]);
+  });
+
+  it("debit spread: pays a debit, capped both ways", () => {
+    const e = strategyEconomics(
+      planOf("call_debit_spread", [
+        { action: "buy", type: "call", strike: 100, price: 3 },
+        { action: "sell", type: "call", strike: 105, price: 1 },
+      ]),
+    )!;
+    expect(e.netCredit).toBe(-200); // a debit is a negative credit
+    expect(e.maxLoss).toBe(200);
+    expect(e.maxProfit).toBe(300); // (5 - 2) * 100
+    expect(e.breakevens).toEqual([102]);
+  });
+
+  it("long straddle: unbounded upside is null, never a number", () => {
+    const e = strategyEconomics(
+      planOf("long_straddle", [
+        { action: "buy", type: "call", strike: 100, price: 3 },
+        { action: "buy", type: "put", strike: 100, price: 2 },
+      ]),
+    )!;
+    expect(e.netCredit).toBe(-500);
+    expect(e.maxLoss).toBe(500);
+    // A capped number here would understate the position's whole point.
+    expect(e.maxProfit).toBeNull();
+    expect(e.breakevens).toEqual([95, 105]);
+  });
+
+  it("calendar spans expiries, so it reports the debit but no expiry payoff", () => {
+    const e = strategyEconomics(
+      planOf("calendar_call", [
+        { action: "sell", type: "call", strike: 100, price: 2, expiry: EXPIRY },
+        { action: "buy", type: "call", strike: 100, price: 3.5, expiry: BACK_EXPIRY },
+      ]),
+    )!;
+    expect(e.netCredit).toBe(-150);
+    expect(e.maxProfit).toBeNull();
+    expect(e.maxLoss).toBeNull();
+    expect(e.breakevens).toEqual([]);
+  });
+
+  it("returns null rather than a confident number built on a hole", () => {
+    // An incomplete plan...
+    expect(strategyEconomics({ type: "iron_condor", legs: [], complete: false })).toBeNull();
+
+    // ...and a complete one whose leg has no quoted price.
+    const unpriced = planOf("bull_put_spread", [
+      { action: "sell", type: "put", strike: 95, price: 2 },
+      { action: "buy", type: "put", strike: 90, price: 1 },
+    ]);
+    unpriced.legs[1].contract.price = null as unknown as number;
+    expect(strategyEconomics(unpriced)).toBeNull();
+  });
+
+  it("works end-to-end off a real selectStrikes plan", () => {
+    const plan = selectStrikes("iron_condor", CHAIN, EXPIRY);
+    const e = strategyEconomics(plan);
+    expect(e).not.toBeNull();
+    expect(e!.maxLoss).toBeGreaterThan(0);
+    expect(e!.breakevens).toHaveLength(2);
+    expect(e!.breakevens[0]).toBeLessThan(e!.breakevens[1]);
   });
 });

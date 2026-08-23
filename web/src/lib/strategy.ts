@@ -368,3 +368,144 @@ export function selectStrikes(
 
   return { type: strategy, legs, complete: legs.length > 0 && legs.every((l) => l.contract) };
 }
+
+// ---------------------------------------------------------------------------
+// Economics
+// ---------------------------------------------------------------------------
+
+/** Every US equity option contract's multiplier — mirrors
+ * blackScholes.CONTRACT_MULTIPLIER, duplicated so this module stays
+ * dependency-free the same way ChainContract is. */
+const CONTRACT_MULTIPLIER = 100;
+
+export interface StrategyEconomics {
+  /** Positive = the position collects premium (a credit); negative = it
+   * pays (a debit). Per one contract of each leg, in dollars. */
+  netCredit: number;
+  /** null where the payoff is genuinely unbounded — a long straddle's
+   * upside, for instance. Not the same as zero, and must not render as it. */
+  maxProfit: number | null;
+  maxLoss: number | null;
+  /** Underlying prices where the position breaks even at expiration.
+   * Empty when the structure spans expiries (a calendar's value at the
+   * front expiry depends on the back leg's remaining time value, which
+   * needs a model, not arithmetic). */
+  breakevens: number[];
+}
+
+/** Widest strike gap between a short and long leg on one side — a vertical
+ * spread's risk is the width it can't exceed. */
+function verticalWidth(legs: StrategyLeg[], type: "call" | "put"): number | null {
+  const side = legs.filter((l) => l.type === type && l.contract);
+  if (side.length < 2) return null;
+  const strikes = side.map((l) => l.contract!.strike);
+  return Math.max(...strikes) - Math.min(...strikes);
+}
+
+/**
+ * Cost, risk and breakevens for a resolved plan — the numbers that decide
+ * whether a structure is worth putting on, which the strategy name alone
+ * can't tell you.
+ *
+ * Returns null for an incomplete plan or any leg missing a price: a
+ * partially-priced spread would produce a confident-looking number built
+ * on a hole, which is worse than showing nothing.
+ *
+ * Single-expiry structures only. A calendar's legs expire on different
+ * dates, so there is no single expiration payoff to take a max over —
+ * `maxProfit`/`maxLoss` stay null rather than pretending otherwise.
+ */
+export function strategyEconomics(plan: StrategyPlan): StrategyEconomics | null {
+  if (!plan.complete || plan.legs.length === 0) return null;
+  if (plan.legs.some((l) => l.contract?.price === null || l.contract?.price === undefined)) {
+    return null;
+  }
+
+  // Selling collects the premium, buying pays it.
+  const netCredit =
+    plan.legs.reduce(
+      (sum, l) => sum + (l.action === "sell" ? l.contract!.price! : -l.contract!.price!),
+      0,
+    ) * CONTRACT_MULTIPLIER;
+
+  const isCalendar = plan.type === "calendar_call" || plan.type === "calendar_put";
+  if (isCalendar) {
+    // The debit is real and known; the payoff isn't, for the reason above.
+    return { netCredit, maxProfit: null, maxLoss: null, breakevens: [] };
+  }
+
+  const putWidth = verticalWidth(plan.legs, "put");
+  const callWidth = verticalWidth(plan.legs, "call");
+  const perShareCredit = netCredit / CONTRACT_MULTIPLIER;
+
+  switch (plan.type) {
+    case "iron_condor": {
+      // Only one side can finish in the money, so risk is the wider wing.
+      const width = Math.max(putWidth ?? 0, callWidth ?? 0);
+      const shortPut = plan.legs.find((l) => l.type === "put" && l.action === "sell")!.contract!;
+      const shortCall = plan.legs.find((l) => l.type === "call" && l.action === "sell")!.contract!;
+      return {
+        netCredit,
+        maxProfit: netCredit,
+        maxLoss: (width - perShareCredit) * CONTRACT_MULTIPLIER,
+        breakevens: [shortPut.strike - perShareCredit, shortCall.strike + perShareCredit],
+      };
+    }
+    case "bull_put_spread":
+    case "bear_call_spread": {
+      const width = (putWidth ?? callWidth)!;
+      const short = plan.legs.find((l) => l.action === "sell")!.contract!;
+      const be =
+        plan.type === "bull_put_spread"
+          ? short.strike - perShareCredit
+          : short.strike + perShareCredit;
+      return {
+        netCredit,
+        maxProfit: netCredit,
+        maxLoss: (width - perShareCredit) * CONTRACT_MULTIPLIER,
+        breakevens: [be],
+      };
+    }
+    case "call_debit_spread":
+    case "put_debit_spread": {
+      const width = (callWidth ?? putWidth)!;
+      const debit = -perShareCredit;
+      const long = plan.legs.find((l) => l.action === "buy")!.contract!;
+      const be =
+        plan.type === "call_debit_spread" ? long.strike + debit : long.strike - debit;
+      return {
+        netCredit,
+        maxProfit: (width - debit) * CONTRACT_MULTIPLIER,
+        maxLoss: -netCredit,
+        breakevens: [be],
+      };
+    }
+    case "long_straddle":
+    case "long_strangle": {
+      const debit = -perShareCredit;
+      const call = plan.legs.find((l) => l.type === "call")!.contract!;
+      const put = plan.legs.find((l) => l.type === "put")!.contract!;
+      return {
+        netCredit,
+        // Upside on a long call is unbounded — null, never a large number
+        // that would read as a cap.
+        maxProfit: null,
+        maxLoss: -netCredit,
+        breakevens: [put.strike - debit, call.strike + debit],
+      };
+    }
+    case "long_call":
+    case "long_put": {
+      const debit = -perShareCredit;
+      const c = plan.legs[0].contract!;
+      return {
+        netCredit,
+        maxProfit: plan.type === "long_call" ? null : (c.strike - debit) * CONTRACT_MULTIPLIER,
+        maxLoss: -netCredit,
+        breakevens: [plan.type === "long_call" ? c.strike + debit : c.strike - debit],
+      };
+    }
+    default:
+      return { netCredit, maxProfit: null, maxLoss: null, breakevens: [] };
+  }
+}
