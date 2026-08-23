@@ -40,15 +40,21 @@ export function NextToReportList({ entries }: { entries: CalendarEntry[] }) {
                   {entry.ticker}
                 </span>
                 <VerdictChip verdict={entry.verdict} />
-                <span className="ml-auto text-right">
-                  <span className="tnum block text-sm font-medium text-[var(--color-heading)]">
+                {/* flex-col + items-end, not a bare `text-right` span — a
+                    plain inline span sizes to whichever line is widest and
+                    lets the other line's own (narrower) box pick its own
+                    right edge, which is what made the day/session line
+                    wobble left-right between rows instead of sharing one
+                    consistent right edge with the implied-move line above
+                    it. */}
+                <span className="ml-auto flex flex-col items-end gap-0.5">
+                  <span className="tnum text-sm font-medium text-[var(--color-heading)]">
                     {pctRange(entry.implied_move)}
                   </span>
-                  {/* The day text and the bare BMO/AMC tag share one line,
-                      right-aligned under the implied move — no
-                      "before the open"/"after the close" prose, and no
+                  {/* The day text and the bare BMO/AMC tag share one line —
+                      no "before the open"/"after the close" prose, and no
                       third stacked line leaving dead space in the row. */}
-                  <span className="mt-0.5 flex items-center justify-end gap-1.5">
+                  <span className="flex items-center gap-1.5">
                     <span className="text-sm text-[var(--color-muted)]">{when}</span>
                     <SessionChip session={entry.session} />
                   </span>
