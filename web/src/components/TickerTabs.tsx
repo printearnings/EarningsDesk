@@ -4,8 +4,10 @@ import { useState } from "react";
 import { motion } from "motion/react";
 import { useRouter, useSearchParams } from "next/navigation";
 
+import { AnalystRatings } from "@/components/AnalystRatings";
 import { DirectionChip, SessionChip, VerdictChip } from "@/components/Chip";
 import { FinancialsPanel } from "@/components/FinancialsPanel";
+import { FundamentalsGrid } from "@/components/FundamentalsGrid";
 import { ImpliedVsRealized } from "@/components/ImpliedVsRealized";
 import { InsidersPanel } from "@/components/InsidersPanel";
 import { NewsThumbnail } from "@/components/NewsThumbnail";
@@ -13,6 +15,7 @@ import { OpenInterestChart } from "@/components/OpenInterestChart";
 import { OptionsSimulator } from "@/components/OptionsSimulator";
 import { Panel, Stat } from "@/components/Panel";
 import { PriceChart } from "@/components/PriceChart";
+import { StrategyCard } from "@/components/StrategyCard";
 import type { PricePoint, TickerPage as TickerData } from "@/lib/api";
 import {
   EMPTY,
@@ -115,7 +118,10 @@ export function TickerTabs({ data }: { data: TickerData }) {
       <div className="pt-6">
         {visited.has("price") && (
           <div hidden={active !== "price"}>
-            <Panel subtitle="Daily and intraday prices. Earnings dates marked on every view.">
+            {/* Not "marked on every view" — the marker only appears where a
+                report date actually falls inside the window on screen, which
+                for a 1D/5D intraday range is the exception, not the rule. */}
+            <Panel subtitle="Daily and intraday prices. Past earnings dates are marked where they fall in view — click one for that day's price.">
               <PriceChart prices={data.prices} events={data.history} ticker={data.ticker} />
             </Panel>
           </div>
@@ -146,7 +152,13 @@ export function TickerTabs({ data }: { data: TickerData }) {
         )}
 
         {visited.has("financials") && (
-          <div hidden={active !== "financials"}>
+          <div hidden={active !== "financials"} className="space-y-6">
+            {/* Ratio grid first: it's the "what kind of company is this"
+                context that the statement history below then details. Both
+                come baked into the page payload, unlike FinancialsPanel's
+                own client-fetched statements. */}
+            <FundamentalsGrid data={data.fundamentals} />
+            <AnalystRatings rows={data.analyst_ratings ?? []} />
             <FinancialsPanel ticker={data.ticker} />
           </div>
         )}
@@ -275,6 +287,15 @@ function OptionsPanelCard({ data }: { data: TickerData }) {
           </div>
         )}
       </Panel>
+
+      {/* Between the numbers and the simulator on purpose: it reads the
+          verdict/direction stated above it, and the simulator below is
+          where those turn into actual priced legs. */}
+      <StrategyCard
+        verdict={o.verdict}
+        direction={data.direction}
+        ivInverted={o.iv_inverted}
+      />
 
       {simulatorOpen && (
         <OptionsSimulator

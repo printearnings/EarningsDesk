@@ -307,6 +307,99 @@
         "title": "AiSummary",
         "description": "Structured so the UI can lay it out, rather than dumping a paragraph.\n\nDescribes what the numbers say. Never recommends a trade \u2014 see the\nconventions in the engine's PLAN-BOT.md."
       },
+      "AnalystRatingRow": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "firm": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Firm"
+          },
+          "action": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action",
+            "description": "up | down | init | main | reit"
+          },
+          "from_grade": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Grade"
+          },
+          "to_grade": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "To Grade"
+          },
+          "price_target_action": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Target Action"
+          },
+          "current_price_target": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Price Target"
+          },
+          "prior_price_target": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prior Price Target"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date"
+        ],
+        "title": "AnalystRatingRow",
+        "description": "One analyst upgrade/downgrade/initiation, as filed."
+      },
       "CalendarEntry": {
         "properties": {
           "ticker": {
@@ -713,6 +806,377 @@
         ],
         "title": "EarningsHistoryRow",
         "description": "One past (or upcoming) earnings event, everything we know about it."
+      },
+      "Fundamentals": {
+        "properties": {
+          "market_cap": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Market Cap"
+          },
+          "enterprise_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enterprise Value"
+          },
+          "trailing_pe": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trailing Pe"
+          },
+          "forward_pe": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Forward Pe"
+          },
+          "peg_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Peg Ratio"
+          },
+          "price_to_book": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price To Book"
+          },
+          "price_to_sales": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price To Sales"
+          },
+          "return_on_equity": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Return On Equity"
+          },
+          "return_on_assets": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Return On Assets"
+          },
+          "gross_margin": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gross Margin"
+          },
+          "operating_margin": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Operating Margin"
+          },
+          "profit_margin": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profit Margin"
+          },
+          "revenue_growth": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revenue Growth"
+          },
+          "earnings_growth": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Earnings Growth"
+          },
+          "trailing_eps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trailing Eps"
+          },
+          "forward_eps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Forward Eps"
+          },
+          "debt_to_equity": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Debt To Equity"
+          },
+          "current_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Ratio"
+          },
+          "quick_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quick Ratio"
+          },
+          "held_pct_insiders": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Held Pct Insiders"
+          },
+          "held_pct_institutions": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Held Pct Institutions"
+          },
+          "shares_outstanding": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shares Outstanding"
+          },
+          "float_shares": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Float Shares"
+          },
+          "short_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Short Ratio"
+          },
+          "short_pct_of_float": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Short Pct Of Float"
+          },
+          "beta": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Beta"
+          },
+          "fifty_two_week_high": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fifty Two Week High"
+          },
+          "fifty_two_week_low": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fifty Two Week Low"
+          },
+          "dividend_yield": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dividend Yield"
+          },
+          "payout_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payout Ratio"
+          },
+          "target_mean_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Mean Price"
+          },
+          "recommendation_mean": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recommendation Mean",
+            "description": "1-5, lower = more bullish"
+          },
+          "number_of_analysts": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Number Of Analysts"
+          }
+        },
+        "type": "object",
+        "title": "Fundamentals",
+        "description": "Company ratio grid \u2014 valuation, profitability, ownership, float.\n\nEvery field optional: yfinance omits a key entirely for a company that\ngenuinely has no such value (no dividend, no analyst coverage, a recent\nIPO with no trailing EPS). That absence is information, and renders as\nan em dash rather than a zero."
       },
       "HTTPValidationError": {
         "properties": {
@@ -1839,6 +2303,26 @@
             ],
             "title": "Analyst Rating Raw",
             "description": "Seeking Alpha 1-5"
+          },
+          "fundamentals": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Fundamentals"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "null = the lookup failed or the symbol is unknown"
+          },
+          "analyst_ratings": {
+            "items": {
+              "$ref": "#/components/schemas/AnalystRatingRow"
+            },
+            "type": "array",
+            "title": "Analyst Ratings",
+            "description": "newest first; empty = no coverage or the lookup failed",
+            "default": []
           },
           "ai_summary": {
             "anyOf": [

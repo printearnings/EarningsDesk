@@ -26,11 +26,13 @@ from sqlalchemy.orm import Session
 from app.config import api_settings
 from app.schemas import (
     AiSummary,
+    AnalystRatingRow,
     CalendarEntry,
     CalendarPage,
     DashboardNewsItem,
     DashboardNewsPage,
     EarningsHistoryRow,
+    Fundamentals,
     HistoryStats,
     NewsItem,
     OptionsPanel,
@@ -354,14 +356,17 @@ def ticker_page(
     ticker: str,
     *,
     prices: list[PricePoint] | None = None,
+    fundamentals: Fundamentals | None = None,
+    analyst_ratings: list[AnalystRatingRow] | None = None,
     now: datetime | None = None,
 ) -> TickerPage:
     """Assemble one ticker's page from Postgres alone.
 
-    `prices` is injected rather than fetched here because it's the one part
-    that needs a network call (yfinance). The static generator passes it in;
-    the dev server fetches it in the router. Keeping it out means this function
-    stays pure enough to test with an in-memory SQLite database.
+    `prices`, `fundamentals` and `analyst_ratings` are injected rather than
+    fetched here because they're the parts that need a network call
+    (yfinance). The static generator passes them in; the dev server fetches
+    them in the router. Keeping them out means this function stays pure
+    enough to test with an in-memory SQLite database.
     """
     ticker = ticker.strip().upper()
     now = now or datetime.now(UTC)
@@ -390,6 +395,12 @@ def ticker_page(
     # an em dash for a number that's sitting right there in the chart data.
     # Overwritten below by the snapshot's own spot when one exists.
     page.spot = _latest_close(page.prices)
+
+    # Assigned before the snapshot-less early return below: both come from
+    # yfinance, not from dashboard_snapshots, so a cold ticker with no
+    # snapshot still has a full ratio grid and ratings history to show.
+    page.fundamentals = fundamentals
+    page.analyst_ratings = analyst_ratings or []
 
     if snap is None:
         return page

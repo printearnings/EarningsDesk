@@ -111,7 +111,16 @@ def dump(out_dir: Path, *, with_prices: bool = True) -> dict[str, int]:
         for entry in index.tickers:
             ticker = entry.ticker
             series = quotes.price_series(ticker) if with_prices else []
-            page = pages.ticker_page(session, ticker, prices=series)
+            # Gated on the same flag as prices: all three are yfinance calls,
+            # so --no-prices stays a genuine "skip the slow network work"
+            # switch for schema checks rather than skipping only some of it.
+            page = pages.ticker_page(
+                session,
+                ticker,
+                prices=series,
+                fundamentals=quotes.company_fundamentals(ticker) if with_prices else None,
+                analyst_ratings=quotes.analyst_ratings(ticker) if with_prices else [],
+            )
             # News costs nothing to fetch fresh (unlike options), so a
             # missing snapshot — or a snapshot whose own news fetch
             # specifically failed that night — shouldn't ship a permanently

@@ -14,10 +14,11 @@ import math
 from collections.abc import Iterable
 from datetime import date, timedelta
 
+from earnings.data import fundamentals as fundamentals_data
 from earnings.data import news as news_data
 from earnings.data import prices
 
-from app.schemas import NewsItem, PricePoint
+from app.schemas import AnalystRatingRow, Fundamentals, NewsItem, PricePoint
 
 log = logging.getLogger("quotes")
 
@@ -25,7 +26,14 @@ log = logging.getLogger("quotes")
 # without the chart turning into a smear.
 DEFAULT_DAYS = 365
 
+# Enough analyst actions to show a real timeline without the table becoming
+# the page. Matches the ratings history most readers scan — the last few
+# quarters of coverage changes, not a multi-year archive.
+ANALYST_RATINGS_LIMIT = 25
+
 _cache: dict[tuple[str, int], list[PricePoint]] = {}
+_fundamentals_cache: dict[str, Fundamentals | None] = {}
+_ratings_cache: dict[str, list[AnalystRatingRow]] = {}
 
 
 def price_series(ticker: str, *, days: int = DEFAULT_DAYS) -> list[PricePoint]:
@@ -103,6 +111,46 @@ def live_news(ticker: str, *, limit: int = 12) -> list[NewsItem] | None:
         log.warning("live_news (%s): %s", ticker, exc)
         return None
     return [NewsItem(**s.as_dict()) for s in stories]
+
+
+def company_fundamentals(ticker: str) -> Fundamentals | None:
+    """The valuation/profitability/ownership ratio grid.
+
+    None when the lookup failed or the symbol is unknown — distinct from a
+    Fundamentals whose individual fields are None, which means "we asked,
+    and this company genuinely has no P/E". Same free-yfinance,
+    memoise-per-process shape as `price_series`.
+    """
+    if ticker in _fundamentals_cache:
+        return _fundamentals_cache[ticker]
+
+    try:
+        raw = fundamentals_data.fundamentals(ticker)
+    except Exception as exc:
+        log.warning("company_fundamentals (%s): %s", ticker, exc)
+        raw = None
+
+    result = Fundamentals(**raw.as_dict()) if raw else None
+    _fundamentals_cache[ticker] = result
+    return result
+
+
+def analyst_ratings(ticker: str, *, limit: int = ANALYST_RATINGS_LIMIT) -> list[AnalystRatingRow]:
+    """Recent analyst upgrades/downgrades, newest first. Empty on any
+    failure or for a symbol with no coverage — one panel on a page is never
+    a reason to fail the whole request."""
+    if ticker in _ratings_cache:
+        return _ratings_cache[ticker]
+
+    try:
+        rows = fundamentals_data.analyst_ratings_history(ticker, limit=limit)
+    except Exception as exc:
+        log.warning("analyst_ratings (%s): %s", ticker, exc)
+        rows = []
+
+    result = [AnalystRatingRow(**r.as_dict()) for r in rows]
+    _ratings_cache[ticker] = result
+    return result
 
 
 def clear_cache() -> None:

@@ -69,7 +69,13 @@ def get_ticker(
         raise HTTPException(status_code=400, detail=f"Not a ticker symbol: {ticker!r}")
 
     series = quotes.price_series(ticker) if with_prices else []
-    page = pages.ticker_page(session, ticker, prices=series)
+    page = pages.ticker_page(
+        session,
+        ticker,
+        prices=series,
+        fundamentals=quotes.company_fundamentals(ticker),
+        analyst_ratings=quotes.analyst_ratings(ticker),
+    )
 
     # A ticker with no snapshot, no history and no price data doesn't exist as
     # far as we're concerned. One with prices but nothing else is a valid cold

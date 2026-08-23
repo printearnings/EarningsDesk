@@ -142,6 +142,71 @@ class OptionsPanel(BaseModel):
     )
 
 
+class Fundamentals(BaseModel):
+    """Company ratio grid — valuation, profitability, ownership, float.
+
+    Every field optional: yfinance omits a key entirely for a company that
+    genuinely has no such value (no dividend, no analyst coverage, a recent
+    IPO with no trailing EPS). That absence is information, and renders as
+    an em dash rather than a zero.
+    """
+
+    market_cap: float | None = None
+    enterprise_value: float | None = None
+    trailing_pe: float | None = None
+    forward_pe: float | None = None
+    peg_ratio: float | None = None
+    price_to_book: float | None = None
+    price_to_sales: float | None = None
+
+    return_on_equity: float | None = None
+    return_on_assets: float | None = None
+    gross_margin: float | None = None
+    operating_margin: float | None = None
+    profit_margin: float | None = None
+
+    revenue_growth: float | None = None
+    earnings_growth: float | None = None
+
+    trailing_eps: float | None = None
+    forward_eps: float | None = None
+
+    debt_to_equity: float | None = None
+    current_ratio: float | None = None
+    quick_ratio: float | None = None
+
+    held_pct_insiders: float | None = None
+    held_pct_institutions: float | None = None
+    shares_outstanding: float | None = None
+    float_shares: float | None = None
+    short_ratio: float | None = None
+    short_pct_of_float: float | None = None
+
+    beta: float | None = None
+    fifty_two_week_high: float | None = None
+    fifty_two_week_low: float | None = None
+
+    dividend_yield: float | None = None
+    payout_ratio: float | None = None
+
+    target_mean_price: float | None = None
+    recommendation_mean: float | None = Field(None, description="1-5, lower = more bullish")
+    number_of_analysts: float | None = None
+
+
+class AnalystRatingRow(BaseModel):
+    """One analyst upgrade/downgrade/initiation, as filed."""
+
+    date: date
+    firm: str | None = None
+    action: str | None = Field(None, description="up | down | init | main | reit")
+    from_grade: str | None = None
+    to_grade: str | None = None
+    price_target_action: str | None = None
+    current_price_target: float | None = None
+    prior_price_target: float | None = None
+
+
 class AiSummary(BaseModel):
     """Structured so the UI can lay it out, rather than dumping a paragraph.
 
@@ -199,6 +264,13 @@ class TickerPage(BaseModel):
     news_sentiment: float | None = Field(None, description="-1..1")
     analyst_score: float | None = Field(None, description="-1..1")
     analyst_rating_raw: float | None = Field(None, description="Seeking Alpha 1-5")
+
+    fundamentals: Fundamentals | None = Field(
+        None, description="null = the lookup failed or the symbol is unknown"
+    )
+    analyst_ratings: list[AnalystRatingRow] = Field(
+        [], description="newest first; empty = no coverage or the lookup failed"
+    )
 
     ai_summary: AiSummary | None = None
 

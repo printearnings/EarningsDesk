@@ -515,6 +515,11 @@ function ChartBody({
   partialSessionFraction?: number | null;
 }) {
   const [hover, setHover] = useState<number | null>(null);
+  // An earnings badge the reader clicked, by its point key. Separate from
+  // `hover` on purpose: hover is transient (cleared on the next mousemove
+  // or mouseleave), and a click that vanished the instant the cursor moved
+  // off the badge would be useless for actually reading the value.
+  const [pinnedMarker, setPinnedMarker] = useState<string | null>(null);
   const [zoom, setZoom] = useState<ZoomDomain>(null);
   // Anchors a pan gesture: the local index under the cursor and the global
   // offset at mousedown, so every mousemove during the drag can compute "how
@@ -551,6 +556,10 @@ function ChartBody({
     setZoom(null);
     setPan(null);
     setHover(null);
+    // The pinned badge belongs to the range that was on screen when it was
+    // clicked — switching ranges rebuilds the whole series, so a key from
+    // the old one would either miss or land on an unrelated bar.
+    setPinnedMarker(null);
   }
 
   const visible = useMemo(
@@ -622,9 +631,11 @@ function ChartBody({
         const d = intraday ? etDateString(p.key) : p.key;
         if (!markerDates.has(d) || seenMarkerDates.has(d)) return null;
         seenMarkerDates.add(d);
-        return { key: p.key, cx: x(i), cy: y(p.close) };
+        // Carries the bar's own label/close so clicking the badge can show
+        // that day's price without re-deriving it from the index later.
+        return { key: p.key, cx: x(i), cy: y(p.close), label: p.label, close: p.close };
       })
-      .filter((m): m is { key: string; cx: number; cy: number } => m !== null);
+      .filter((m): m is NonNullable<typeof m> => m !== null);
 
     const smaLine =
       enabledIndicators.has("sma20") && sma20?.length
@@ -908,6 +919,13 @@ function ChartBody({
   // behind) — bounds-check rather than trust it, or a drag-to-zoom that
   // lands the mouse near the old far edge throws on the very next render.
   const point = hover !== null && hover < visible.length ? visible[hover] : null;
+  // Resolved from the live marker list rather than stored at click time, so
+  // a pan/zoom that moves the badge moves its tooltip with it — and one
+  // that scrolls the badge out of view drops the tooltip too, instead of
+  // leaving it stranded over an unrelated part of the chart.
+  const pinnedMarkerData = pinnedMarker
+    ? (chart.markers.find((m) => m.key === pinnedMarker) ?? null)
+    : null;
   const onMarker =
     point !== null && markerDates.has(intraday ? etDateString(point.key) : point.key);
 
@@ -1065,7 +1083,31 @@ function ChartBody({
               point of marking the date at all. The 2px surface ring keeps
               the badge legible against the line/candles it sits on top of. */}
           {chart.markers.map((m) => (
-            <g key={m.key}>
+            <g
+              key={m.key}
+              className="cursor-pointer"
+              role="button"
+              tabIndex={0}
+              aria-label={`Earnings on ${m.label}, close ${money(m.close)}`}
+              onClick={(e) => {
+                // The SVG's own mousedown starts a pan gesture and its
+                // mousemove drives the crosshair — neither should fire for
+                // a click that's aimed at this badge.
+                e.stopPropagation();
+                setPinnedMarker((cur) => (cur === m.key ? null : m.key));
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setPinnedMarker((cur) => (cur === m.key ? null : m.key));
+                }
+              }}
+            >
+              {/* A transparent disc wider than the visible badge — an 8px
+                  target is under the ~24px minimum comfortable hit area,
+                  especially on touch. */}
+              <circle cx={m.cx} cy={m.cy} r={14} fill="transparent" />
               <circle
                 cx={m.cx}
                 cy={m.cy}
@@ -1082,6 +1124,7 @@ function ChartBody({
                 fontSize={9}
                 fontWeight={700}
                 fill="var(--color-on-brand)"
+                className="pointer-events-none select-none"
               >
                 E
               </text>
@@ -1146,6 +1189,37 @@ function ChartBody({
                 Earnings
               </div>
             )}
+          </div>
+        )}
+
+        {/* The clicked earnings badge. Rendered after (above) the hover
+            tooltip so the thing the reader deliberately pinned wins the
+            stacking order over the one that follows their cursor. */}
+        {pinnedMarkerData && (
+          <div
+            className="absolute top-0 w-max max-w-48 rounded-[var(--radius-sm)] border border-[var(--color-viz-realized)]/40 bg-[var(--color-panel)] px-2.5 py-2 text-xs"
+            style={{
+              left: `${Math.min(92, Math.max(8, (pinnedMarkerData.cx / W) * 100))}%`,
+              transform: "translateX(-50%)",
+            }}
+          >
+            <div className="mb-1 flex items-center gap-2 border-b border-[var(--color-border-subtle)] pb-1">
+              <span className="font-mono tracking-[0.06em] text-[var(--color-viz-realized)] text-[var(--text-2xs)] uppercase">
+                Earnings
+              </span>
+              <button
+                type="button"
+                onClick={() => setPinnedMarker(null)}
+                aria-label="Dismiss"
+                className="pressable ml-auto text-[var(--color-muted)] hover:text-[var(--color-heading)]"
+              >
+                ×
+              </button>
+            </div>
+            <div className="text-[var(--color-muted)]">{pinnedMarkerData.label}</div>
+            <div className="tnum mt-0.5 font-semibold text-[var(--color-heading)]">
+              {money(pinnedMarkerData.close)}
+            </div>
           </div>
         )}
       </div>
