@@ -1,5 +1,10 @@
+"use client";
+
+import { useMemo, useState } from "react";
+
+import { toggleInSet } from "@/components/FilterGroup";
 import { Panel } from "@/components/Panel";
-import { EMPTY, formatDateShort, money } from "@/lib/format";
+import { EMPTY, formatDate, money } from "@/lib/format";
 import type { AnalystRatingRow } from "@/lib/types";
 
 /**
@@ -19,6 +24,10 @@ const ACTION_LABEL: Record<string, string> = {
   main: "Maintained",
   reit: "Reiterated",
 };
+
+// Filter chips render in this order rather than whatever order the feed
+// happens to arrive in, so the control doesn't reshuffle between tickers.
+const ACTION_ORDER = ["up", "down", "init", "main", "reit"] as const;
 
 const ACTION_STYLE: Record<string, string> = {
   up: "border-[var(--color-positive)]/25 bg-[var(--color-verdict-cheap-bg)] text-[var(--color-positive)]",
@@ -59,6 +68,32 @@ function targetChange(prior: number | null | undefined, current: number | null |
 }
 
 export function AnalystRatings({ rows }: { rows: AnalystRatingRow[] }) {
+  const [actions, setActions] = useState<Set<string>>(() => new Set());
+  const [year, setYear] = useState("");
+
+  // Only offer filters the data actually contains — a Downgrade chip on a
+  // ticker that has none is a dead control that can only ever report "0".
+  const availableActions = useMemo(
+    () => ACTION_ORDER.filter((a) => rows.some((r) => r.action === a)),
+    [rows],
+  );
+  const years = useMemo(
+    () => [...new Set(rows.map((r) => r.date.slice(0, 4)))].sort().reverse(),
+    [rows],
+  );
+
+  const filtered = useMemo(
+    () =>
+      rows.filter(
+        (r) =>
+          (actions.size === 0 || (r.action != null && actions.has(r.action))) &&
+          (year === "" || r.date.startsWith(year)),
+      ),
+    [rows, actions, year],
+  );
+
+  const filtersActive = actions.size > 0 || year !== "";
+
   if (rows.length === 0) {
     return (
       <Panel
@@ -75,7 +110,78 @@ export function AnalystRatings({ rows }: { rows: AnalystRatingRow[] }) {
       subtitle="Upgrades, downgrades, and price-target changes — newest first"
       bodyClassName="px-0 py-0"
     >
-      <div className="overflow-x-auto">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-3 border-b border-[var(--color-border)] px-5 py-4">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="eyebrow text-[var(--color-muted)]">Action</span>
+          <div className="flex flex-wrap items-center gap-1">
+            {availableActions.map((a) => {
+              const isActive = actions.has(a);
+              return (
+                <button
+                  key={a}
+                  type="button"
+                  onClick={() => toggleInSet(actions, setActions, a)}
+                  aria-pressed={isActive}
+                  className={`pressable text-2xs rounded-[var(--radius-chip)] border px-1.5 py-0.5 font-mono font-medium tracking-[0.06em] uppercase transition-colors ${
+                    isActive
+                      ? "border-[var(--color-heading)]/20 bg-[var(--color-panel-soft)] text-[var(--color-heading)]"
+                      : "border-[var(--color-border)] text-[var(--color-muted)] hover:bg-[var(--color-panel-soft)]"
+                  }`}
+                >
+                  {ACTION_LABEL[a] ?? a}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* A dropdown rather than chips, matching FinancialsPanel's own year
+            control — coverage can span several years, and unlike the action
+            list that count isn't bounded. */}
+        {years.length > 1 && (
+          <div className="flex items-center gap-1.5">
+            <span className="eyebrow text-[var(--color-muted)]">Year</span>
+            <select
+              value={year}
+              onChange={(e) => setYear(e.target.value)}
+              aria-label="Filter by year"
+              className="text-2xs rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-panel)] px-2 py-1 text-[var(--color-heading)] focus:border-[var(--color-brand)] focus:outline-none"
+            >
+              <option value="">All</option>
+              {years.map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {filtersActive && (
+          <button
+            type="button"
+            onClick={() => {
+              setActions(new Set());
+              setYear("");
+            }}
+            className="pressable text-2xs text-[var(--color-muted)] underline decoration-dotted underline-offset-2 hover:text-[var(--color-body)]"
+          >
+            Clear filters
+          </button>
+        )}
+
+        <span className="text-2xs ml-auto text-[var(--color-muted)]">
+          {filtered.length} of {rows.length} actions
+        </span>
+      </div>
+
+      {filtered.length === 0 && (
+        <p className="px-5 py-8 text-sm text-[var(--color-muted)]">
+          No analyst actions match these filters.
+        </p>
+      )}
+
+      <div className="overflow-x-auto" hidden={filtered.length === 0}>
         <table className="w-full min-w-[38rem] text-sm">
           <thead>
             <tr className="border-b border-[var(--color-border)] bg-[var(--color-table-head)] text-left">
@@ -87,13 +193,16 @@ export function AnalystRatings({ rows }: { rows: AnalystRatingRow[] }) {
             </tr>
           </thead>
           <tbody>
-            {rows.map((r, i) => (
+            {filtered.map((r, i) => (
               <tr
                 key={`${r.date}-${r.firm}-${i}`}
                 className="border-b border-[var(--color-border-subtle)] last:border-b-0"
               >
+                {/* Full date, not the short form — coverage spans years, and
+                    a bare "Aug 21" can't be told apart from the same day a
+                    year earlier once the list runs long. */}
                 <td className="px-4 py-2.5 whitespace-nowrap text-[var(--color-body)]">
-                  {formatDateShort(r.date)}
+                  {formatDate(r.date)}
                 </td>
                 <td className="px-4 py-2.5 font-medium text-[var(--color-heading)]">
                   {r.firm ?? EMPTY}

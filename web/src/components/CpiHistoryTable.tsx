@@ -1,5 +1,6 @@
 "use client";
 
+import { CpiChart } from "@/components/CpiChart";
 import { Panel } from "@/components/Panel";
 import { pctRaw } from "@/lib/format";
 import { useCpiHistory } from "@/lib/useCpiHistory";
@@ -53,7 +54,13 @@ export function CpiHistoryTable() {
       ) : (
         data &&
         data.months.length > 0 && (
-          <div className="overflow-x-auto">
+          <>
+            {/* Charted above the table: the trend is what a reader wants
+                first, and the table is the precise lookup behind it. */}
+            <div className="border-b border-[var(--color-border)]">
+              <CpiChart months={data.months} />
+            </div>
+            <div className="overflow-x-auto">
             <table className="tnum w-full min-w-[32rem] text-sm">
               <thead>
                 <tr className="border-b border-[var(--color-border)] bg-[var(--color-table-head)] text-left">
@@ -91,7 +98,8 @@ export function CpiHistoryTable() {
                 ))}
               </tbody>
             </table>
-          </div>
+            </div>
+          </>
         )
       )}
       {data && data.months.length > 0 && (
