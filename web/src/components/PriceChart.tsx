@@ -218,17 +218,18 @@ export function PriceChart({
       timeZone: "America/New_York",
     }) === new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
 
-  // Every range carries markers — see the module note above. Scored events
-  // only (realized_move present): an unscored upcoming print has nothing to
-  // mark yet, matching what the 1Y view already excluded.
+  // Every range carries markers — see the module note above. Gated on the
+  // report date being in the past, not on `realized_move` being populated:
+  // those are two different facts. A print that happened yesterday but
+  // hasn't been through the scoring pipeline yet still happened — it should
+  // still get marked. Using realized_move here (the original 1Y-only
+  // implementation's signal) meant most historical prints for most tickers
+  // silently had no marker at all, since scoring runs on its own cadence
+  // and lags well behind "did this report occur."
+  const marketToday = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
   const markerDates = useMemo(
-    () =>
-      new Set(
-        events
-          .filter((e) => e.realized_move !== null && e.realized_move !== undefined)
-          .map((e) => e.report_date),
-      ),
-    [events],
+    () => new Set(events.filter((e) => e.report_date <= marketToday).map((e) => e.report_date)),
+    [events, marketToday],
   );
 
   return (
