@@ -101,6 +101,9 @@ def options_panel(snap: DashboardSnapshot) -> OptionsPanel | None:
             if snap.oi_by_strike_json
             else None
         ),
+        skew_put_iv=snap.skew_put_iv,
+        skew_call_iv=snap.skew_call_iv,
+        skew_risk_reversal=snap.skew_risk_reversal,
         iv_front=snap.iv_front,
         iv_back=snap.iv_back,
         iv_inverted=None if snap.iv_inverted is None else bool(snap.iv_inverted),

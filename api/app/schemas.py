@@ -135,6 +135,17 @@ class OptionsPanel(BaseModel):
         None, description="a window of strikes around the ATM, for a liquidity chart"
     )
 
+    skew_put_iv: float | None = Field(None, description="IV of the ~25-delta put")
+    skew_call_iv: float | None = Field(None, description="IV of the ~25-delta call")
+    skew_risk_reversal: float | None = Field(
+        None,
+        description=(
+            "put IV minus call IV at ~25 delta. Positive = downside protection is the "
+            "expensive side, the ordinary state for equities, so only an unusual level "
+            "is informative. Describes option pricing, not a directional forecast."
+        ),
+    )
+
     iv_front: float | None = None
     iv_back: float | None = None
     iv_inverted: bool | None = Field(

@@ -1507,6 +1507,42 @@
             "title": "Oi By Strike",
             "description": "a window of strikes around the ATM, for a liquidity chart"
           },
+          "skew_put_iv": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skew Put Iv",
+            "description": "IV of the ~25-delta put"
+          },
+          "skew_call_iv": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skew Call Iv",
+            "description": "IV of the ~25-delta call"
+          },
+          "skew_risk_reversal": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skew Risk Reversal",
+            "description": "put IV minus call IV at ~25 delta. Positive = downside protection is the expensive side, the ordinary state for equities, so only an unusual level is informative. Describes option pricing, not a directional forecast."
+          },
           "iv_front": {
             "anyOf": [
               {

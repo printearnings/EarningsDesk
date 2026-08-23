@@ -266,6 +266,11 @@ function OptionsPanelCard({ data }: { data: TickerData }) {
             hint="Implied volatility, next expiry out."
           />
           <Stat
+            label="Skew"
+            value={skewLabel(o.skew_risk_reversal)}
+            hint="25-delta put IV minus call IV. Positive means downside protection costs more, which is normal for equities; the size is what matters. Describes option pricing, not a forecast."
+          />
+          <Stat
             label="Verdict"
             value={o.verdict ?? EMPTY}
             tone={tone}
@@ -590,4 +595,20 @@ function HistoryTable({ data }: { data: TickerData }) {
       </div>
     </Panel>
   );
+}
+
+/**
+ * The risk reversal as volatility points, signed, with the side named.
+ *
+ * Points rather than a raw decimal: a skew of 0.013 is "1.3 vol points",
+ * which is how it's quoted and the only form in which its size is
+ * interpretable. The sign alone isn't a finding — equities almost always
+ * carry positive skew — so the label states which side is bid and leaves
+ * the reader to judge the magnitude.
+ */
+function skewLabel(rr: number | null | undefined): string {
+  if (typeof rr !== "number" || !Number.isFinite(rr)) return EMPTY;
+  const points = rr * 100;
+  if (Math.abs(points) < 0.1) return "Flat";
+  return `${points > 0 ? "+" : ""}${points.toFixed(1)} pts ${points > 0 ? "puts" : "calls"}`;
 }

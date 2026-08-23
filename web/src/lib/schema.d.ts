@@ -543,6 +543,21 @@ export interface components {
              * @description a window of strikes around the ATM, for a liquidity chart
              */
             oi_by_strike?: components["schemas"]["StrikeOpenInterest"][] | null;
+            /**
+             * Skew Put Iv
+             * @description IV of the ~25-delta put
+             */
+            skew_put_iv?: number | null;
+            /**
+             * Skew Call Iv
+             * @description IV of the ~25-delta call
+             */
+            skew_call_iv?: number | null;
+            /**
+             * Skew Risk Reversal
+             * @description put IV minus call IV at ~25 delta. Positive = downside protection is the expensive side, the ordinary state for equities, so only an unusual level is informative. Describes option pricing, not a directional forecast.
+             */
+            skew_risk_reversal?: number | null;
             /** Iv Front */
             iv_front?: number | null;
             /** Iv Back */
