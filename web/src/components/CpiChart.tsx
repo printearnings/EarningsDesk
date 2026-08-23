@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 
+import { EMPTY } from "@/lib/format";
 import type { CpiMonth } from "@/lib/useCpiHistory";
 
 /**
@@ -261,7 +262,7 @@ export function CpiChart({ months }: { months: CpiMonth[] }) {
               />
               <span className="text-[var(--color-muted)]">Headline</span>
               <span className="ml-auto font-medium text-[var(--color-heading)]">
-                {active.headline !== null ? `${active.headline.toFixed(2)}%` : "—"}
+                {active.headline !== null ? `${active.headline.toFixed(2)}%` : EMPTY}
               </span>
             </div>
             <div className="tnum mt-0.5 flex items-center gap-1.5">
@@ -271,7 +272,7 @@ export function CpiChart({ months }: { months: CpiMonth[] }) {
               />
               <span className="text-[var(--color-muted)]">Core</span>
               <span className="ml-auto font-medium text-[var(--color-heading)]">
-                {active.core !== null ? `${active.core.toFixed(2)}%` : "—"}
+                {active.core !== null ? `${active.core.toFixed(2)}%` : EMPTY}
               </span>
             </div>
           </div>

@@ -1,14 +1,18 @@
 /**
  * Display formatting.
  *
- * The rule this file exists to enforce: **null renders as an em dash, never as
- * zero.** A missing put/call ratio and a put/call ratio of 0.00 mean opposite
- * things — "we couldn't get the data" versus "there were no puts traded". Every
+ * The rule this file exists to enforce: **null never renders as zero.** A
+ * missing put/call ratio and a put/call ratio of 0.00 mean opposite things:
+ * "we couldn't get the data" versus "there were no puts traded". Every
  * formatter here returns EMPTY for null/undefined so a component can't
  * accidentally paper over a gap.
+ *
+ * EMPTY is blank rather than a dash. The invariant is that a gap must not be
+ * mistaken for a real number; which glyph marks it is a presentation choice,
+ * and this app renders it as nothing at all.
  */
 
-export const EMPTY = "—";
+export const EMPTY = "";
 
 type Num = number | null | undefined;
 

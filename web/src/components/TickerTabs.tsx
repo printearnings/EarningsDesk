@@ -121,7 +121,7 @@ export function TickerTabs({ data }: { data: TickerData }) {
             {/* Not "marked on every view" — the marker only appears where a
                 report date actually falls inside the window on screen, which
                 for a 1D/5D intraday range is the exception, not the rule. */}
-            <Panel subtitle="Daily and intraday prices. Past earnings dates are marked where they fall in view — click one for that day's price.">
+            <Panel subtitle="Daily and intraday prices. Past earnings dates are marked where they fall in view; click one for that day's price.">
               <PriceChart prices={data.prices} events={data.history} ticker={data.ticker} />
             </Panel>
           </div>

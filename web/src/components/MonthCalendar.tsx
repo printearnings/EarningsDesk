@@ -278,7 +278,7 @@ function AgendaView({
           <p className="px-5 py-8 text-sm text-[var(--color-muted)]">
             {allDays.length === 0
               ? "No reports match the current filters this month."
-              : `Nothing in the next ${MOBILE_AGENDA_DEFAULT_WINDOW_DAYS} days — try showing the full month.`}
+              : `Nothing in the next ${MOBILE_AGENDA_DEFAULT_WINDOW_DAYS} days. Try showing the full month.`}
           </p>
         ) : (
           windowed.map((cell) => (

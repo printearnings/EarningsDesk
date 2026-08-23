@@ -59,7 +59,7 @@ const NO_EDGE: StrategySuggestion = {
   label: "No clear structure",
   bias: "neutral",
   premium: "none",
-  rationale: "Pricing looks fair and there's no directional lean — nothing here worth structuring a trade around.",
+  rationale: "Pricing looks fair and there's no directional lean, so there's nothing here worth structuring a trade around.",
 };
 
 /**
@@ -94,7 +94,7 @@ export function recommendStrategy({
           bias: "bearish",
           premium: "sell",
           rationale:
-            "Front-month IV is priced above back-month — the richness is specifically in this expiry, which a calendar isolates instead of a same-expiry spread would.",
+            "Front-month IV is priced above back-month, so the richness is specifically in this expiry. A calendar isolates that; a same-expiry spread would not.",
         }
       : {
           type: "calendar_call",
@@ -102,7 +102,7 @@ export function recommendStrategy({
           bias: dir === "BULLISH" ? "bullish" : "neutral",
           premium: "sell",
           rationale:
-            "Front-month IV is priced above back-month — the richness is specifically in this expiry, which a calendar isolates instead of a same-expiry spread would.",
+            "Front-month IV is priced above back-month, so the richness is specifically in this expiry. A calendar isolates that; a same-expiry spread would not.",
         };
   }
 
@@ -114,7 +114,7 @@ export function recommendStrategy({
         bias: "bullish",
         premium: "sell",
         rationale:
-          "Implied move is priced above what this stock typically does, and the flow leans bullish — collect the rich premium on the side you'd rather be wrong on.",
+          "Implied move is priced above what this stock typically does, and the flow leans bullish. Collect the rich premium on the side you'd rather be wrong on.",
       };
     }
     if (dir === "BEARISH") {
@@ -124,7 +124,7 @@ export function recommendStrategy({
         bias: "bearish",
         premium: "sell",
         rationale:
-          "Implied move is priced above what this stock typically does, and the flow leans bearish — collect the rich premium on the side you'd rather be wrong on.",
+          "Implied move is priced above what this stock typically does, and the flow leans bearish. Collect the rich premium on the side you'd rather be wrong on.",
       };
     }
     return {
@@ -133,7 +133,7 @@ export function recommendStrategy({
       bias: "neutral",
       premium: "sell",
       rationale:
-        "Implied move is priced above what this stock typically does, with no clear directional lean — a defined-risk condor sells that excess premium on both sides.",
+        "Implied move is priced above what this stock typically does, with no clear directional lean. A defined-risk condor sells that excess premium on both sides.",
     };
   }
 
@@ -145,7 +145,7 @@ export function recommendStrategy({
         bias: "bullish",
         premium: "buy",
         rationale:
-          "Implied move is priced below what this stock typically does, and the flow leans bullish — a call spread buys the underpriced move at a lower cost than an outright call.",
+          "Implied move is priced below what this stock typically does, and the flow leans bullish. A call spread buys the underpriced move at a lower cost than an outright call.",
       };
     }
     if (dir === "BEARISH") {
@@ -155,7 +155,7 @@ export function recommendStrategy({
         bias: "bearish",
         premium: "buy",
         rationale:
-          "Implied move is priced below what this stock typically does, and the flow leans bearish — a put spread buys the underpriced move at a lower cost than an outright put.",
+          "Implied move is priced below what this stock typically does, and the flow leans bearish. A put spread buys the underpriced move at a lower cost than an outright put.",
       };
     }
     return {
@@ -164,7 +164,7 @@ export function recommendStrategy({
       bias: "neutral",
       premium: "buy",
       rationale:
-        "Implied move is priced below what this stock typically does, with no clear lean — a straddle buys that underpriced move in either direction.",
+        "Implied move is priced below what this stock typically does, with no clear lean. A straddle buys that underpriced move in either direction.",
     };
   }
 
@@ -178,7 +178,7 @@ export function recommendStrategy({
       bias: "bullish",
       premium: "buy",
       rationale:
-        "Pricing looks fair, but the flow leans bullish — a debit spread caps cost since there's no volatility mispricing backing the trade.",
+        "Pricing looks fair, but the flow leans bullish. A debit spread caps cost since there's no volatility mispricing backing the trade.",
     };
   }
   if (dir === "BEARISH") {
@@ -188,7 +188,7 @@ export function recommendStrategy({
       bias: "bearish",
       premium: "buy",
       rationale:
-        "Pricing looks fair, but the flow leans bearish — a debit spread caps cost since there's no volatility mispricing backing the trade.",
+        "Pricing looks fair, but the flow leans bearish. A debit spread caps cost since there's no volatility mispricing backing the trade.",
     };
   }
   return NO_EDGE;

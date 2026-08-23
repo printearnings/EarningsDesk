@@ -5,7 +5,13 @@ import { useMemo, useState } from "react";
 import { MacroEventChip } from "@/components/Chip";
 import { FilterGroup, toggleInSet } from "@/components/FilterGroup";
 import { StatCard } from "@/components/Panel";
-import { daysUntilFromDate, formatDate, formatDateShort, relativeDays } from "@/lib/format";
+import {
+  EMPTY,
+  daysUntilFromDate,
+  formatDate,
+  formatDateShort,
+  relativeDays,
+} from "@/lib/format";
 import type { MacroEvent, MacroEventType } from "@/lib/macroEvents";
 
 const TYPES: readonly MacroEventType[] = ["FOMC", "CPI"];
@@ -59,13 +65,13 @@ export function MacroCalendarList({ events }: { events: MacroEvent[] }) {
       <div className="grid grid-cols-2 gap-3 border-b border-[var(--color-border)] p-5 sm:grid-cols-4">
         <StatCard
           label="Next FOMC"
-          value={nextFomc ? formatDate(nextFomc.date) : "—"}
+          value={nextFomc ? formatDate(nextFomc.date) : EMPTY}
           hint="Next scheduled rate decision."
           delta={nextFomc && relativeDays(daysUntilFromDate(nextFomc.date))}
         />
         <StatCard
           label="Next CPI"
-          value={nextCpi ? formatDate(nextCpi.date) : "—"}
+          value={nextCpi ? formatDate(nextCpi.date) : EMPTY}
           hint="Next scheduled inflation report."
           delta={nextCpi && relativeDays(daysUntilFromDate(nextCpi.date))}
         />

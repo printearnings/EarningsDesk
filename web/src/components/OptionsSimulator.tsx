@@ -469,7 +469,7 @@ export function OptionsSimulator({
                 type="text"
                 inputMode="decimal"
                 placeholder={
-                  selectedContract?.price != null ? money(selectedContract.price) : "—"
+                  selectedContract?.price != null ? money(selectedContract.price) : EMPTY
                 }
                 value={entryPriceText}
                 onChange={(e) => setEntryPriceText(e.target.value)}
@@ -610,7 +610,7 @@ export function OptionsSimulator({
           {decayScenario && (
             <Panel
               title="PnL over time"
-              subtitle={`Spot held flat at ${money(spot)} — what time decay alone costs (or gains) this position between ${formatDateShort(earliestDate)} and expiration, at ${ivCrushPct}% of today's ${entryIv !== null ? pct(entryIv, 0) : "entry"} IV.`}
+              subtitle={`Spot held flat at ${money(spot)}: what time decay alone costs (or gains) this position between ${formatDateShort(earliestDate)} and expiration, at ${ivCrushPct}% of today's ${entryIv !== null ? pct(entryIv, 0) : "entry"} IV.`}
             >
               <TimeDecayChart
                 points={decayScenario.points}

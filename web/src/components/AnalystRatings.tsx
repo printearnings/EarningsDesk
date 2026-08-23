@@ -51,7 +51,7 @@ function ActionChip({ action }: { action: string | null | undefined }) {
 }
 
 /** "Hold → Buy" when the grade actually moved, just the new grade when it
- * didn't (a maintain/reiterate), an em dash when neither is known. */
+ * didn't (a maintain/reiterate), blank when neither is known. */
 function gradeChange(from: string | null | undefined, to: string | null | undefined) {
   if (!to) return EMPTY;
   if (!from || from === to) return to;
@@ -107,7 +107,7 @@ export function AnalystRatings({ rows }: { rows: AnalystRatingRow[] }) {
   return (
     <Panel
       title="Analyst actions"
-      subtitle="Upgrades, downgrades, and price-target changes — newest first"
+      subtitle="Upgrades, downgrades, and price-target changes, newest first"
       bodyClassName="px-0 py-0"
     >
       <div className="flex flex-wrap items-center gap-x-5 gap-y-3 border-b border-[var(--color-border)] px-5 py-4">

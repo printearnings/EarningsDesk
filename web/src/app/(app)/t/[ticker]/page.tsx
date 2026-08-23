@@ -124,7 +124,7 @@ function SubHeader({ data, record }: { data: TickerData; record: TrackRecordPage
             {showVerdictRecord && (
               <MicroStat
                 label="Verdict calls"
-                value={record.accuracy === null ? "—" : pct(record.accuracy, 0)}
+                value={record.accuracy === null ? EMPTY : pct(record.accuracy, 0)}
                 sub={record.accuracy === null ? "not enough history" : `${record.correct}/${record.scored} right`}
                 hint="How often a rich/cheap call has been right, site-wide."
               />
@@ -132,7 +132,7 @@ function SubHeader({ data, record }: { data: TickerData; record: TrackRecordPage
             {showDirectionRecord && (
               <MicroStat
                 label="Direction calls"
-                value={record.dir_accuracy === null ? "—" : pct(record.dir_accuracy, 0)}
+                value={record.dir_accuracy === null ? EMPTY : pct(record.dir_accuracy, 0)}
                 sub={
                   record.dir_accuracy === null
                     ? "not enough history"

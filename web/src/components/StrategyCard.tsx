@@ -73,7 +73,7 @@ export function StrategyCard({
   return (
     <Panel
       title="Structure"
-      subtitle="What kind of trade this setup lends itself to — not a recommendation to place one"
+      subtitle="What kind of trade this setup lends itself to. Not a recommendation to place one."
     >
       <div className="flex flex-wrap items-center gap-3">
         <span
@@ -101,7 +101,7 @@ export function StrategyCard({
 
       <p className="mt-4 border-t border-[var(--color-border-subtle)] pt-4 text-sm text-[var(--color-muted)]">
         A structure traders in this setup often use, derived from the verdict and directional
-        read above — not advice, and not sized for anyone&rsquo;s account. Strikes depend on the
+        read above. Not advice, and not sized for anyone&rsquo;s account. Strikes depend on the
         live chain; use the simulator to price actual legs.
       </p>
     </Panel>
@@ -135,7 +135,7 @@ function Backtest({
   if (!result) {
     return (
       <p className="mt-4 border-t border-[var(--color-border-subtle)] pt-4 text-sm text-[var(--color-muted)]">
-        Not enough scored history to check this against past prints — it needs at least{" "}
+        Not enough scored history to check this against past prints. It needs at least{" "}
         {MIN_MOVES_FOR_BACKTEST}.
       </p>
     );
@@ -165,7 +165,7 @@ function Backtest({
         . The largest was {pct(result.largestMove, 1)}.
       </p>
       <p className="mt-2 text-sm text-[var(--color-muted)]">
-        A move-size check against today&rsquo;s implied move, not a P&amp;L backtest — it
+        A move-size check against today&rsquo;s implied move, not a P&amp;L backtest. It
         doesn&rsquo;t model what the options cost at the time, where strikes sat, or when a
         position would have been closed.
       </p>

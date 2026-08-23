@@ -10,9 +10,9 @@ import type { Fundamentals } from "@/lib/types";
  * here and giving each its own bordered tile would bury the page. This is
  * reference data you scan for one number, not headline metrics.
  *
- * Every value is optional and renders as an em dash when absent — a
- * company with no dividend genuinely has no payout ratio, and that reads
- * very differently from a payout ratio of zero.
+ * Every value is optional and renders blank when absent: a company with
+ * no dividend genuinely has no payout ratio, and that reads very
+ * differently from a payout ratio of zero.
  */
 
 interface Row {
@@ -22,8 +22,8 @@ interface Row {
 }
 
 function Section({ title, rows }: { title: string; rows: Row[] }) {
-  // A section whose every value is missing is noise — drop it rather than
-  // render a column of em dashes (common for ADRs and recent IPOs).
+  // A section whose every value is missing is noise: drop it rather than
+  // render a column of blanks (common for ADRs and recent IPOs).
   if (rows.every((r) => r.value === EMPTY)) return null;
 
   return (
@@ -146,7 +146,7 @@ export function FundamentalsGrid({ data }: { data: Fundamentals | null | undefin
   return (
     <Panel
       title="Key figures"
-      subtitle="Valuation, profitability, and ownership — the business behind the print"
+      subtitle="Valuation, profitability, and ownership: the business behind the print"
     >
       {/* Multi-column, not a grid: sections have wildly different row
           counts (7 vs 3), and a grid sizes every row to its tallest member,

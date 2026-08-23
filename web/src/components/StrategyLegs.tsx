@@ -32,8 +32,8 @@ import {
 /**
  * The three payoff cases render differently on purpose. "Unlimited" for a
  * bound this code merely can't compute would be a false claim about a real
- * position — a calendar's profit is capped in practice, it just needs a
- * model rather than arithmetic to find. An em dash says "not shown here",
+ * position: a calendar's profit is capped in practice, it just needs a
+ * model rather than arithmetic to find. Blank says "not shown here",
  * which is the truth.
  */
 function payoffLabel(bound: PayoffBound): string {
@@ -92,7 +92,7 @@ export function StrategyLegs({
   return (
     <Panel
       title={`Suggested structure · ${suggestion.label}`}
-      subtitle={`Built from the loaded chain at ${formatDateShort(expiry)}. One contract per leg — an illustration, not an order.`}
+      subtitle={`Built from the loaded chain at ${formatDateShort(expiry)}. One contract per leg: an illustration, not an order.`}
       bodyClassName="px-0 py-0"
     >
       <div className="overflow-x-auto">
@@ -180,7 +180,7 @@ export function StrategyLegs({
 
       <p className="border-t border-[var(--color-border-subtle)] px-5 py-4 text-sm text-[var(--color-muted)]">
         {econ?.maxLoss === null
-          ? "Legs expire on different dates, so there's no single expiration payoff to take a max over — the debit shown is what it costs to open."
+          ? "Legs expire on different dates, so there's no single expiration payoff to take a max over. The debit shown is what it costs to open."
           : "At expiration, per one contract of each leg, before commissions and assuming both sides fill at the quoted price."}
       </p>
     </Panel>
