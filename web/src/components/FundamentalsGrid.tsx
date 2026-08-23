@@ -27,12 +27,20 @@ function Section({ title, rows }: { title: string; rows: Row[] }) {
   if (rows.every((r) => r.value === EMPTY)) return null;
 
   return (
-    <div>
+    // break-inside-avoid keeps a section whole inside the multi-column
+    // flow — without it a 7-row block can split across a column boundary
+    // and orphan its last rows under the wrong heading.
+    <div className="mb-6 break-inside-avoid">
       <p className="eyebrow mb-2 text-[var(--color-muted)]">{title}</p>
       <dl className="divide-y divide-[var(--color-border-subtle)]">
         {rows.map((r) => (
           <div key={r.label} className="flex items-baseline justify-between gap-3 py-1.5">
-            <dt className="text-sm text-[var(--color-body)]" title={r.hint}>
+            <dt
+              className={`text-sm text-[var(--color-body)] ${
+                r.hint ? "decoration-dotted underline-offset-2 hover:underline" : ""
+              }`}
+              title={r.hint}
+            >
               {r.label}
             </dt>
             <dd className="tnum text-sm font-medium text-[var(--color-heading)]">{r.value}</dd>
@@ -95,7 +103,14 @@ export function FundamentalsGrid({ data }: { data: Fundamentals | null | undefin
 
   const ownership: Row[] = [
     { label: "Insider ownership", value: pct(data.held_pct_insiders) },
-    { label: "Institutional ownership", value: pct(data.held_pct_institutions) },
+    {
+      label: "Institutional ownership",
+      value: pct(data.held_pct_institutions),
+      // Genuinely exceeds 100% for heavily-shorted names: a lent share is
+      // counted for both the original holder and its buyer. Real, not a
+      // reporting error — but it reads as one without saying so.
+      hint: "Can exceed 100% when shares are lent out for shorting and counted twice.",
+    },
     { label: "Shares outstanding", value: compact(data.shares_outstanding) },
     { label: "Float", value: compact(data.float_shares) },
     {
@@ -133,7 +148,11 @@ export function FundamentalsGrid({ data }: { data: Fundamentals | null | undefin
       title="Key figures"
       subtitle="Valuation, profitability, and ownership — the business behind the print"
     >
-      <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2 xl:grid-cols-3">
+      {/* Multi-column, not a grid: sections have wildly different row
+          counts (7 vs 3), and a grid sizes every row to its tallest member,
+          which left ragged holes under the short ones. Columns let each
+          section pack against the previous one. */}
+      <div className="columns-1 gap-x-10 sm:columns-2 xl:columns-3 [&>*:last-child]:mb-0">
         <Section title="Valuation" rows={valuation} />
         <Section title="Profitability" rows={profitability} />
         <Section title="Growth" rows={growth} />

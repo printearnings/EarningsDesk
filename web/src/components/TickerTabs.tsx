@@ -165,7 +165,7 @@ export function TickerTabs({ data }: { data: TickerData }) {
 
         {visited.has("insiders") && (
           <div hidden={active !== "insiders"}>
-            <InsidersPanel ticker={data.ticker} />
+            <InsidersPanel ticker={data.ticker} prices={data.prices} />
           </div>
         )}
       </div>

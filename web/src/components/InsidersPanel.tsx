@@ -2,9 +2,11 @@
 
 import { useMemo, useState } from "react";
 
+import { InsiderActivityChart } from "@/components/InsiderActivityChart";
 import { Panel } from "@/components/Panel";
 import { Pagination } from "@/components/Pagination";
 import { EMPTY, formatDateShort, money, moneyCompact, compact } from "@/lib/format";
+import type { PricePoint } from "@/lib/types";
 import { useInsiders, type InsiderTransaction } from "@/lib/useInsiders";
 
 const PAGE_SIZE = 10;
@@ -54,7 +56,16 @@ function roleLabel(t: InsiderTransaction): string | null {
  * vesting's routine tax withholding. Both are one toggle away from each
  * other, never hidden, just not the default.
  */
-export function InsidersPanel({ ticker }: { ticker: string }) {
+export function InsidersPanel({
+  ticker,
+  prices = [],
+}: {
+  ticker: string;
+  /** The page's daily close series, reused to plot each trade against the
+   * price it happened at. Defaults to empty so the panel still renders its
+   * table for a caller that has no price data. */
+  prices?: PricePoint[];
+}) {
   const { data, loading } = useInsiders(ticker);
   const [openMarketOnly, setOpenMarketOnly] = useState(true);
   const [page, setPage] = useState(1);
@@ -120,6 +131,15 @@ export function InsidersPanel({ ticker }: { ticker: string }) {
                 {filtered.length} of {data.transactions.length} filings
               </span>
             </div>
+
+            {/* Charted before the table: the clustering (did the selling
+                bunch into a top?) is the read the table can't give, and
+                it's driven by the same filter toggle above. */}
+            {prices.length > 0 && filtered.length > 0 && (
+              <div className="border-b border-[var(--color-border)]">
+                <InsiderActivityChart transactions={filtered} prices={prices} />
+              </div>
+            )}
 
             {filtered.length === 0 ? (
               <p className="px-5 py-8 text-sm text-[var(--color-muted)]">
