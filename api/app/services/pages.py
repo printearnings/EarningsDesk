@@ -13,6 +13,7 @@ data is only refetched by the nightly cron or by an explicit user click.
 from __future__ import annotations
 
 import json
+import logging
 from datetime import UTC, date, datetime
 from zoneinfo import ZoneInfo
 
@@ -38,6 +39,7 @@ from app.schemas import (
     OptionsPanel,
     PastEarningsPage,
     PastEarningsRow,
+    PastMove,
     PricePoint,
     SignalRow,
     SignalsPage,
@@ -45,6 +47,8 @@ from app.schemas import (
     TickerPage,
     TrackRecordPage,
 )
+
+log = logging.getLogger("pages")
 
 # Two years of quarterly prints. The dashboard's stated history window.
 HISTORY_LIMIT = 8
@@ -264,6 +268,28 @@ def history_stats(ctx: TickerContext | None) -> HistoryStats | None:
     )
 
 
+def _past_moves(snap: DashboardSnapshot) -> list[PastMove]:
+    """Parse the stored per-event moves, tolerating a malformed or absent
+    blob. Empty is the normal state for any snapshot written before the
+    column existed — a not-yet, not a failure, and the UI says so.
+    """
+    raw = getattr(snap, "past_moves_json", None)
+    if not raw:
+        return []
+    try:
+        rows = json.loads(raw)
+    except (ValueError, TypeError):
+        log.warning("past_moves_json did not parse for %s", snap.ticker)
+        return []
+    out: list[PastMove] = []
+    for r in rows:
+        try:
+            out.append(PastMove(report_date=r["report_date"], move=float(r["move"])))
+        except (KeyError, TypeError, ValueError):
+            continue
+    return out
+
+
 def _ai_summary(snap: DashboardSnapshot) -> AiSummary | None:
     """Parse the stored JSON, tolerating a malformed blob.
 
@@ -430,6 +456,7 @@ def ticker_page(
         page.direction = direction_signal.direction
         page.direction_confidence = direction_signal.confidence
         page.direction_as_of = direction_signal.run_date
+    page.past_moves = _past_moves(snap)
     page.options = options_panel(snap)
     page.news = _news(snap)
     page.news_sentiment = snap.news_sentiment

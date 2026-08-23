@@ -207,6 +207,19 @@ class AnalystRatingRow(BaseModel):
     prior_price_target: float | None = None
 
 
+class PastMove(BaseModel):
+    """One past print's realized move — the observations behind
+    `hist_avg_move`.
+
+    Derived from daily closes rather than read off the scored history: only
+    ~3% of history rows carry a realized move, since that field is written
+    by the scoring pipeline going forward and was never backfilled.
+    """
+
+    report_date: date
+    move: float = Field(description="signed fraction, -0.06 = down 6%")
+
+
 class AiSummary(BaseModel):
     """Structured so the UI can lay it out, rather than dumping a paragraph.
 
@@ -264,6 +277,14 @@ class TickerPage(BaseModel):
     news_sentiment: float | None = Field(None, description="-1..1")
     analyst_score: float | None = Field(None, description="-1..1")
     analyst_rating_raw: float | None = Field(None, description="Seeking Alpha 1-5")
+
+    past_moves: list[PastMove] = Field(
+        [],
+        description=(
+            "Realized move per past print, oldest first. Empty until the nightly "
+            "build populates it — a normal not-yet state, not an error."
+        ),
+    )
 
     fundamentals: Fundamentals | None = Field(
         None, description="null = the lookup failed or the symbol is unknown"

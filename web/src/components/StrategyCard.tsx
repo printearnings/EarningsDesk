@@ -1,4 +1,11 @@
 import { Panel } from "@/components/Panel";
+import {
+  MIN_MOVES_FOR_BACKTEST,
+  type PastMove,
+  backtestImpliedMove,
+  backtestRelevance,
+} from "@/lib/backtest";
+import { pct } from "@/lib/format";
 import { type Direction, type Verdict, recommendStrategy } from "@/lib/strategy";
 
 /**
@@ -36,10 +43,16 @@ export function StrategyCard({
   verdict,
   direction,
   ivInverted,
+  pastMoves = [],
+  impliedMove,
 }: {
   verdict: string | null | undefined;
   direction: string | null | undefined;
   ivInverted: boolean | null | undefined;
+  /** Realized move per past print, for scoring the suggestion against
+   * this stock's own history. */
+  pastMoves?: PastMove[];
+  impliedMove?: number | null;
 }) {
   const suggestion = recommendStrategy({
     verdict: (verdict ?? null) as Verdict | null,
@@ -80,11 +93,82 @@ export function StrategyCard({
 
       <p className="mt-4 text-[var(--color-body)]">{suggestion.rationale}</p>
 
+      <Backtest
+        strategyType={suggestion.type}
+        pastMoves={pastMoves}
+        impliedMove={impliedMove}
+      />
+
       <p className="mt-4 border-t border-[var(--color-border-subtle)] pt-4 text-sm text-[var(--color-muted)]">
         A structure traders in this setup often use, derived from the verdict and directional
         read above — not advice, and not sized for anyone&rsquo;s account. Strikes depend on the
         live chain; use the simulator to price actual legs.
       </p>
     </Panel>
+  );
+}
+
+/**
+ * Scores the suggestion against this stock's own past prints. Shown only
+ * where the test actually speaks to the structure — a directional spread's
+ * outcome depends on which way the stock went, which this doesn't measure,
+ * so it stays silent rather than posting an irrelevant number.
+ *
+ * The exact question is stated inline every time. "6 of 8" invites being
+ * read as a win rate for the trade; it isn't one, and the sentence has to
+ * carry that or the number will get quoted without it.
+ */
+function Backtest({
+  strategyType,
+  pastMoves,
+  impliedMove,
+}: {
+  strategyType: string;
+  pastMoves: PastMove[];
+  impliedMove: number | null | undefined;
+}) {
+  const relevance = backtestRelevance(strategyType);
+  if (relevance === "n/a") return null;
+
+  const result = backtestImpliedMove(pastMoves, impliedMove);
+
+  if (!result) {
+    return (
+      <p className="mt-4 border-t border-[var(--color-border-subtle)] pt-4 text-sm text-[var(--color-muted)]">
+        Not enough scored history to check this against past prints — it needs at least{" "}
+        {MIN_MOVES_FOR_BACKTEST}.
+      </p>
+    );
+  }
+
+  // The count that matters is the one the structure needs to win.
+  const favourable = relevance === "wants_within" ? result.within : result.breached;
+  const supports = favourable / result.total >= 0.5;
+
+  return (
+    <div className="mt-4 border-t border-[var(--color-border-subtle)] pt-4">
+      <p className="eyebrow mb-2 text-[var(--color-muted)]">Against past prints</p>
+      <p className="text-[var(--color-body)]">
+        Over the last {result.total} reports, this stock moved{" "}
+        {relevance === "wants_within" ? "less" : "more"} than the currently-implied{" "}
+        <strong className="font-medium text-[var(--color-heading)]">
+          {pct(impliedMove, 1)}
+        </strong>{" "}
+        in{" "}
+        <strong
+          className={`font-medium ${
+            supports ? "text-[var(--color-positive)]" : "text-[var(--color-negative)]"
+          }`}
+        >
+          {favourable} of {result.total}
+        </strong>
+        . The largest was {pct(result.largestMove, 1)}.
+      </p>
+      <p className="mt-2 text-sm text-[var(--color-muted)]">
+        A move-size check against today&rsquo;s implied move, not a P&amp;L backtest — it
+        doesn&rsquo;t model what the options cost at the time, where strikes sat, or when a
+        position would have been closed.
+      </p>
+    </div>
   );
 }

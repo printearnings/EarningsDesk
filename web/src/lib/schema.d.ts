@@ -609,6 +609,27 @@ export interface components {
              */
             spot?: number | null;
         };
+        /**
+         * PastMove
+         * @description One past print's realized move — the observations behind
+         *     `hist_avg_move`.
+         *
+         *     Derived from daily closes rather than read off the scored history: only
+         *     ~3% of history rows carry a realized move, since that field is written
+         *     by the scoring pipeline going forward and was never backfilled.
+         */
+        PastMove: {
+            /**
+             * Report Date
+             * Format: date
+             */
+            report_date: string;
+            /**
+             * Move
+             * @description signed fraction, -0.06 = down 6%
+             */
+            move: number;
+        };
         /** PricePoint */
         PricePoint: {
             /**
@@ -809,6 +830,12 @@ export interface components {
              * @description Seeking Alpha 1-5
              */
             analyst_rating_raw?: number | null;
+            /**
+             * Past Moves
+             * @description Realized move per past print, oldest first. Empty until the nightly build populates it — a normal not-yet state, not an error.
+             * @default []
+             */
+            past_moves: components["schemas"]["PastMove"][];
             /** @description null = the lookup failed or the symbol is unknown */
             fundamentals?: components["schemas"]["Fundamentals"] | null;
             /**

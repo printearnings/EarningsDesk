@@ -295,6 +295,8 @@ function OptionsPanelCard({ data }: { data: TickerData }) {
         verdict={o.verdict}
         direction={data.direction}
         ivInverted={o.iv_inverted}
+        pastMoves={data.past_moves ?? []}
+        impliedMove={o.implied_move}
       />
 
       {simulatorOpen && (

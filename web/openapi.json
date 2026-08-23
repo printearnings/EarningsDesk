@@ -1735,6 +1735,27 @@
         "title": "PastEarningsRow",
         "description": "One earnings event, any ticker \u2014 the cross-universe history feed.\n\nDistinct from EarningsHistoryRow (per-ticker, in TickerPage): same shape\nof fields, but this one carries `ticker` since it spans the whole\nuniverse."
       },
+      "PastMove": {
+        "properties": {
+          "report_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Report Date"
+          },
+          "move": {
+            "type": "number",
+            "title": "Move",
+            "description": "signed fraction, -0.06 = down 6%"
+          }
+        },
+        "type": "object",
+        "required": [
+          "report_date",
+          "move"
+        ],
+        "title": "PastMove",
+        "description": "One past print's realized move \u2014 the observations behind\n`hist_avg_move`.\n\nDerived from daily closes rather than read off the scored history: only\n~3% of history rows carry a realized move, since that field is written\nby the scoring pipeline going forward and was never backfilled."
+      },
       "PricePoint": {
         "properties": {
           "date": {
@@ -2303,6 +2324,15 @@
             ],
             "title": "Analyst Rating Raw",
             "description": "Seeking Alpha 1-5"
+          },
+          "past_moves": {
+            "items": {
+              "$ref": "#/components/schemas/PastMove"
+            },
+            "type": "array",
+            "title": "Past Moves",
+            "description": "Realized move per past print, oldest first. Empty until the nightly build populates it \u2014 a normal not-yet state, not an error.",
+            "default": []
           },
           "fundamentals": {
             "anyOf": [

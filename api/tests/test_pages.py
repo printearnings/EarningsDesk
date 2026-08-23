@@ -695,3 +695,58 @@ def test_signals_page_carries_the_outcome_through():
     page = pages.signals_page([_signal_row(ticker="NVDA", beat_implied=True)])
     assert page.rows[0].beat_implied is True
     assert page.rows[0].correct_direction is None
+
+
+# ---- past moves ------------------------------------------------------------
+#
+# The observations behind hist_avg_move, stored as JSON on the snapshot. The
+# column is new, so "absent" is a normal not-yet state for every row written
+# before it existed — never an error.
+
+
+def test_past_moves_parses_stored_rows(s):
+    _snap(
+        s,
+        past_moves_json=json.dumps(
+            [
+                {"report_date": "2026-05-20", "move": -0.061},
+                {"report_date": "2026-02-25", "move": 0.084},
+            ]
+        ),
+    )
+    moves = pages.ticker_page(s, "NVDA", now=NOW).past_moves
+
+    assert [m.report_date for m in moves] == [date(2026, 5, 20), date(2026, 2, 25)]
+    assert moves[0].move == pytest.approx(-0.061)
+
+
+def test_past_moves_absent_is_empty_not_an_error(s):
+    """Every snapshot written before this column existed has no value —
+    that's a not-yet, and the page must still render."""
+    _snap(s)
+    assert pages.ticker_page(s, "NVDA", now=NOW).past_moves == []
+
+
+def test_past_moves_survives_a_malformed_blob(s):
+    """A bad blob must not take the whole ticker page down with it — same
+    contract _ai_summary already follows."""
+    _snap(s, past_moves_json="{not json at all")
+    assert pages.ticker_page(s, "NVDA", now=NOW).past_moves == []
+
+
+def test_past_moves_skips_individually_bad_rows(s):
+    """One unparseable entry shouldn't discard the rows around it."""
+    _snap(
+        s,
+        past_moves_json=json.dumps(
+            [
+                {"report_date": "2026-05-20", "move": -0.061},
+                {"report_date": "2026-02-25"},  # no move
+                {"move": 0.02},  # no date
+                {"report_date": "2025-11-19", "move": "not a number"},
+                {"report_date": "2025-08-20", "move": 0.033},
+            ]
+        ),
+    )
+    moves = pages.ticker_page(s, "NVDA", now=NOW).past_moves
+    assert [m.report_date for m in moves] == [date(2026, 5, 20), date(2025, 8, 20)]
