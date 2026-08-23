@@ -292,16 +292,55 @@ const STRANGLE_DELTA = 0.3;
 const ATM_DELTA = 0.5;
 
 /**
+ * Skew-aware short-strike placement — the piece skew.py's own docstring
+ * calls out as missing: "a structure that ignores skew places its strikes
+ * symmetrically around spot even when the market is pricing the two sides
+ * very differently."
+ *
+ * Delta-based selection already normalises for *ordinary* skew (equities
+ * carry positive risk reversal essentially always, so a 25-delta put sits
+ * further from spot than a 25-delta call as a matter of course — that's
+ * priced in, not a signal). This only acts when the risk reversal is large
+ * enough to call "unusual" rather than the background level, and then only
+ * on the side skew actually flags: when selling premium on the side the
+ * market is pricing more tail risk into, stand further off (lower delta,
+ * more OTM) than the routine target — the extra distance is the margin of
+ * safety a short seller wants specifically where the market itself is
+ * saying "this side worries me more."
+ */
+const SKEW_ELEVATED_THRESHOLD = 0.05; // 5 vol points of risk reversal
+const SKEW_SHORT_DELTA_RELIEF = 0.05; // how far off the routine target to back the short strike
+const MIN_SHORT_DELTA = 0.05; // floor so relief can't push a strike absurdly far OTM
+
+function skewAdjustedShortDelta(
+  side: "put" | "call",
+  baseDelta: number,
+  riskReversal: number | null | undefined,
+): number {
+  if (riskReversal === null || riskReversal === undefined) return baseDelta;
+  if (Math.abs(riskReversal) < SKEW_ELEVATED_THRESHOLD) return baseDelta;
+  // Positive RR = puts bid over calls = downside is the expensive, riskier side.
+  const flaggedSide = riskReversal > 0 ? "put" : "call";
+  if (side !== flaggedSide) return baseDelta;
+  return Math.max(MIN_SHORT_DELTA, baseDelta - SKEW_SHORT_DELTA_RELIEF);
+}
+
+/**
  * Resolves a strategy type into actual legs against a live chain.
  *
  * `expiry` is the front (or only, for single-expiry strategies) expiry —
  * for the calendar types, the back leg is found automatically from
  * whichever later expiry exists in `contracts`.
+ *
+ * `riskReversal` is optional (the standalone Simulator has no snapshot to
+ * pull it from) and only nudges the short strike on structures that sell
+ * premium — see `skewAdjustedShortDelta`.
  */
 export function selectStrikes(
   strategy: StrategyType,
   contracts: ChainContract[],
   expiry: string,
+  riskReversal?: number | null,
 ): StrategyPlan {
   const calls = byExpiryAndType(contracts, expiry, "call");
   const puts = byExpiryAndType(contracts, expiry, "put");
@@ -310,19 +349,43 @@ export function selectStrikes(
     switch (strategy) {
       case "iron_condor":
         return [
-          leg("sell", "put", expiry, CONDOR_SHORT_DELTA, puts),
+          leg(
+            "sell",
+            "put",
+            expiry,
+            skewAdjustedShortDelta("put", CONDOR_SHORT_DELTA, riskReversal),
+            puts,
+          ),
           leg("buy", "put", expiry, CONDOR_WING_DELTA, puts),
-          leg("sell", "call", expiry, CONDOR_SHORT_DELTA, calls),
+          leg(
+            "sell",
+            "call",
+            expiry,
+            skewAdjustedShortDelta("call", CONDOR_SHORT_DELTA, riskReversal),
+            calls,
+          ),
           leg("buy", "call", expiry, CONDOR_WING_DELTA, calls),
         ];
       case "bull_put_spread":
         return [
-          leg("sell", "put", expiry, SPREAD_SHORT_DELTA, puts),
+          leg(
+            "sell",
+            "put",
+            expiry,
+            skewAdjustedShortDelta("put", SPREAD_SHORT_DELTA, riskReversal),
+            puts,
+          ),
           leg("buy", "put", expiry, SPREAD_LONG_DELTA, puts),
         ];
       case "bear_call_spread":
         return [
-          leg("sell", "call", expiry, SPREAD_SHORT_DELTA, calls),
+          leg(
+            "sell",
+            "call",
+            expiry,
+            skewAdjustedShortDelta("call", SPREAD_SHORT_DELTA, riskReversal),
+            calls,
+          ),
           leg("buy", "call", expiry, SPREAD_LONG_DELTA, calls),
         ];
       case "long_straddle":

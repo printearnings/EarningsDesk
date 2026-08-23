@@ -51,12 +51,16 @@ export function StrategyLegs({
   verdict,
   direction,
   ivInverted,
+  riskReversal,
   contracts,
   expiry,
 }: {
   verdict: string | null | undefined;
   direction: string | null | undefined;
   ivInverted: boolean | null | undefined;
+  /** 25-delta risk reversal — puts skew, only nudges the short strike on
+   * structures that sell premium. See selectStrikes/skewAdjustedShortDelta. */
+  riskReversal?: number | null;
   contracts: ChainContract[];
   expiry: string;
 }) {
@@ -67,8 +71,11 @@ export function StrategyLegs({
   });
 
   const plan = useMemo(
-    () => (suggestion.type === "none" ? null : selectStrikes(suggestion.type, contracts, expiry)),
-    [suggestion.type, contracts, expiry],
+    () =>
+      suggestion.type === "none"
+        ? null
+        : selectStrikes(suggestion.type, contracts, expiry, riskReversal),
+    [suggestion.type, contracts, expiry, riskReversal],
   );
   const econ = useMemo(() => (plan ? strategyEconomics(plan) : null), [plan]);
 

@@ -88,6 +88,7 @@ export function OptionsSimulator({
   verdict,
   direction,
   ivInverted,
+  riskReversal,
   autoLoad = false,
 }: {
   ticker: string;
@@ -101,6 +102,8 @@ export function OptionsSimulator({
   verdict?: string | null;
   direction?: string | null;
   ivInverted?: boolean | null;
+  /** 25-delta risk reversal, passed straight through to StrategyLegs. */
+  riskReversal?: number | null;
   /** Skip the manual "Load live chain" click and fire it on mount instead.
    * Off by default (the ticker page's own Options tab links here as one of
    * several things to browse, so spending the metered call still wants an
@@ -489,6 +492,7 @@ export function OptionsSimulator({
           verdict={verdict}
           direction={direction}
           ivInverted={ivInverted}
+          riskReversal={riskReversal}
           contracts={state.contracts}
           expiry={expiry}
         />

@@ -135,14 +135,19 @@ const BACK_EXPIRY = "2026-09-04";
 /** A strike ladder with plausible deltas either side of spot — calls lose
  * delta as strike rises, puts gain magnitude as strike falls, same shape a
  * real chain has. Dense enough that every target delta this module uses
- * (0.07 through 0.50) has a close real match. */
-function fabricateChain(expiry: string, spot: number): ChainContract[] {
+ * (0.07 through 0.50) has a close real match. `step` controls strike
+ * spacing; the delta-per-step scales with it so the overall curve slope
+ * stays the same regardless — a finer step just resolves more precisely,
+ * which the skew tests below need to reliably land on a different strike
+ * for a 0.05 delta-target shift. */
+function fabricateChain(expiry: string, spot: number, step = 2.5): ChainContract[] {
   const contracts: ChainContract[] = [];
-  for (let i = -12; i <= 12; i++) {
-    const strike = spot + i * 2.5;
+  const deltaPerStep = 0.055 * (step / 2.5);
+  for (let i = -12 * (2.5 / step); i <= 12 * (2.5 / step); i++) {
+    const strike = spot + i * step;
     // Rough delta curve: 0.50 ATM, decaying ~0.05 per $2.5 step away from spot.
-    const callDelta = Math.max(0.02, Math.min(0.98, 0.5 - i * 0.055));
-    const putDelta = -Math.max(0.02, Math.min(0.98, 0.5 + i * 0.055));
+    const callDelta = Math.max(0.02, Math.min(0.98, 0.5 - i * deltaPerStep));
+    const putDelta = -Math.max(0.02, Math.min(0.98, 0.5 + i * deltaPerStep));
     contracts.push({
       strike,
       expiry,
@@ -167,6 +172,10 @@ function fabricateChain(expiry: string, spot: number): ChainContract[] {
 
 const SPOT = 100;
 const CHAIN = [...fabricateChain(EXPIRY, SPOT), ...fabricateChain(BACK_EXPIRY, SPOT)];
+// A finer strike ladder for the skew tests, which need a 0.05 delta-target
+// shift to reliably resolve to a different strike than the coarse $2.5
+// ladder above always guarantees.
+const FINE_CHAIN = fabricateChain(EXPIRY, SPOT, 0.5);
 
 describe("selectStrikes", () => {
   it("iron condor resolves 4 legs: short/long put below spot, short/long call above", () => {
@@ -268,6 +277,92 @@ describe("selectStrikes", () => {
     const plan = selectStrikes("none", CHAIN, EXPIRY);
     expect(plan.legs).toHaveLength(0);
     expect(plan.complete).toBe(false);
+  });
+
+  describe("skew-aware short strikes", () => {
+    // Positive RR = puts bid over calls = downside is the pricier, riskier
+    // side; negative is the mirror image on calls. 0.08 and -0.08 both sit
+    // past the 0.05 "elevated" threshold.
+    const ELEVATED_PUT_SKEW = 0.08;
+    const ELEVATED_CALL_SKEW = -0.08;
+    const MILD_SKEW = 0.03; // below the threshold — should change nothing
+
+    it("elevated put skew backs the condor's short put further out, leaves the call side alone", () => {
+      const base = selectStrikes("iron_condor", FINE_CHAIN, EXPIRY);
+      const skewed = selectStrikes("iron_condor", FINE_CHAIN, EXPIRY, ELEVATED_PUT_SKEW);
+      const [baseShortPut, , baseShortCall] = base.legs;
+      const [skewShortPut, , skewShortCall] = skewed.legs;
+      expect(Math.abs(skewShortPut.contract!.strike - SPOT)).toBeGreaterThan(
+        Math.abs(baseShortPut.contract!.strike - SPOT),
+      );
+      expect(skewShortCall.contract!.strike).toBe(baseShortCall.contract!.strike);
+    });
+
+    it("elevated call skew backs the condor's short call further out, leaves the put side alone", () => {
+      const base = selectStrikes("iron_condor", FINE_CHAIN, EXPIRY);
+      const skewed = selectStrikes("iron_condor", FINE_CHAIN, EXPIRY, ELEVATED_CALL_SKEW);
+      const [baseShortPut, , baseShortCall] = base.legs;
+      const [skewShortPut, , skewShortCall] = skewed.legs;
+      expect(skewShortPut.contract!.strike).toBe(baseShortPut.contract!.strike);
+      expect(Math.abs(skewShortCall.contract!.strike - SPOT)).toBeGreaterThan(
+        Math.abs(baseShortCall.contract!.strike - SPOT),
+      );
+    });
+
+    it("skew below the elevated threshold leaves every strike at its routine target", () => {
+      const base = selectStrikes("iron_condor", FINE_CHAIN, EXPIRY);
+      const mild = selectStrikes("iron_condor", FINE_CHAIN, EXPIRY, MILD_SKEW);
+      expect(mild.legs.map((l) => l.contract!.strike)).toEqual(
+        base.legs.map((l) => l.contract!.strike),
+      );
+    });
+
+    it("bull put spread backs its short strike off further under elevated put skew", () => {
+      const base = selectStrikes("bull_put_spread", FINE_CHAIN, EXPIRY);
+      const skewed = selectStrikes("bull_put_spread", FINE_CHAIN, EXPIRY, ELEVATED_PUT_SKEW);
+      expect(Math.abs(skewed.legs[0].contract!.strike - SPOT)).toBeGreaterThan(
+        Math.abs(base.legs[0].contract!.strike - SPOT),
+      );
+      // The protective long leg targets a fixed delta regardless of skew.
+      expect(skewed.legs[1].contract!.strike).toBe(base.legs[1].contract!.strike);
+    });
+
+    it("bear call spread backs its short strike off further under elevated call skew", () => {
+      const base = selectStrikes("bear_call_spread", FINE_CHAIN, EXPIRY);
+      const skewed = selectStrikes("bear_call_spread", FINE_CHAIN, EXPIRY, ELEVATED_CALL_SKEW);
+      expect(Math.abs(skewed.legs[0].contract!.strike - SPOT)).toBeGreaterThan(
+        Math.abs(base.legs[0].contract!.strike - SPOT),
+      );
+    });
+
+    it("a spread on the un-flagged side of skew is untouched (skew only backs off the risky side, never the other)", () => {
+      const base = selectStrikes("bear_call_spread", FINE_CHAIN, EXPIRY);
+      // Put skew flags the put side; a call spread has nothing on that side.
+      const skewed = selectStrikes("bear_call_spread", FINE_CHAIN, EXPIRY, ELEVATED_PUT_SKEW);
+      expect(skewed.legs.map((l) => l.contract!.strike)).toEqual(
+        base.legs.map((l) => l.contract!.strike),
+      );
+    });
+
+    it("debit spreads and straddles don't react to skew — the adjustment is scoped to premium-selling structures", () => {
+      const base = selectStrikes("call_debit_spread", FINE_CHAIN, EXPIRY);
+      const skewed = selectStrikes("call_debit_spread", FINE_CHAIN, EXPIRY, ELEVATED_PUT_SKEW);
+      expect(skewed.legs.map((l) => l.contract!.strike)).toEqual(
+        base.legs.map((l) => l.contract!.strike),
+      );
+    });
+
+    it("missing riskReversal behaves exactly like no skew was ever passed", () => {
+      const base = selectStrikes("iron_condor", FINE_CHAIN, EXPIRY);
+      const undefinedRR = selectStrikes("iron_condor", FINE_CHAIN, EXPIRY, undefined);
+      const nullRR = selectStrikes("iron_condor", FINE_CHAIN, EXPIRY, null);
+      expect(undefinedRR.legs.map((l) => l.contract!.strike)).toEqual(
+        base.legs.map((l) => l.contract!.strike),
+      );
+      expect(nullRR.legs.map((l) => l.contract!.strike)).toEqual(
+        base.legs.map((l) => l.contract!.strike),
+      );
+    });
   });
 });
 

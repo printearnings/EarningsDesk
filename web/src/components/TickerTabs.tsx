@@ -313,6 +313,7 @@ function OptionsPanelCard({ data }: { data: TickerData }) {
           verdict={o.verdict}
           direction={data.direction}
           ivInverted={o.iv_inverted}
+          riskReversal={o.skew_risk_reversal}
           autoLoad
         />
       )}
