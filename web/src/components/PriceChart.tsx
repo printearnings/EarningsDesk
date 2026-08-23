@@ -1058,18 +1058,33 @@ function ChartBody({
             />
           )}
 
-          {/* Earnings markers, 1Y view only. The 2px surface ring keeps them
-              legible where they sit on the line. */}
+          {/* Earnings-date badges, every range. A plain unlabeled dot reads
+              as "some kind of marker" at best — an "E" badge (Finviz's
+              convention) is unmistakable at a glance, which is the whole
+              point of marking the date at all. The 2px surface ring keeps
+              the badge legible against the line/candles it sits on top of. */}
           {chart.markers.map((m) => (
-            <circle
-              key={m.key}
-              cx={m.cx}
-              cy={m.cy}
-              r={4}
-              fill="var(--color-viz-realized)"
-              stroke="var(--color-panel)"
-              strokeWidth={2}
-            />
+            <g key={m.key}>
+              <circle
+                cx={m.cx}
+                cy={m.cy}
+                r={8}
+                fill="var(--color-viz-realized)"
+                stroke="var(--color-panel)"
+                strokeWidth={2}
+              />
+              <text
+                x={m.cx}
+                y={m.cy}
+                textAnchor="middle"
+                dominantBaseline="central"
+                fontSize={9}
+                fontWeight={700}
+                fill="var(--color-on-brand)"
+              >
+                E
+              </text>
+            </g>
           ))}
 
           {/* Not gated on `!pan` — a mouse only sets `pan` while actually
