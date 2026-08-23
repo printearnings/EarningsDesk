@@ -107,8 +107,18 @@ export function InsiderActivityChart({
     const baseline = PAD.top + plotH;
     const barW = Math.min(MAX_BAR_W, Math.max(2, plotW / Math.max(positioned.length, 24) / 1.5));
 
+    // Square-root scale, not linear. Insider trade sizes span orders of
+    // magnitude — a 10%-owner trust unloading $467M next to executives
+    // selling $200K each. Linear makes the outlier the only visible bar and
+    // flattens every other trade to a 1px sliver, losing the pattern the
+    // chart exists to show. sqrt keeps the outlier clearly dominant (~39x
+    // taller here rather than ~1500x) while the rest stay readable. The
+    // caption says so, since a non-linear axis the reader can't see is a
+    // way to mislead with a true number.
+    const scale = (v: number) => Math.sqrt(v / maxValue);
+
     const bars = positioned.map(({ t, frac }, i) => {
-      const h = Math.max(MIN_BAR_H, (t.value / maxValue) * plotH * 0.8);
+      const h = Math.max(MIN_BAR_H, scale(t.value) * plotH * 0.8);
       return {
         i,
         trade: t,
@@ -271,7 +281,9 @@ export function InsiderActivityChart({
           />
           Sold {moneyCompact(chart.sellTotal)}
         </span>
-        <span className="text-[var(--color-muted)]">Bar height = trade value</span>
+        <span className="text-[var(--color-muted)]">
+          Bar height = trade value (square-root scale)
+        </span>
       </figcaption>
     </figure>
   );
