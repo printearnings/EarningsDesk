@@ -373,8 +373,10 @@ describe("strategyEconomics", () => {
     )!;
     expect(e.netCredit).toBe(-500);
     expect(e.maxLoss).toBe(500);
-    // A capped number here would understate the position's whole point.
-    expect(e.maxProfit).toBeNull();
+    // "unbounded", not null: the upside genuinely has no cap. null would
+    // mean "can't compute", which renders as an em dash and reads as
+    // missing data rather than as the position's whole point.
+    expect(e.maxProfit).toBe("unbounded");
     expect(e.breakevens).toEqual([95, 105]);
   });
 
@@ -386,7 +388,11 @@ describe("strategyEconomics", () => {
       ]),
     )!;
     expect(e.netCredit).toBe(-150);
+    // null, NOT "unbounded" — a calendar's profit IS capped in practice,
+    // this just can't find the cap without a model. Labelling it
+    // "Unlimited" would be a materially false claim about a real trade.
     expect(e.maxProfit).toBeNull();
+    expect(e.maxProfit).not.toBe("unbounded");
     expect(e.maxLoss).toBeNull();
     expect(e.breakevens).toEqual([]);
   });

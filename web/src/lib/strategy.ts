@@ -378,14 +378,25 @@ export function selectStrikes(
  * dependency-free the same way ChainContract is. */
 const CONTRACT_MULTIPLIER = 100;
 
+/**
+ * A payoff bound is one of three genuinely different things, and
+ * collapsing any two of them misstates a real trade:
+ *
+ *   a number     — the bound, in dollars.
+ *   "unbounded"  — no cap exists (a long call's upside).
+ *   null         — a cap may well exist, this just can't compute it in
+ *                  closed form (a calendar, whose legs expire on different
+ *                  dates). Rendering this as "Unlimited" would be a
+ *                  materially false claim about the position.
+ */
+export type PayoffBound = number | "unbounded" | null;
+
 export interface StrategyEconomics {
   /** Positive = the position collects premium (a credit); negative = it
    * pays (a debit). Per one contract of each leg, in dollars. */
   netCredit: number;
-  /** null where the payoff is genuinely unbounded — a long straddle's
-   * upside, for instance. Not the same as zero, and must not render as it. */
-  maxProfit: number | null;
-  maxLoss: number | null;
+  maxProfit: PayoffBound;
+  maxLoss: PayoffBound;
   /** Underlying prices where the position breaks even at expiration.
    * Empty when the structure spans expiries (a calendar's value at the
    * front expiry depends on the back leg's remaining time value, which
@@ -487,9 +498,9 @@ export function strategyEconomics(plan: StrategyPlan): StrategyEconomics | null 
       const put = plan.legs.find((l) => l.type === "put")!.contract!;
       return {
         netCredit,
-        // Upside on a long call is unbounded — null, never a large number
-        // that would read as a cap.
-        maxProfit: null,
+        // Upside on the call side is genuinely uncapped — distinct from
+        // "can't compute", which is null.
+        maxProfit: "unbounded",
         maxLoss: -netCredit,
         breakevens: [put.strike - debit, call.strike + debit],
       };
@@ -500,7 +511,10 @@ export function strategyEconomics(plan: StrategyPlan): StrategyEconomics | null 
       const c = plan.legs[0].contract!;
       return {
         netCredit,
-        maxProfit: plan.type === "long_call" ? null : (c.strike - debit) * CONTRACT_MULTIPLIER,
+        // A long put's upside caps at the strike going to zero; a long
+        // call's does not cap at all.
+        maxProfit:
+          plan.type === "long_call" ? "unbounded" : (c.strike - debit) * CONTRACT_MULTIPLIER,
         maxLoss: -netCredit,
         breakevens: [plan.type === "long_call" ? c.strike + debit : c.strike - debit],
       };

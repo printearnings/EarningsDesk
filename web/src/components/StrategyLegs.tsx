@@ -6,6 +6,7 @@ import { Panel } from "@/components/Panel";
 import { EMPTY, formatDateShort, money, num } from "@/lib/format";
 import {
   type ChainContract,
+  type PayoffBound,
   type Direction,
   type Verdict,
   recommendStrategy,
@@ -27,6 +28,19 @@ import {
  * reader's decision, and showing a number that silently assumed a
  * quantity would misstate the risk.
  */
+
+/**
+ * The three payoff cases render differently on purpose. "Unlimited" for a
+ * bound this code merely can't compute would be a false claim about a real
+ * position — a calendar's profit is capped in practice, it just needs a
+ * model rather than arithmetic to find. An em dash says "not shown here",
+ * which is the truth.
+ */
+function payoffLabel(bound: PayoffBound): string {
+  if (bound === "unbounded") return "Unlimited";
+  if (bound === null) return EMPTY;
+  return money(bound);
+}
 
 const ACTION_STYLE: Record<string, string> = {
   buy: "border-[var(--color-positive)]/25 bg-[var(--color-verdict-cheap-bg)] text-[var(--color-positive)]",
@@ -142,15 +156,13 @@ export function StrategyLegs({
           <div>
             <p className="eyebrow text-[var(--color-muted)]">Max profit</p>
             <p className="tnum mt-1 text-lg font-semibold text-[var(--color-positive)]">
-              {/* Unbounded upside is not a number. Rendering a cap here
-                  would understate exactly what a long straddle is for. */}
-              {econ.maxProfit === null ? "Unlimited" : money(econ.maxProfit)}
+              {payoffLabel(econ.maxProfit)}
             </p>
           </div>
           <div>
             <p className="eyebrow text-[var(--color-muted)]">Max loss</p>
             <p className="tnum mt-1 text-lg font-semibold text-[var(--color-negative)]">
-              {econ.maxLoss === null ? EMPTY : money(econ.maxLoss)}
+              {payoffLabel(econ.maxLoss)}
             </p>
           </div>
           <div>
