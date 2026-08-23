@@ -382,7 +382,12 @@ function DayCellView({ cell }: { cell: DayCell }) {
           );
         })}
         {overflow > 0 && (
-          <p className="text-2xs px-1 text-[var(--color-muted)]">+{overflow} more</p>
+          <Link
+            href={`/calendar/day/?date=${cell.iso}`}
+            className="text-2xs pressable block rounded-[3px] px-1 text-[var(--color-muted)] underline decoration-dotted underline-offset-2 transition-colors hover:text-[var(--color-heading)]"
+          >
+            +{overflow} more
+          </Link>
         )}
       </div>
     </div>
