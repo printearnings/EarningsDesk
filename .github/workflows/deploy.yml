@@ -98,10 +98,17 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python -m app.dump_json --out ../web/public/data
 
-      - name: Typecheck and build the frontend
+      # `npm run test` includes strategy.conformance.test.ts, which asserts the
+      # TS strategy logic against the shared fixture in the Earnings repo
+      # (checked out above as a sibling). That guard only bites if it actually
+      # runs, so the frontend tests belong in the deploy path — a drifted
+      # strategy matrix would otherwise ship silently and make the track
+      # record describe a structure the site never showed.
+      - name: Typecheck, test, and build the frontend
         working-directory: EarningsDesk/web
         run: |
           npm run typecheck
+          npm run test
           npm run build
 
       - name: Generate wrangler config
