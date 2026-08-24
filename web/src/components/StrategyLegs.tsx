@@ -7,7 +7,6 @@ import { EMPTY, formatDateShort, money, num } from "@/lib/format";
 import {
   type ChainContract,
   type PayoffBound,
-  type Direction,
   type Verdict,
   recommendStrategy,
   selectStrikes,
@@ -49,14 +48,12 @@ const ACTION_STYLE: Record<string, string> = {
 
 export function StrategyLegs({
   verdict,
-  direction,
   ivInverted,
   riskReversal,
   contracts,
   expiry,
 }: {
   verdict: string | null | undefined;
-  direction: string | null | undefined;
   ivInverted: boolean | null | undefined;
   /** 25-delta risk reversal — puts skew, only nudges the short strike on
    * structures that sell premium. See selectStrikes/skewAdjustedShortDelta. */
@@ -64,9 +61,9 @@ export function StrategyLegs({
   contracts: ChainContract[];
   expiry: string;
 }) {
+  // Direction-free: structure follows from the volatility verdict alone.
   const suggestion = recommendStrategy({
     verdict: (verdict ?? null) as Verdict | null,
-    direction: (direction ?? null) as Direction | null,
     ivInverted,
   });
 

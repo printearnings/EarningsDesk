@@ -60,72 +60,46 @@ const NO_EDGE: StrategySuggestion = {
   bias: "neutral",
   premium: "none",
   rationale:
-    "Pricing looks fair and there's no directional lean, so there's nothing here worth structuring a trade around.",
+    "Options look fairly priced, so there's no volatility edge to structure a trade around. A directional lean alone isn't enough — this site's own directional read hasn't beaten a coin flip, so it doesn't stand in for one.",
 };
 
 /**
- * verdict/direction/ivInverted are exactly the fields `TickerPage` already
- * carries (`options.verdict`, `direction`, `options.iv_inverted`) — this
- * needs no data the app doesn't already compute for every tracked name.
+ * verdict/ivInverted are fields `TickerPage` already carries
+ * (`options.verdict`, `options.iv_inverted`) — no data the app doesn't
+ * already compute for every tracked name.
  *
- * `ivInverted` takes priority over the verdict/direction grid: a term
- * structure inverted into earnings (front IV > back IV) is specifically
- * what a calendar spread is built to isolate — the richness is IN the
- * front month, not in the option overall, and a calendar is the one
- * structure here that expresses that distinction rather than just "sell
- * premium somewhere on this expiry."
+ * Direction-free by design. The structure follows from the volatility read
+ * alone: RICH sells premium through a neutral condor, CHEAP buys it through
+ * a straddle, FAIR is no trade. This used to tilt by a bullish/bearish lean
+ * (RICH+bullish -> bull put spread, and so on), but that lean scored 39%
+ * over 46 scored calls — below a coin flip, no edge over the base rate, and
+ * 84% bullish regardless of outcome. Letting an unvalidated signal pick a
+ * directional structure only added directional risk the site couldn't
+ * justify. The lean is still shown as an independent read; it no longer
+ * decides what to trade. See the track record's directional panel.
+ *
+ * `ivInverted` still routes RICH to a calendar: front IV > back IV into
+ * earnings is a measurable, validated signal, and the calendar is the
+ * neutral structure that isolates it — not a guess about direction.
  */
 export function recommendStrategy({
   verdict,
-  direction,
   ivInverted,
 }: {
   verdict: Verdict | null | undefined;
-  direction: Direction | null | undefined;
   ivInverted: boolean | null | undefined;
 }): StrategySuggestion {
   if (!verdict) return NO_EDGE;
-  const dir = direction ?? "NEUTRAL";
-
-  if (ivInverted && verdict === "RICH") {
-    return dir === "BEARISH"
-      ? {
-          type: "calendar_put",
-          label: "Put calendar",
-          bias: "bearish",
-          premium: "sell",
-          rationale:
-            "Front-month IV is priced above back-month, so the richness is specifically in this expiry. A calendar isolates that; a same-expiry spread would not.",
-        }
-      : {
-          type: "calendar_call",
-          label: "Call calendar",
-          bias: dir === "BULLISH" ? "bullish" : "neutral",
-          premium: "sell",
-          rationale:
-            "Front-month IV is priced above back-month, so the richness is specifically in this expiry. A calendar isolates that; a same-expiry spread would not.",
-        };
-  }
 
   if (verdict === "RICH") {
-    if (dir === "BULLISH") {
+    if (ivInverted) {
       return {
-        type: "bull_put_spread",
-        label: "Bull put spread",
-        bias: "bullish",
+        type: "calendar_call",
+        label: "Call calendar",
+        bias: "neutral",
         premium: "sell",
         rationale:
-          "Implied move is priced above what this stock typically does, and the flow leans bullish. Collect the rich premium on the side you'd rather be wrong on.",
-      };
-    }
-    if (dir === "BEARISH") {
-      return {
-        type: "bear_call_spread",
-        label: "Bear call spread",
-        bias: "bearish",
-        premium: "sell",
-        rationale:
-          "Implied move is priced above what this stock typically does, and the flow leans bearish. Collect the rich premium on the side you'd rather be wrong on.",
+          "Front-month IV is priced above back-month, so the richness is specifically in this expiry. A calendar isolates that; a same-expiry spread would not.",
       };
     }
     return {
@@ -134,64 +108,23 @@ export function recommendStrategy({
       bias: "neutral",
       premium: "sell",
       rationale:
-        "Implied move is priced above what this stock typically does, with no clear directional lean. A defined-risk condor sells that excess premium on both sides.",
+        "Implied move is priced above what this stock typically does. A defined-risk condor sells that excess premium on both sides, with no directional bet.",
     };
   }
 
   if (verdict === "CHEAP") {
-    if (dir === "BULLISH") {
-      return {
-        type: "call_debit_spread",
-        label: "Call debit spread",
-        bias: "bullish",
-        premium: "buy",
-        rationale:
-          "Implied move is priced below what this stock typically does, and the flow leans bullish. A call spread buys the underpriced move at a lower cost than an outright call.",
-      };
-    }
-    if (dir === "BEARISH") {
-      return {
-        type: "put_debit_spread",
-        label: "Put debit spread",
-        bias: "bearish",
-        premium: "buy",
-        rationale:
-          "Implied move is priced below what this stock typically does, and the flow leans bearish. A put spread buys the underpriced move at a lower cost than an outright put.",
-      };
-    }
     return {
       type: "long_straddle",
       label: "Long straddle",
       bias: "neutral",
       premium: "buy",
       rationale:
-        "Implied move is priced below what this stock typically does, with no clear lean. A straddle buys that underpriced move in either direction.",
+        "Implied move is priced below what this stock typically does. A straddle buys that underpriced move in either direction, with no directional bet.",
     };
   }
 
-  // FAIR: no mispricing to lean on, so only a real directional view earns a
-  // recommendation, and it gets the lower-cost spread rather than a naked
-  // long — there's no vol edge here to also pay for.
-  if (dir === "BULLISH") {
-    return {
-      type: "call_debit_spread",
-      label: "Call debit spread",
-      bias: "bullish",
-      premium: "buy",
-      rationale:
-        "Pricing looks fair, but the flow leans bullish. A debit spread caps cost since there's no volatility mispricing backing the trade.",
-    };
-  }
-  if (dir === "BEARISH") {
-    return {
-      type: "put_debit_spread",
-      label: "Put debit spread",
-      bias: "bearish",
-      premium: "buy",
-      rationale:
-        "Pricing looks fair, but the flow leans bearish. A debit spread caps cost since there's no volatility mispricing backing the trade.",
-    };
-  }
+  // FAIR: no volatility edge, and the directional lean that used to earn a
+  // trade here has no demonstrated edge either. Nothing to act on.
   return NO_EDGE;
 }
 

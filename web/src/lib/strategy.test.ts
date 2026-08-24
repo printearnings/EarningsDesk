@@ -13,125 +13,59 @@ import {
 
 describe("recommendStrategy", () => {
   it("has no recommendation without a verdict", () => {
-    expect(
-      recommendStrategy({ verdict: null, direction: "BULLISH", ivInverted: false }).type,
-    ).toBe("none");
+    expect(recommendStrategy({ verdict: null, ivInverted: false }).type).toBe("none");
   });
 
-  describe("RICH: sell premium, direction picks the side", () => {
-    it("bullish -> bull put spread", () => {
-      const s = recommendStrategy({ verdict: "RICH", direction: "BULLISH", ivInverted: false });
-      expect(s.type).toBe("bull_put_spread");
-      expect(s.premium).toBe("sell");
-      expect(s.bias).toBe("bullish");
-    });
-
-    it("bearish -> bear call spread", () => {
-      const s = recommendStrategy({ verdict: "RICH", direction: "BEARISH", ivInverted: false });
-      expect(s.type).toBe("bear_call_spread");
-      expect(s.premium).toBe("sell");
-      expect(s.bias).toBe("bearish");
-    });
-
-    it("neutral -> iron condor (never a naked short strangle)", () => {
-      const s = recommendStrategy({ verdict: "RICH", direction: "NEUTRAL", ivInverted: false });
+  // The structure follows from the volatility verdict alone. The directional
+  // lean was removed after scoring 39% over its first 46 calls — below a coin
+  // flip — so a bullish/bearish read no longer picks a directional spread.
+  describe("RICH -> a neutral, defined-risk short-premium structure", () => {
+    it("sells an iron condor", () => {
+      const s = recommendStrategy({ verdict: "RICH", ivInverted: false });
       expect(s.type).toBe("iron_condor");
+      expect(s.premium).toBe("sell");
       expect(s.bias).toBe("neutral");
     });
 
-    it("missing direction defaults to neutral -> iron condor", () => {
-      expect(
-        recommendStrategy({ verdict: "RICH", direction: null, ivInverted: false }).type,
-      ).toBe("iron_condor");
+    it("routes to a calendar when the term structure is inverted", () => {
+      const s = recommendStrategy({ verdict: "RICH", ivInverted: true });
+      expect(s.type).toBe("calendar_call");
+      expect(s.bias).toBe("neutral");
     });
   });
 
-  describe("CHEAP: buy premium, direction picks the side", () => {
-    it("bullish -> call debit spread, not a naked long call", () => {
-      const s = recommendStrategy({
-        verdict: "CHEAP",
-        direction: "BULLISH",
-        ivInverted: false,
-      });
-      expect(s.type).toBe("call_debit_spread");
-      expect(s.premium).toBe("buy");
-    });
-
-    it("bearish -> put debit spread", () => {
-      const s = recommendStrategy({
-        verdict: "CHEAP",
-        direction: "BEARISH",
-        ivInverted: false,
-      });
-      expect(s.type).toBe("put_debit_spread");
-    });
-
-    it("neutral -> long straddle", () => {
-      const s = recommendStrategy({
-        verdict: "CHEAP",
-        direction: "NEUTRAL",
-        ivInverted: false,
-      });
-      expect(s.type).toBe("long_straddle");
-      expect(s.premium).toBe("buy");
+  describe("CHEAP -> a neutral long-premium structure", () => {
+    it("buys a straddle regardless of term structure", () => {
+      expect(recommendStrategy({ verdict: "CHEAP", ivInverted: false }).type).toBe(
+        "long_straddle",
+      );
+      expect(recommendStrategy({ verdict: "CHEAP", ivInverted: true }).type).toBe(
+        "long_straddle",
+      );
     });
   });
 
-  describe("FAIR: no vol edge, only a real directional view earns a call", () => {
-    it("bullish -> call debit spread", () => {
-      expect(
-        recommendStrategy({ verdict: "FAIR", direction: "BULLISH", ivInverted: false }).type,
-      ).toBe("call_debit_spread");
-    });
-
-    it("bearish -> put debit spread", () => {
-      expect(
-        recommendStrategy({ verdict: "FAIR", direction: "BEARISH", ivInverted: false }).type,
-      ).toBe("put_debit_spread");
-    });
-
-    it("neutral -> no recommendation", () => {
-      expect(
-        recommendStrategy({ verdict: "FAIR", direction: "NEUTRAL", ivInverted: false }).type,
-      ).toBe("none");
+  describe("FAIR -> no trade", () => {
+    it("recommends nothing, because the only edge it could have leaned on was directional", () => {
+      expect(recommendStrategy({ verdict: "FAIR", ivInverted: false }).type).toBe("none");
+      expect(recommendStrategy({ verdict: "FAIR", ivInverted: true }).type).toBe("none");
     });
   });
 
-  describe("inverted term structure overrides to a calendar when RICH", () => {
-    it("bearish + inverted -> put calendar, not a bear call spread", () => {
-      const s = recommendStrategy({ verdict: "RICH", direction: "BEARISH", ivInverted: true });
-      expect(s.type).toBe("calendar_put");
-    });
-
-    it("bullish/neutral + inverted -> call calendar", () => {
-      expect(
-        recommendStrategy({ verdict: "RICH", direction: "BULLISH", ivInverted: true }).type,
-      ).toBe("calendar_call");
-      expect(
-        recommendStrategy({ verdict: "RICH", direction: "NEUTRAL", ivInverted: true }).type,
-      ).toBe("calendar_call");
-    });
-
-    it("does not override CHEAP or FAIR — inversion only matters when selling premium", () => {
-      expect(
-        recommendStrategy({ verdict: "CHEAP", direction: "NEUTRAL", ivInverted: true }).type,
-      ).toBe("long_straddle");
-      expect(
-        recommendStrategy({ verdict: "FAIR", direction: "BULLISH", ivInverted: true }).type,
-      ).toBe("call_debit_spread");
-    });
+  it("never suggests anything but a neutral bias now that direction is gone", () => {
+    for (const verdict of ["RICH", "CHEAP", "FAIR"] as const) {
+      for (const ivInverted of [true, false]) {
+        expect(recommendStrategy({ verdict, ivInverted }).bias).toBe("neutral");
+      }
+    }
   });
 
   it("never recommends a naked short (undefined-risk) structure", () => {
     const UNDEFINED_RISK = new Set(["short_strangle", "naked_call", "naked_put"]);
-    const verdicts = ["RICH", "CHEAP", "FAIR"] as const;
-    const directions = ["BULLISH", "BEARISH", "NEUTRAL"] as const;
-    for (const verdict of verdicts) {
-      for (const direction of directions) {
-        for (const ivInverted of [true, false]) {
-          const { type } = recommendStrategy({ verdict, direction, ivInverted });
-          expect(UNDEFINED_RISK.has(type)).toBe(false);
-        }
+    for (const verdict of ["RICH", "CHEAP", "FAIR"] as const) {
+      for (const ivInverted of [true, false]) {
+        const { type } = recommendStrategy({ verdict, ivInverted });
+        expect(UNDEFINED_RISK.has(type)).toBe(false);
       }
     }
   });

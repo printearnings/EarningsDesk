@@ -294,11 +294,11 @@ function OptionsPanelCard({ data }: { data: TickerData }) {
       </Panel>
 
       {/* Between the numbers and the simulator on purpose: it reads the
-          verdict/direction stated above it, and the simulator below is
-          where those turn into actual priced legs. */}
+          verdict stated above it, and the simulator below is where that
+          turns into actual priced legs. Direction is shown as its own chip
+          but no longer feeds the structure — see StrategyCard. */}
       <StrategyCard
         verdict={o.verdict}
-        direction={data.direction}
         ivInverted={o.iv_inverted}
         pastMoves={data.past_moves ?? []}
         impliedMove={o.implied_move}
@@ -311,7 +311,6 @@ function OptionsPanelCard({ data }: { data: TickerData }) {
           reportDate={data.next_report_date ?? null}
           reportSession={data.next_report_session ?? null}
           verdict={o.verdict}
-          direction={data.direction}
           ivInverted={o.iv_inverted}
           riskReversal={o.skew_risk_reversal}
           autoLoad

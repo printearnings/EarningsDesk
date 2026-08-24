@@ -48,7 +48,6 @@ function loadFixture() {
 
 interface RecommendCase {
   verdict: string | null;
-  direction: string | null;
   iv_inverted: boolean;
   type: string;
   bias: string;
@@ -109,10 +108,9 @@ describe("conformance with earnings/strategy/structures.py", () => {
 
   describe("recommendStrategy", () => {
     for (const c of fixture.recommend as RecommendCase[]) {
-      it(`${c.verdict}/${c.direction}/inverted=${c.iv_inverted} -> ${c.type}`, () => {
+      it(`${c.verdict}/inverted=${c.iv_inverted} -> ${c.type}`, () => {
         const s = recommendStrategy({
           verdict: c.verdict as never,
-          direction: c.direction as never,
           ivInverted: c.iv_inverted,
         });
         expect(s.type).toBe(c.type);

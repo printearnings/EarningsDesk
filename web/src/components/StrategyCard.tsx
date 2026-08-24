@@ -6,7 +6,7 @@ import {
   backtestRelevance,
 } from "@/lib/backtest";
 import { pct } from "@/lib/format";
-import { type Direction, type Verdict, recommendStrategy } from "@/lib/strategy";
+import { type Verdict, recommendStrategy } from "@/lib/strategy";
 
 /**
  * The structure this setup suggests — the layer above the verdict and
@@ -41,22 +41,23 @@ const PREMIUM_LABEL: Record<string, string> = {
 
 export function StrategyCard({
   verdict,
-  direction,
   ivInverted,
   pastMoves = [],
   impliedMove,
 }: {
   verdict: string | null | undefined;
-  direction: string | null | undefined;
   ivInverted: boolean | null | undefined;
   /** Realized move per past print, for scoring the suggestion against
    * this stock's own history. */
   pastMoves?: PastMove[];
   impliedMove?: number | null;
 }) {
+  // Direction-free: the structure follows from the volatility read alone.
+  // The directional lean is shown separately (see the direction chip and the
+  // track record's directional panel); it no longer picks the structure,
+  // because it scored below a coin flip over its first 46 scored calls.
   const suggestion = recommendStrategy({
     verdict: (verdict ?? null) as Verdict | null,
-    direction: (direction ?? null) as Direction | null,
     ivInverted,
   });
 
@@ -100,9 +101,9 @@ export function StrategyCard({
       />
 
       <p className="mt-4 border-t border-[var(--color-border-subtle)] pt-4 text-sm text-[var(--color-muted)]">
-        A structure traders in this setup often use, derived from the verdict and directional
-        read above. Not advice, and not sized for anyone&rsquo;s account. Strikes depend on the
-        live chain; use the simulator to price actual legs.
+        A structure traders in this setup often use, derived from the volatility verdict above.
+        Not advice, and not sized for anyone&rsquo;s account. Strikes depend on the live chain;
+        use the simulator to price actual legs.
       </p>
     </Panel>
   );

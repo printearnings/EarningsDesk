@@ -86,7 +86,6 @@ export function OptionsSimulator({
   reportDate,
   reportSession,
   verdict,
-  direction,
   ivInverted,
   riskReversal,
   autoLoad = false,
@@ -94,13 +93,13 @@ export function OptionsSimulator({
   ticker: string;
   reportDate: string | null;
   reportSession: string | null;
-  /** The same three reads the Structure card uses. Passing them in lets
-   * the suggested structure resolve to real strikes off the chain this
-   * component already fetched, instead of paying for a second one.
-   * Optional so the standalone Simulator page — which has no snapshot
-   * context — still works as a plain calculator. */
+  /** The reads the Structure card uses. Passing them in lets the suggested
+   * structure resolve to real strikes off the chain this component already
+   * fetched, instead of paying for a second one. Optional so the standalone
+   * Simulator page — which has no snapshot context — still works as a plain
+   * calculator. Direction is deliberately not among them: the structure no
+   * longer depends on the directional lean. */
   verdict?: string | null;
-  direction?: string | null;
   ivInverted?: boolean | null;
   /** 25-delta risk reversal, passed straight through to StrategyLegs. */
   riskReversal?: number | null;
@@ -490,7 +489,6 @@ export function OptionsSimulator({
       {state.status === "done" && expiry && verdict && (
         <StrategyLegs
           verdict={verdict}
-          direction={direction}
           ivInverted={ivInverted}
           riskReversal={riskReversal}
           contracts={state.contracts}
@@ -563,7 +561,9 @@ export function OptionsSimulator({
                     onChange={(e) => setIvCrushPct(Number(e.target.value))}
                     className="w-full max-w-48 accent-[var(--color-viz-realized)]"
                   />
-                  <span className="tnum text-sm text-[var(--color-heading)]">{ivCrushPct}%</span>
+                  <span className="tnum text-sm text-[var(--color-heading)]">
+                    {ivCrushPct}%
+                  </span>
                   <span className="text-2xs w-full text-[var(--color-muted)] sm:w-auto">
                     (100% = no crush; above 100% models IV expanding further)
                   </span>
@@ -650,7 +650,10 @@ function PayoffChart({
   const svgRef = useRef<SVGSVGElement | null>(null);
 
   const chart = useMemo(() => {
-    const values = points.flatMap((p) => [p.atExpiry, ...(p.atDate !== null ? [p.atDate] : [])]);
+    const values = points.flatMap((p) => [
+      p.atExpiry,
+      ...(p.atDate !== null ? [p.atDate] : []),
+    ]);
     const minY = Math.min(0, ...values);
     const maxY = Math.max(0, ...values);
     const padY = (maxY - minY) * 0.08 || 1;
@@ -1003,7 +1006,8 @@ function TimeDecayChart({
     const yHi = maxY + padY;
 
     const plotW = W - PAD.left - PAD.right;
-    const x = (i: number) => PAD.left + (points.length > 1 ? (i / (points.length - 1)) * plotW : 0);
+    const x = (i: number) =>
+      PAD.left + (points.length > 1 ? (i / (points.length - 1)) * plotW : 0);
     const y = (v: number) =>
       PAD.top + (1 - (v - yLo) / (yHi - yLo)) * (H - PAD.top - PAD.bottom);
 
@@ -1099,7 +1103,9 @@ function TimeDecayChart({
         role="img"
         aria-label="P&L versus date, at today's spot price held flat"
         onMouseLeave={() => onHover(null)}
-        onMouseMove={(e) => hoverFromClientX(e.clientX, e.currentTarget.getBoundingClientRect())}
+        onMouseMove={(e) =>
+          hoverFromClientX(e.clientX, e.currentTarget.getBoundingClientRect())
+        }
       >
         <defs>
           <clipPath id={gainClip}>
