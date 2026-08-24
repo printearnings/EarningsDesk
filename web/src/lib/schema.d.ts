@@ -906,6 +906,38 @@ export interface components {
              * @default 0
              */
             cheap_edge_scored: number;
+            /**
+             * Structure Scored
+             * @default 0
+             */
+            structure_scored: number;
+            /**
+             * Structure Wins
+             * @default 0
+             */
+            structure_wins: number;
+            /** Structure Win Rate */
+            structure_win_rate?: number | null;
+            /** Structure Avg Pnl Pct */
+            structure_avg_pnl_pct?: number | null;
+            /**
+             * Structure Sell Scored
+             * @default 0
+             */
+            structure_sell_scored: number;
+            /** Structure Sell Win Rate */
+            structure_sell_win_rate?: number | null;
+            /** Structure Sell Avg Pnl Pct */
+            structure_sell_avg_pnl_pct?: number | null;
+            /**
+             * Structure Buy Scored
+             * @default 0
+             */
+            structure_buy_scored: number;
+            /** Structure Buy Win Rate */
+            structure_buy_win_rate?: number | null;
+            /** Structure Buy Avg Pnl Pct */
+            structure_buy_avg_pnl_pct?: number | null;
         };
         /** ValidationError */
         ValidationError: {

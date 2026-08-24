@@ -769,6 +769,16 @@ def test_track_record_page_carries_every_field_through():
         rich_edge_scored=38,
         cheap_edge=0.109,
         cheap_edge_scored=16,
+        structure_scored=61,
+        structure_wins=40,
+        structure_win_rate=0.656,
+        structure_avg_pnl_pct=0.142,
+        structure_sell_scored=38,
+        structure_sell_win_rate=0.71,
+        structure_sell_avg_pnl_pct=-0.052,
+        structure_buy_scored=23,
+        structure_buy_win_rate=0.56,
+        structure_buy_avg_pnl_pct=0.28,
     )
     page = pages.track_record_page(record)
     assert page.scored == 10
@@ -783,3 +793,13 @@ def test_track_record_page_carries_every_field_through():
     assert page.rich_edge_scored == 38
     assert page.cheap_edge == 0.109
     assert page.cheap_edge_scored == 16
+    assert page.structure_scored == 61
+    assert page.structure_wins == 40
+    assert page.structure_win_rate == 0.656
+    assert page.structure_avg_pnl_pct == 0.142
+    assert page.structure_sell_scored == 38
+    assert page.structure_sell_win_rate == 0.71
+    assert page.structure_sell_avg_pnl_pct == -0.052
+    assert page.structure_buy_scored == 23
+    assert page.structure_buy_win_rate == 0.56
+    assert page.structure_buy_avg_pnl_pct == 0.28

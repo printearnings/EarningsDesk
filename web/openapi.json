@@ -2495,6 +2495,92 @@
             "type": "integer",
             "title": "Cheap Edge Scored",
             "default": 0
+          },
+          "structure_scored": {
+            "type": "integer",
+            "title": "Structure Scored",
+            "default": 0
+          },
+          "structure_wins": {
+            "type": "integer",
+            "title": "Structure Wins",
+            "default": 0
+          },
+          "structure_win_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Structure Win Rate"
+          },
+          "structure_avg_pnl_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Structure Avg Pnl Pct"
+          },
+          "structure_sell_scored": {
+            "type": "integer",
+            "title": "Structure Sell Scored",
+            "default": 0
+          },
+          "structure_sell_win_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Structure Sell Win Rate"
+          },
+          "structure_sell_avg_pnl_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Structure Sell Avg Pnl Pct"
+          },
+          "structure_buy_scored": {
+            "type": "integer",
+            "title": "Structure Buy Scored",
+            "default": 0
+          },
+          "structure_buy_win_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Structure Buy Win Rate"
+          },
+          "structure_buy_avg_pnl_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Structure Buy Avg Pnl Pct"
           }
         },
         "type": "object",

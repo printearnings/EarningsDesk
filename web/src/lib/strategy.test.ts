@@ -13,9 +13,9 @@ import {
 
 describe("recommendStrategy", () => {
   it("has no recommendation without a verdict", () => {
-    expect(recommendStrategy({ verdict: null, direction: "BULLISH", ivInverted: false }).type).toBe(
-      "none",
-    );
+    expect(
+      recommendStrategy({ verdict: null, direction: "BULLISH", ivInverted: false }).type,
+    ).toBe("none");
   });
 
   describe("RICH: sell premium, direction picks the side", () => {
@@ -40,26 +40,38 @@ describe("recommendStrategy", () => {
     });
 
     it("missing direction defaults to neutral -> iron condor", () => {
-      expect(recommendStrategy({ verdict: "RICH", direction: null, ivInverted: false }).type).toBe(
-        "iron_condor",
-      );
+      expect(
+        recommendStrategy({ verdict: "RICH", direction: null, ivInverted: false }).type,
+      ).toBe("iron_condor");
     });
   });
 
   describe("CHEAP: buy premium, direction picks the side", () => {
     it("bullish -> call debit spread, not a naked long call", () => {
-      const s = recommendStrategy({ verdict: "CHEAP", direction: "BULLISH", ivInverted: false });
+      const s = recommendStrategy({
+        verdict: "CHEAP",
+        direction: "BULLISH",
+        ivInverted: false,
+      });
       expect(s.type).toBe("call_debit_spread");
       expect(s.premium).toBe("buy");
     });
 
     it("bearish -> put debit spread", () => {
-      const s = recommendStrategy({ verdict: "CHEAP", direction: "BEARISH", ivInverted: false });
+      const s = recommendStrategy({
+        verdict: "CHEAP",
+        direction: "BEARISH",
+        ivInverted: false,
+      });
       expect(s.type).toBe("put_debit_spread");
     });
 
     it("neutral -> long straddle", () => {
-      const s = recommendStrategy({ verdict: "CHEAP", direction: "NEUTRAL", ivInverted: false });
+      const s = recommendStrategy({
+        verdict: "CHEAP",
+        direction: "NEUTRAL",
+        ivInverted: false,
+      });
       expect(s.type).toBe("long_straddle");
       expect(s.premium).toBe("buy");
     });
@@ -67,21 +79,21 @@ describe("recommendStrategy", () => {
 
   describe("FAIR: no vol edge, only a real directional view earns a call", () => {
     it("bullish -> call debit spread", () => {
-      expect(recommendStrategy({ verdict: "FAIR", direction: "BULLISH", ivInverted: false }).type).toBe(
-        "call_debit_spread",
-      );
+      expect(
+        recommendStrategy({ verdict: "FAIR", direction: "BULLISH", ivInverted: false }).type,
+      ).toBe("call_debit_spread");
     });
 
     it("bearish -> put debit spread", () => {
-      expect(recommendStrategy({ verdict: "FAIR", direction: "BEARISH", ivInverted: false }).type).toBe(
-        "put_debit_spread",
-      );
+      expect(
+        recommendStrategy({ verdict: "FAIR", direction: "BEARISH", ivInverted: false }).type,
+      ).toBe("put_debit_spread");
     });
 
     it("neutral -> no recommendation", () => {
-      expect(recommendStrategy({ verdict: "FAIR", direction: "NEUTRAL", ivInverted: false }).type).toBe(
-        "none",
-      );
+      expect(
+        recommendStrategy({ verdict: "FAIR", direction: "NEUTRAL", ivInverted: false }).type,
+      ).toBe("none");
     });
   });
 
@@ -512,5 +524,70 @@ describe("strategyEconomics", () => {
     expect(e!.maxLoss).toBeGreaterThan(0);
     expect(e!.breakevens).toHaveLength(2);
     expect(e!.breakevens[0]).toBeLessThan(e!.breakevens[1]);
+  });
+});
+
+describe("degenerate plans on a thin chain", () => {
+  // A ticker with a single listed put resolves both a condor's short put and
+  // its protective wing to that one strike. Found by the engine's backfill on
+  // ATAT, where it produced a condor whose max loss computed to a negative
+  // number — a trade that reads as impossible to lose.
+  const THIN: ChainContract[] = [
+    {
+      strike: 35,
+      expiry: EXPIRY,
+      type: "put",
+      price: 0.37,
+      iv: 0.9,
+      delta: -0.22,
+      open_interest: 10,
+    },
+    {
+      strike: 35,
+      expiry: EXPIRY,
+      type: "call",
+      price: 2.3,
+      iv: 0.9,
+      delta: 0.801,
+      open_interest: 10,
+    },
+    {
+      strike: 40,
+      expiry: EXPIRY,
+      type: "call",
+      price: 0.3,
+      iv: 0.9,
+      delta: 0.186,
+      open_interest: 10,
+    },
+    {
+      strike: 45,
+      expiry: EXPIRY,
+      type: "call",
+      price: 0.05,
+      iv: 0.9,
+      delta: 0.034,
+      open_interest: 10,
+    },
+  ];
+
+  it("rejects a condor whose two put legs collapse onto one contract", () => {
+    const plan = selectStrikes("iron_condor", THIN, EXPIRY);
+    expect(plan.legs.every((l) => l.contract)).toBe(true);
+    expect(plan.legs[0].contract!.strike).toBe(plan.legs[1].contract!.strike);
+    expect(plan.complete).toBe(false);
+    expect(strategyEconomics(plan)).toBeNull();
+  });
+
+  it("still allows a straddle to share a strike across call and put", () => {
+    const plan = selectStrikes("long_straddle", CHAIN, EXPIRY);
+    expect(plan.legs[0].contract!.strike).toBe(plan.legs[1].contract!.strike);
+    expect(plan.complete).toBe(true);
+  });
+
+  it("still allows a calendar to share a strike across expiries", () => {
+    const plan = selectStrikes("calendar_call", CHAIN, EXPIRY);
+    expect(plan.legs[0].contract!.strike).toBe(plan.legs[1].contract!.strike);
+    expect(plan.complete).toBe(true);
   });
 });

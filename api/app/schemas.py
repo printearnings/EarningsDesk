@@ -406,6 +406,28 @@ class TrackRecordPage(BaseModel):
     rich_edge_scored: int = 0
     cheap_edge: float | None = None
     cheap_edge_scored: int = 0
+    # Real structure P&L: the recommended condor or spread priced off actual
+    # option bars the session before and the session after the print. The
+    # *_edge fields above sign-correct a long-straddle proxy; this is the
+    # structure the site actually shows, and it carries the bid-ask spread
+    # and the post-print IV crush a proxy cannot see. Averaged as a fraction
+    # of capital at risk so credit and debit structures stay comparable.
+    structure_scored: int = 0
+    structure_wins: int = 0
+    structure_win_rate: float | None = None
+    structure_avg_pnl_pct: float | None = None
+    # Split by whether the structure collects premium or pays it, because a
+    # blended average describes neither. Over the first 40 priced trades,
+    # short premium won 71% of the time yet averaged -5.2% (capped gain, fat
+    # left tail) while long premium won 56% and averaged +28% (bounded loss,
+    # fat right tail). One number would have claimed a consistently
+    # profitable strategy that does not exist.
+    structure_sell_scored: int = 0
+    structure_sell_win_rate: float | None = None
+    structure_sell_avg_pnl_pct: float | None = None
+    structure_buy_scored: int = 0
+    structure_buy_win_rate: float | None = None
+    structure_buy_avg_pnl_pct: float | None = None
 
 
 class TickerIndexEntry(BaseModel):

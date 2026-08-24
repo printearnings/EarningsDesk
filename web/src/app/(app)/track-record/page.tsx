@@ -11,8 +11,43 @@ export const metadata = { title: "Track record | PrintEarnings" };
  * read without knowing what a risk reversal is. Every branch degrades to
  * "not enough data" rather than a partial sentence built on a null — a
  * half-formed claim reads worse than an honest "too early to say."
+ *
+ * Prefers the real structure result, which priced the actual condor or
+ * spread on real option bars and so already includes the spread paid and
+ * the post-print IV crush. The per-verdict edges it falls back to only
+ * sign-correct a long-straddle proxy.
+ *
+ * It reports the two halves separately and never their average. Measured
+ * over the first 40 priced trades they pointed in opposite directions:
+ * short premium won 71% of the time yet averaged -5.2%, long premium won
+ * 56% and averaged +28%. Blending those produced a mild positive that
+ * described neither and read as a consistently profitable strategy.
  */
 function summarize(record: TrackRecordData): string {
+  const sell = record.structure_sell_avg_pnl_pct ?? null;
+  const buy = record.structure_buy_avg_pnl_pct ?? null;
+
+  // Lead with the split, never the blend. The two halves genuinely point in
+  // opposite directions, and one averaged number would claim a consistently
+  // profitable strategy that the data does not support.
+  if (sell !== null && buy !== null) {
+    if (sell <= 0 && buy > 0) {
+      return "Buying options when they looked cheap made money. Selling them when they looked expensive did not.";
+    }
+    if (sell > 0 && buy <= 0) {
+      return "Selling options when they looked expensive made money. Buying them when they looked cheap did not.";
+    }
+    if (sell > 0 && buy > 0) {
+      return "Both halves of this site's approach made money on the trades it suggested.";
+    }
+    return "Neither half of this site's approach made money on the trades it suggested.";
+  }
+  if (sell !== null || buy !== null) {
+    const only = sell ?? buy!;
+    const label = sell !== null ? "Selling expensive options" : "Buying cheap options";
+    return `${label} ${only > 0 ? "made" : "lost"} money so far. The other half has too few scored trades to judge.`;
+  }
+
   const rich_edge = record.rich_edge ?? null;
   const cheap_edge = record.cheap_edge ?? null;
   const rich_edge_scored = record.rich_edge_scored ?? 0;
@@ -44,6 +79,8 @@ export default async function TrackRecordPage() {
 
   const dirAccuracy = record.dir_accuracy ?? null;
   const dirAccuracyBelowChance = dirAccuracy !== null && dirAccuracy < 0.5;
+  const sellAvg = record.structure_sell_avg_pnl_pct ?? null;
+  const buyAvg = record.structure_buy_avg_pnl_pct ?? null;
 
   return (
     <>
@@ -61,30 +98,71 @@ export default async function TrackRecordPage() {
               unusually low, that&rsquo;s <strong>CHEAP</strong>, and the suggestion flips to
               buying.
             </p>
+            {record.structure_scored > 0 && (
+              <p className="text-[var(--color-body)]">
+                Across {record.structure_scored} suggested trades priced at real option prices,
+                the two halves behaved very differently.{" "}
+                {sellAvg !== null && (
+                  <>
+                    Selling expensive options won{" "}
+                    <span className="tnum font-medium text-[var(--color-heading)]">
+                      {pct(record.structure_sell_win_rate, 0)}
+                    </span>{" "}
+                    of the time but still averaged{" "}
+                    <span
+                      className={`tnum font-medium ${sellAvg > 0 ? "text-[var(--color-positive)]" : "text-[var(--color-negative)]"}`}
+                    >
+                      {pct(sellAvg)}
+                    </span>
+                    , because the occasional loss is far bigger than any single win.{" "}
+                  </>
+                )}
+                {buyAvg !== null && (
+                  <>
+                    Buying cheap options won only{" "}
+                    <span className="tnum font-medium text-[var(--color-heading)]">
+                      {pct(record.structure_buy_win_rate, 0)}
+                    </span>{" "}
+                    of the time yet averaged{" "}
+                    <span
+                      className={`tnum font-medium ${buyAvg > 0 ? "text-[var(--color-positive)]" : "text-[var(--color-negative)]"}`}
+                    >
+                      {pct(buyAvg)}
+                    </span>
+                    , because its losses are capped at what you paid while its wins are not.
+                  </>
+                )}
+              </p>
+            )}
+            <p className="text-[var(--color-body)]">
+              Those are what the actual spreads would have paid or cost, including the price
+              you&rsquo;d have paid to get in and the collapse in option prices that follows a
+              print. A high win rate and a losing average are not a contradiction: it is what
+              selling options looks like.
+            </p>
             {(record.rich_edge !== null || record.cheap_edge !== null) && (
               <p className="text-[var(--color-body)]">
-                So far,{" "}
+                On a simpler measure that ignores the specific strikes,{" "}
                 {record.rich_edge !== null && (
                   <>
-                    selling into RICH calls has averaged{" "}
+                    selling into RICH calls scores{" "}
                     <span className="tnum font-medium text-[var(--color-heading)]">
                       {pct(record.rich_edge)}
                     </span>{" "}
-                    per trade across {record.rich_edge_scored} scored calls
+                    across {record.rich_edge_scored} calls
                   </>
                 )}
                 {record.rich_edge !== null && record.cheap_edge !== null && ", and "}
                 {record.cheap_edge !== null && (
                   <>
-                    buying into CHEAP calls has averaged{" "}
+                    buying into CHEAP calls scores{" "}
                     <span className="tnum font-medium text-[var(--color-heading)]">
                       {pct(record.cheap_edge)}
                     </span>{" "}
-                    per trade across {record.cheap_edge_scored} scored calls
+                    across {record.cheap_edge_scored} calls
                   </>
                 )}
-                . That&rsquo;s the average outcome of the actual recommended trade, not a raw
-                price-move number.
+                .
               </p>
             )}
             <p className="text-[var(--color-body)]">
@@ -133,8 +211,75 @@ export default async function TrackRecordPage() {
         </Panel>
 
         <Panel
-          title="What following that call would have earned"
-          subtitle="RICH's and CHEAP's edge, kept separate rather than blended into one number"
+          title="What the suggested trade actually returned"
+          subtitle="The real spread, priced at real option prices the day before and the day after each print"
+        >
+          <dl className="grid grid-cols-2 gap-5 sm:grid-cols-4">
+            <StatCard
+              label="Selling: trades"
+              value={String(record.structure_sell_scored)}
+              hint="Iron condors and credit spreads, suggested when options looked expensive."
+            />
+            <StatCard
+              label="Selling: win rate"
+              value={
+                sellAvg === null ? "Not enough data" : pct(record.structure_sell_win_rate, 0)
+              }
+              tone={sellAvg === null ? "muted" : "default"}
+              hint="Selling premium wins most of the time by design. The win rate alone says little without the average beside it."
+            />
+            <StatCard
+              label="Selling: average"
+              value={sellAvg === null ? "Not enough data" : pct(sellAvg)}
+              tone={sellAvg === null ? "muted" : "default"}
+              hint="Average profit or loss as a share of money put at risk. Can be negative even with a high win rate: the gain is capped at the premium collected while a breach costs multiples of it."
+            />
+            <StatCard
+              label="Selling: worst case"
+              value="Capped by design"
+              tone="muted"
+              hint="Every suggested structure is defined-risk, so a loss is bounded by the width of the spread. No naked positions are ever recommended."
+            />
+            <StatCard
+              label="Buying: trades"
+              value={String(record.structure_buy_scored)}
+              hint="Straddles and debit spreads, suggested when options looked cheap."
+            />
+            <StatCard
+              label="Buying: win rate"
+              value={
+                buyAvg === null ? "Not enough data" : pct(record.structure_buy_win_rate, 0)
+              }
+              tone={buyAvg === null ? "muted" : "default"}
+              hint="Buying premium loses more often than it wins by design."
+            />
+            <StatCard
+              label="Buying: average"
+              value={buyAvg === null ? "Not enough data" : pct(buyAvg)}
+              tone={buyAvg === null ? "muted" : "default"}
+              hint="Can be positive despite a low win rate: the loss is capped at what you paid, while a large move has no such ceiling."
+            />
+            <StatCard
+              label="Buying: worst case"
+              value="The premium paid"
+              tone="muted"
+              hint="A long option or debit spread cannot lose more than it cost to open."
+            />
+          </dl>
+
+          <p className="mt-5 border-t border-[var(--color-border-subtle)] pt-4 text-sm text-[var(--color-muted)]">
+            Deliberately not combined into one number. The two sides point in opposite
+            directions, so an average of them would describe neither. Only trades whose every
+            leg could be priced from real option bars are counted; a suggestion on a thinly
+            traded stock whose chain lacked the strikes the structure needs is recorded but left
+            out rather than guessed at, so this sample is smaller than the scored-event count
+            above.
+          </p>
+        </Panel>
+
+        <Panel
+          title="The same question, on a simpler measure"
+          subtitle="A rough proxy that ignores which strikes were used. Kept for comparison with the real result above"
         >
           <dl className="grid grid-cols-2 gap-5 sm:grid-cols-4">
             <StatCard label="RICH calls scored" value={String(record.rich_edge_scored)} />

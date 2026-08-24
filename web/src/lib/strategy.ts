@@ -59,7 +59,8 @@ const NO_EDGE: StrategySuggestion = {
   label: "No clear structure",
   bias: "neutral",
   premium: "none",
-  rationale: "Pricing looks fair and there's no directional lean, so there's nothing here worth structuring a trade around.",
+  rationale:
+    "Pricing looks fair and there's no directional lean, so there's nothing here worth structuring a trade around.",
 };
 
 /**
@@ -429,7 +430,28 @@ export function selectStrikes(
     }
   })();
 
-  return { type: strategy, legs, complete: legs.length > 0 && legs.every((l) => l.contract) };
+  return { type: strategy, legs, complete: isComplete(legs) };
+}
+
+/**
+ * Every leg resolved to a real and *distinct* contract.
+ *
+ * Distinctness matters as much as resolution. On a thin chain the nearest
+ * contract to 0.16 delta and the nearest to 0.07 can be the same option — a
+ * ticker with a single listed put resolves both a condor's short put and its
+ * protective wing to that one strike. Every leg is non-null, so checking
+ * only for nulls calls the plan complete, but the put spread has zero width:
+ * the "protection" IS the short. Its max loss computes to `0 - credit`, i.e.
+ * negative, which renders to the reader as a trade that cannot lose.
+ *
+ * Two legs conflict only when they share an option type AND an expiry AND a
+ * strike, which still allows a straddle (same strike, different type) and a
+ * calendar (same strike, different expiry).
+ */
+function isComplete(legs: StrategyLeg[]): boolean {
+  if (legs.length === 0 || !legs.every((l) => l.contract)) return false;
+  const keys = legs.map((l) => `${l.type}|${l.contract!.expiry}|${l.contract!.strike}`);
+  return new Set(keys).size === keys.length;
 }
 
 // ---------------------------------------------------------------------------
@@ -516,8 +538,12 @@ export function strategyEconomics(plan: StrategyPlan): StrategyEconomics | null 
     case "iron_condor": {
       // Only one side can finish in the money, so risk is the wider wing.
       const width = Math.max(putWidth ?? 0, callWidth ?? 0);
-      const shortPut = plan.legs.find((l) => l.type === "put" && l.action === "sell")!.contract!;
-      const shortCall = plan.legs.find((l) => l.type === "call" && l.action === "sell")!.contract!;
+      const shortPut = plan.legs.find(
+        (l) => l.type === "put" && l.action === "sell",
+      )!.contract!;
+      const shortCall = plan.legs.find(
+        (l) => l.type === "call" && l.action === "sell",
+      )!.contract!;
       return {
         netCredit,
         maxProfit: netCredit,
@@ -545,8 +571,7 @@ export function strategyEconomics(plan: StrategyPlan): StrategyEconomics | null 
       const width = (callWidth ?? putWidth)!;
       const debit = -perShareCredit;
       const long = plan.legs.find((l) => l.action === "buy")!.contract!;
-      const be =
-        plan.type === "call_debit_spread" ? long.strike + debit : long.strike - debit;
+      const be = plan.type === "call_debit_spread" ? long.strike + debit : long.strike - debit;
       return {
         netCredit,
         maxProfit: (width - debit) * CONTRACT_MULTIPLIER,
