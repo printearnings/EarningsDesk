@@ -10,11 +10,12 @@ name: day-gate
 #     printearnings -> Mon / Wed / Fri
 #     patkhai       -> Tue / Thu
 #
-# Only schedule-driven work is split. Manual runs (workflow_dispatch) and the
-# external/Discord triggers (repository_dispatch) always pass through on
-# whichever account they were aimed at. workflow_run cascades (e.g. Deploy
-# Dashboard) are treated like the schedule that spawned them, so an off-day
-# account never publishes.
+# Only schedule-driven work is split. Manual runs (workflow_dispatch), the
+# external/Discord triggers (repository_dispatch), and code events (push /
+# pull_request) always pass through on whichever account they were aimed at —
+# a push to main must deploy right away regardless of the day. workflow_run
+# cascades (e.g. Deploy Dashboard) are treated like the schedule that spawned
+# them, so an off-day account never publishes.
 #
 # The day is read in America/New_York, matching the ET trading day the crons
 # are written around (and staying correct across the DST boundary), not raw
@@ -39,9 +40,10 @@ jobs:
           EVENT: ${{ github.event_name }}
           OWNER: ${{ github.repository_owner }}
         run: |
-          # Manual / external triggers are never day-split.
+          # Manual / external / code triggers are never day-split; only the
+          # schedule (and its workflow_run cascade) is.
           case "$EVENT" in
-            workflow_dispatch|repository_dispatch)
+            workflow_dispatch|repository_dispatch|push|pull_request)
               echo "run=true" >> "$GITHUB_OUTPUT"; exit 0 ;;
           esac
           dow=$(TZ=America/New_York date +%u)   # 1=Mon .. 7=Sun (ET)
