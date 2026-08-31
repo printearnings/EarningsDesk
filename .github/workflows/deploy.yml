@@ -42,7 +42,12 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  gate:
+    uses: ./.github/workflows/day-gate.yml
+
   deploy:
+    needs: gate
+    if: ${{ needs.gate.outputs.run == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -56,10 +61,14 @@ jobs:
       # same as the `pip install -e ../../Earnings/Earnings` a local checkout
       # uses, just via an absolute path since the two repos aren't siblings
       # in the runner's workspace the way they are on a local machine.
+      # Self-referencing so each mirror pulls its OWN engine copy:
+      # patkhai/EarningsDesk -> patkhai/Earnings, printearnings/EarningsDesk ->
+      # printearnings/Earnings. GH_PAT_TOKEN on each account needs read access
+      # to that account's private Earnings repo.
       - name: Checkout Earnings engine
         uses: actions/checkout@v4
         with:
-          repository: patkhai/Earnings
+          repository: ${{ github.repository_owner }}/Earnings
           path: Earnings
           token: ${{ secrets.GH_PAT_TOKEN }}
 

@@ -1,0 +1,54 @@
+name: day-gate
+
+# Reusable gate for the two mirrored accounts (patkhai + printearnings).
+#
+# Both accounts hold byte-identical copies of this repo, so every `schedule:`
+# cron fires on BOTH. Left alone that would double every Discord post, API
+# spend, and deploy. This gate splits the scheduled work by ET trading day so
+# exactly one account does it each day:
+#
+#     printearnings -> Mon / Wed / Fri
+#     patkhai       -> Tue / Thu
+#
+# Only schedule-driven work is split. Manual runs (workflow_dispatch) and the
+# external/Discord triggers (repository_dispatch) always pass through on
+# whichever account they were aimed at. workflow_run cascades (e.g. Deploy
+# Dashboard) are treated like the schedule that spawned them, so an off-day
+# account never publishes.
+#
+# The day is read in America/New_York, matching the ET trading day the crons
+# are written around (and staying correct across the DST boundary), not raw
+# UTC — several crons deliberately cross midnight UTC.
+
+on:
+  workflow_call:
+    outputs:
+      run:
+        description: "'true' when this account should do the work now"
+        value: ${{ jobs.decide.outputs.run }}
+
+jobs:
+  decide:
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.c.outputs.run }}
+    steps:
+      - id: c
+        shell: bash
+        env:
+          EVENT: ${{ github.event_name }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          # Manual / external triggers are never day-split.
+          case "$EVENT" in
+            workflow_dispatch|repository_dispatch)
+              echo "run=true" >> "$GITHUB_OUTPUT"; exit 0 ;;
+          esac
+          dow=$(TZ=America/New_York date +%u)   # 1=Mon .. 7=Sun (ET)
+          run=false
+          case "$OWNER" in
+            printearnings) case "$dow" in 1|3|5) run=true ;; esac ;;
+            patkhai)       case "$dow" in 2|4)   run=true ;; esac ;;
+          esac
+          echo "day(ET)=$dow owner=$OWNER event=$EVENT -> run=$run"
+          echo "run=$run" >> "$GITHUB_OUTPUT"
