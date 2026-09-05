@@ -645,6 +645,53 @@ export interface components {
              */
             move: number;
         };
+        /**
+         * PeerEarnings
+         * @description One related company's most recent completed print — how a similar-product
+         *     peer's last quarter actually played out, shown so a reader sizing up this
+         *     name's upcoming report can see the recent earnings environment for its
+         *     cohort.
+         *
+         *     Prices bracket the reacting session (see the engine's realized_move rules);
+         *     `move` is the signed fraction between them. `report_date` is that peer's own
+         *     print date, not this ticker's.
+         */
+        PeerEarnings: {
+            /** Ticker */
+            ticker: string;
+            /** Company Name */
+            company_name?: string | null;
+            /**
+             * Company Domain
+             * @description for a logo lookup, e.g. 'amd.com'
+             */
+            company_domain?: string | null;
+            /**
+             * Report Date
+             * Format: date
+             */
+            report_date: string;
+            /**
+             * Session
+             * @description BMO | AMC | null when unknown
+             */
+            session?: string | null;
+            /**
+             * Price Before
+             * @description close the session before the print
+             */
+            price_before: number;
+            /**
+             * Price After
+             * @description close the session that reacted to the print
+             */
+            price_after: number;
+            /**
+             * Move
+             * @description signed fraction, -0.06 = down 6%
+             */
+            move: number;
+        };
         /** PricePoint */
         PricePoint: {
             /**
@@ -851,6 +898,12 @@ export interface components {
              * @default []
              */
             past_moves: components["schemas"]["PastMove"][];
+            /**
+             * Peers
+             * @description Related companies (curated similar-product peers, else same-sector tracked names) with their most recent completed print's before/after prices. Empty when no peer has usable recent-earnings data yet.
+             * @default []
+             */
+            peers: components["schemas"]["PeerEarnings"][];
             /** @description null = the lookup failed or the symbol is unknown */
             fundamentals?: components["schemas"]["Fundamentals"] | null;
             /**

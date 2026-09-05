@@ -24,7 +24,9 @@ from earnings.store.repo import PastEarningsRow as EnginePastEarningsRow
 from earnings.store.repo import SignalFeedRow, TimelineEvent, TrackRecord, UpcomingEvent
 from sqlalchemy.orm import Session
 
+from app import peers as peers_mod
 from app.config import api_settings
+from app.peers import PeerRecord
 from app.schemas import (
     AiSummary,
     AnalystRatingRow,
@@ -40,6 +42,7 @@ from app.schemas import (
     PastEarningsPage,
     PastEarningsRow,
     PastMove,
+    PeerEarnings,
     PricePoint,
     SignalRow,
     SignalsPage,
@@ -293,6 +296,53 @@ def _past_moves(snap: DashboardSnapshot) -> list[PastMove]:
     return out
 
 
+def _peer_earnings_from_snap(snap: DashboardSnapshot) -> PeerEarnings | None:
+    """Parse a snapshot's stored last-earnings blob into a PeerEarnings card,
+    tolerating an absent or malformed blob. None for a snapshot written before
+    the column existed, or whose most recent print hasn't reacted yet — the
+    peer simply doesn't appear in anyone's panel."""
+    raw = getattr(snap, "last_earnings_json", None)
+    if not raw:
+        return None
+    try:
+        r = json.loads(raw)
+    except (ValueError, TypeError):
+        log.warning("last_earnings_json did not parse for %s", snap.ticker)
+        return None
+    try:
+        return PeerEarnings(
+            ticker=snap.ticker,
+            company_name=snap.company_name,
+            company_domain=snap.company_domain,
+            report_date=r["report_date"],
+            session=r.get("session"),
+            price_before=float(r["price_before"]),
+            price_after=float(r["price_after"]),
+            move=float(r["move"]),
+        )
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
+def build_peer_index(session: Session) -> dict[str, PeerRecord]:
+    """Snapshot the whole universe's peer-relevant fields, keyed by ticker.
+
+    One query for every ticker's newest snapshot — built once per static
+    build and shared across every ticker page, so peer resolution doesn't
+    re-scan the table once per name.
+    """
+    index: dict[str, PeerRecord] = {}
+    for snap in repo.latest_dashboard_snapshots(session):
+        index[snap.ticker] = PeerRecord(
+            ticker=snap.ticker,
+            company_name=snap.company_name,
+            company_domain=snap.company_domain,
+            sector=getattr(snap, "sector", None),
+            last_earnings=_peer_earnings_from_snap(snap),
+        )
+    return index
+
+
 def _ai_summary(snap: DashboardSnapshot) -> AiSummary | None:
     """Parse the stored JSON, tolerating a malformed blob.
 
@@ -387,6 +437,7 @@ def ticker_page(
     prices: list[PricePoint] | None = None,
     fundamentals: Fundamentals | None = None,
     analyst_ratings: list[AnalystRatingRow] | None = None,
+    peer_index: dict[str, PeerRecord] | None = None,
     now: datetime | None = None,
 ) -> TickerPage:
     """Assemble one ticker's page from Postgres alone.
@@ -396,6 +447,11 @@ def ticker_page(
     (yfinance). The static generator passes them in; the dev server fetches
     them in the router. Keeping them out means this function stays pure
     enough to test with an in-memory SQLite database.
+
+    `peer_index` (the universe's peer-relevant snapshot fields) is likewise
+    injected by the static generator, which builds it once and reuses it for
+    every page; when omitted it's built from `session` here, so the dev server
+    and any single-page caller still get peers without special-casing.
     """
     ticker = ticker.strip().upper()
     now = now or datetime.now(UTC)
@@ -460,6 +516,11 @@ def ticker_page(
         page.direction_confidence = direction_signal.confidence
         page.direction_as_of = direction_signal.run_date
     page.past_moves = _past_moves(snap)
+    # Peers read off *other* tickers' snapshots, so this only produces cards
+    # for a tracked name whose cohort has usable recent-earnings data. Built
+    # from the session when not injected (dev server / single-page callers).
+    index = peer_index if peer_index is not None else build_peer_index(session)
+    page.peers = peers_mod.resolve_peers(ticker, index)
     page.options = options_panel(snap)
     page.news = _news(snap)
     page.news_sentiment = snap.news_sentiment

@@ -697,6 +697,74 @@ def test_signals_page_carries_the_outcome_through():
     assert page.rows[0].correct_direction is None
 
 
+# ---- peers -----------------------------------------------------------------
+#
+# The peers panel reads other tickers' last_earnings_json off their snapshots,
+# grouped by curated cohort (else sector). Cross-ticker, so these seed several
+# snapshots and assert who shows up on whose page.
+
+
+def _le_json(report_date: str, move: float, before: float = 100.0) -> str:
+    return json.dumps(
+        {
+            "report_date": report_date,
+            "session": "AMC",
+            "price_before": before,
+            "price_after": before * (1 + move),
+            "move": move,
+        }
+    )
+
+
+def test_peers_attaches_curated_cohort_with_before_after_prices(s):
+    _snap(s, "NVDA")  # the page under test — no last_earnings needed for itself
+    _snap(s, "AMD", last_earnings_json=_le_json("2026-08-05", 0.072, before=150.0))
+    _snap(s, "INTC", last_earnings_json=_le_json("2026-07-25", -0.031, before=40.0))
+
+    peers = pages.ticker_page(s, "NVDA", now=NOW).peers
+    by_ticker = {p.ticker: p for p in peers}
+    assert {"AMD", "INTC"} <= set(by_ticker)
+    amd = by_ticker["AMD"]
+    assert amd.price_before == 150.0
+    assert amd.price_after == pytest.approx(150.0 * 1.072)
+    assert amd.move == pytest.approx(0.072)
+    assert amd.report_date == date(2026, 8, 5)
+
+
+def test_peers_omit_names_without_recent_earnings(s):
+    _snap(s, "NVDA")
+    _snap(s, "AMD", last_earnings_json=_le_json("2026-08-05", 0.05))
+    _snap(s, "AVGO")  # curated peer, but no last_earnings yet
+    _snap(s, "INTC", last_earnings_json=_le_json("2026-07-25", -0.02))
+
+    tickers = [p.ticker for p in pages.ticker_page(s, "NVDA", now=NOW).peers]
+    assert "AVGO" not in tickers
+
+
+def test_peers_empty_when_cohort_has_no_data(s):
+    """A tracked name whose peers have no recent-earnings data yet gets an
+    empty list — the UI drops the panel rather than showing a stub."""
+    _snap(s, "NVDA")
+    assert pages.ticker_page(s, "NVDA", now=NOW).peers == []
+
+
+def test_peers_survive_a_malformed_last_earnings_blob(s):
+    _snap(s, "NVDA")
+    _snap(s, "AMD", last_earnings_json="{broken")
+    _snap(s, "INTC", last_earnings_json=_le_json("2026-07-25", -0.02))
+    # AMD drops out (bad blob), leaving only INTC -> below MIN_PEERS -> [].
+    assert pages.ticker_page(s, "NVDA", now=NOW).peers == []
+
+
+def test_build_peer_index_carries_sector_and_last_earnings(s):
+    _snap(s, "AMD", sector="Technology", last_earnings_json=_le_json("2026-08-05", 0.05))
+    _snap(s, "KO", sector="Consumer Defensive")
+    index = pages.build_peer_index(s)
+    assert index["AMD"].sector == "Technology"
+    assert index["AMD"].last_earnings.move == pytest.approx(0.05)
+    assert index["KO"].last_earnings is None  # no blob -> None, not an error
+
+
 # ---- past moves ------------------------------------------------------------
 #
 # The observations behind hist_avg_move, stored as JSON on the snapshot. The

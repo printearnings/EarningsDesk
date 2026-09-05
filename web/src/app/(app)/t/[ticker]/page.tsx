@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { DirectionChip, VerdictChip } from "@/components/Chip";
 import { CompanyLogo } from "@/components/CompanyLogo";
 import { Eyebrow, Panel, StatCard } from "@/components/Panel";
+import { PeersPanel } from "@/components/PeersPanel";
 import { TickerTabs } from "@/components/TickerTabs";
 import { TopBar } from "@/components/TopBar";
 import { getIndex, getTicker, getTrackRecord } from "@/lib/api";
@@ -69,6 +70,8 @@ export default async function TickerPage({ params }: { params: Promise<{ ticker:
 
         {data.ai_summary && <AiPanel data={data} />}
 
+        {data.peers.length > 0 && <PeersPanel peers={data.peers} />}
+
         {/* useSearchParams (for the tab-in-URL persistence) requires a
             Suspense boundary during static prerendering. */}
         <Suspense fallback={<p className="text-sm text-[var(--color-muted)]">Loading…</p>}>
@@ -125,7 +128,11 @@ function SubHeader({ data, record }: { data: TickerData; record: TrackRecordPage
               <MicroStat
                 label="Verdict calls"
                 value={record.accuracy === null ? EMPTY : pct(record.accuracy, 0)}
-                sub={record.accuracy === null ? "not enough history" : `${record.correct}/${record.scored} right`}
+                sub={
+                  record.accuracy === null
+                    ? "not enough history"
+                    : `${record.correct}/${record.scored} right`
+                }
                 hint="How often a rich/cheap call has been right, site-wide."
               />
             )}

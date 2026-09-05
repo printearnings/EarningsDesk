@@ -218,6 +218,27 @@ class AnalystRatingRow(BaseModel):
     prior_price_target: float | None = None
 
 
+class PeerEarnings(BaseModel):
+    """One related company's most recent completed print — how a similar-product
+    peer's last quarter actually played out, shown so a reader sizing up this
+    name's upcoming report can see the recent earnings environment for its
+    cohort.
+
+    Prices bracket the reacting session (see the engine's realized_move rules);
+    `move` is the signed fraction between them. `report_date` is that peer's own
+    print date, not this ticker's.
+    """
+
+    ticker: str
+    company_name: str | None = None
+    company_domain: str | None = Field(None, description="for a logo lookup, e.g. 'amd.com'")
+    report_date: date
+    session: str | None = Field(None, description="BMO | AMC | null when unknown")
+    price_before: float = Field(description="close the session before the print")
+    price_after: float = Field(description="close the session that reacted to the print")
+    move: float = Field(description="signed fraction, -0.06 = down 6%")
+
+
 class PastMove(BaseModel):
     """One past print's realized move — the observations behind
     `hist_avg_move`.
@@ -294,6 +315,15 @@ class TickerPage(BaseModel):
         description=(
             "Realized move per past print, oldest first. Empty until the nightly "
             "build populates it — a normal not-yet state, not an error."
+        ),
+    )
+
+    peers: list[PeerEarnings] = Field(
+        [],
+        description=(
+            "Related companies (curated similar-product peers, else same-sector "
+            "tracked names) with their most recent completed print's before/after "
+            "prices. Empty when no peer has usable recent-earnings data yet."
         ),
     )
 

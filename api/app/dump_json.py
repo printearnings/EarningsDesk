@@ -108,6 +108,11 @@ def dump(out_dir: Path, *, with_prices: bool = True) -> dict[str, int]:
             pages.track_record_page(repo.track_record(session)),
         )
 
+        # Built once and shared across every page: peers are read off other
+        # tickers' snapshots, so re-deriving this per page would re-scan the
+        # whole snapshot table ~N times for identical data.
+        peer_index = pages.build_peer_index(session)
+
         for entry in index.tickers:
             ticker = entry.ticker
             series = quotes.price_series(ticker) if with_prices else []
@@ -120,6 +125,7 @@ def dump(out_dir: Path, *, with_prices: bool = True) -> dict[str, int]:
                 prices=series,
                 fundamentals=quotes.company_fundamentals(ticker) if with_prices else None,
                 analyst_ratings=quotes.analyst_ratings(ticker) if with_prices else [],
+                peer_index=peer_index,
             )
             # News costs nothing to fetch fresh (unlike options), so a
             # missing snapshot — or a snapshot whose own news fetch

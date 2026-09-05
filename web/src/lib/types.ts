@@ -17,6 +17,7 @@ type S = components["schemas"];
 export type TickerPage = S["TickerPage"];
 export type CalendarPage = S["CalendarPage"];
 export type CalendarEntry = S["CalendarEntry"];
+export type PeerEarnings = S["PeerEarnings"];
 export type PastEarningsPage = S["PastEarningsPage"];
 export type PastEarningsRow = S["PastEarningsRow"];
 export type SignalsPage = S["SignalsPage"];
