@@ -74,6 +74,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           tag @next/next/no-sync-scripts would otherwise flag.
         */}
         <Script src="/theme-init.js" strategy="beforeInteractive" />
+        {/*
+          Google AdSense loader. beforeInteractive (like theme-init above) so
+          next/script emits a real <script> tag into the served HTML head —
+          AdSense's verification crawler and the strict CSP both want the tag
+          actually present, not injected later by client JS. The matching
+          ads.txt lives at /ads.txt (public/), and the CSP in public/_headers
+          allows the googlesyndication/doubleclick/adtrafficquality domains the
+          ad stack pulls in.
+        */}
+        <Script
+          id="adsbygoogle-init"
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1352071292500585"
+          strategy="beforeInteractive"
+          crossOrigin="anonymous"
+          async
+        />
         {children}
         <CookieBanner />
       </body>
