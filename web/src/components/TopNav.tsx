@@ -153,10 +153,15 @@ export function TopNav({ tickers }: { tickers: TickerIndexEntry[] }) {
         </nav>
 
         <div className="flex items-center justify-end gap-2 sm:gap-3">
-          <div className="w-auto sm:w-56">
+          <div className="w-9 focus-within:w-full sm:w-56">
             <TickerSearch tickers={tickers} compact />
           </div>
-          <ThemeToggle />
+          {/* One theme toggle per breakpoint: shown here only from lg up, where
+              there's no hamburger. Below lg the drawer owns the toggle, so the
+              mobile bar stays uncluttered and the control never appears twice. */}
+          <div className="hidden lg:block">
+            <ThemeToggle />
+          </div>
         </div>
       </div>
     </header>
