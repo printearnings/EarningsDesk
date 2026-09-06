@@ -112,18 +112,29 @@ def resolve_peers(
     recent-earnings data contributes nothing to a "how did the cohort's prints
     go" panel. Returns [] below MIN_PEERS so the caller can drop the panel
     entirely rather than render a stub.
+
+    Curated peers come first. When too few of them have usable data to fill a
+    panel (e.g. only one of a name's curated cohort is in the current reporting
+    window), the sector fallback tops the list up rather than the panel
+    vanishing — a single lonely curated peer is worse than curated-plus-a-few
+    same-sector names.
     """
     ticker = ticker.upper()
     self_rec = index.get(ticker)
 
-    ordered = _curated_order(ticker, index)
-    if not ordered:
-        ordered = _sector_order(ticker, self_rec.sector if self_rec else None, index)
+    # Curated peers that actually carry recent-earnings data, in curated order.
+    ordered = [t for t in _curated_order(ticker, index) if index[t].last_earnings is not None]
 
-    cards = [index[t].last_earnings for t in ordered if index[t].last_earnings is not None]
-    if len(cards) < MIN_PEERS:
+    # Top up (or, with no curated cohort, fill) from same-sector names until the
+    # panel is worth showing. _sector_order already filters to last_earnings.
+    if len(ordered) < MIN_PEERS:
+        seen = set(ordered)
+        sector = self_rec.sector if self_rec else None
+        ordered += [t for t in _sector_order(ticker, sector, index) if t not in seen]
+
+    if len(ordered) < MIN_PEERS:
         return []
-    return cards[:limit]
+    return [index[t].last_earnings for t in ordered[:limit]]
 
 
 def _curated_order(ticker: str, index: dict[str, PeerRecord]) -> list[str]:

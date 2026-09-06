@@ -82,14 +82,41 @@ def test_peers_without_recent_earnings_are_excluded():
 
 
 def test_below_min_peers_returns_empty():
-    """One lonely card reads as broken. Only NVDA's cohort has data here, and
-    the one usable peer is under MIN_PEERS."""
+    """One lonely card reads as broken. Only one usable peer and no sector-mates
+    to top up with -> drop the panel."""
     assert MIN_PEERS == 2
     idx = _index(
-        _rec("NVDA", report_date=date(2026, 8, 1)),
+        _rec("NVDA", report_date=date(2026, 8, 1)),  # no sector, so no fallback
         _rec("AMD", report_date=date(2026, 8, 2)),  # only one usable curated peer
     )
     assert resolve_peers("NVDA", idx) == []
+
+
+def test_insufficient_curated_tops_up_from_sector():
+    """A name with only one curated peer in-window must not vanish — the sector
+    fallback fills the panel rather than showing nothing."""
+    idx = _index(
+        _rec("NVDA", sector="Technology", report_date=date(2026, 8, 1)),
+        _rec("AMD", sector="Technology", report_date=date(2026, 8, 2)),  # curated peer
+        _rec("ACN", sector="Technology", report_date=date(2026, 8, 3)),  # sector-only
+        _rec("PAYX", sector="Technology", report_date=date(2026, 8, 4)),  # sector-only
+    )
+    tickers = [p.ticker for p in resolve_peers("NVDA", idx)]
+    assert tickers[0] == "AMD"  # curated stays first
+    assert {"ACN", "PAYX"} <= set(tickers)  # topped up from sector
+
+
+def test_sufficient_curated_is_not_diluted_by_sector():
+    """When curated already fills the panel, don't append less-relevant
+    same-sector names."""
+    idx = _index(
+        _rec("NVDA", sector="Technology", report_date=date(2026, 8, 1)),
+        _rec("AMD", sector="Technology", report_date=date(2026, 8, 2)),  # curated
+        _rec("AVGO", sector="Technology", report_date=date(2026, 8, 3)),  # curated
+        _rec("ACN", sector="Technology", report_date=date(2026, 8, 9)),  # sector-only, newest
+    )
+    tickers = [p.ticker for p in resolve_peers("NVDA", idx)]
+    assert "ACN" not in tickers  # curated (AMD, AVGO) already meets MIN_PEERS
 
 
 def test_sector_fallback_when_no_curated_list():
