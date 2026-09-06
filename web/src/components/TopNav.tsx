@@ -82,7 +82,13 @@ export function TopNav({ tickers }: { tickers: TickerIndexEntry[] }) {
         backdropFilter: "blur(10px)",
       }}
     >
-      <div className="mx-auto grid h-16 w-full max-w-[1320px] grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 sm:px-6">
+      {/* Mobile/tablet: a plain flex row — menu+logo pinned left, search
+          pinned right. The centered 3-column grid is a desktop-only layout;
+          running it below lg left the two 1fr side columns balancing around an
+          empty (hidden-nav) center, which stranded the search mid-bar with
+          dead space beside it. It only switches to the centered grid at lg,
+          where the nav actually occupies the middle column. */}
+      <div className="mx-auto flex h-16 w-full max-w-[1320px] items-center justify-between gap-3 px-4 sm:px-6 lg:grid lg:grid-cols-[1fr_auto_1fr]">
         <div className="flex items-center gap-3">
           <div className="lg:hidden">
             <MobileNav />
