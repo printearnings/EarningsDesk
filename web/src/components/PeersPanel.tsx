@@ -14,10 +14,7 @@ import { formatDateShort, money, pctSigned, sessionLabel } from "@/lib/format";
  */
 export function PeersPanel({ peers }: { peers: PeerEarnings[] }) {
   return (
-    <Panel
-      title="How peers' last earnings landed"
-      subtitle="Most recent print for similar companies — the price into the report and the move after."
-    >
+    <Panel title="How peers' last earnings landed">
       <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {peers.map((peer) => (
           <PeerCard key={peer.ticker} peer={peer} />

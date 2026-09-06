@@ -26,7 +26,6 @@ export default async function TickersPage() {
       <div className="px-6 py-6">
         <Panel
           title="Screener"
-          subtitle="Every tracked name, soonest report first. Filter by verdict to find what's mispriced."
           bodyClassName="px-0 py-0"
           empty={index.tickers.length === 0 ? "No tracked tickers yet." : undefined}
         >

@@ -53,13 +53,7 @@ function Section({ title, rows }: { title: string; rows: Row[] }) {
 
 export function FundamentalsGrid({ data }: { data: Fundamentals | null | undefined }) {
   if (!data) {
-    return (
-      <Panel
-        title="Key figures"
-        subtitle="Valuation, profitability, and ownership"
-        empty="No fundamentals available for this symbol."
-      />
-    );
+    return <Panel title="Key figures" empty="No fundamentals available for this symbol." />;
   }
 
   const valuation: Row[] = [
@@ -144,10 +138,7 @@ export function FundamentalsGrid({ data }: { data: Fundamentals | null | undefin
   ];
 
   return (
-    <Panel
-      title="Key figures"
-      subtitle="Valuation, profitability, and ownership: the business behind the print"
-    >
+    <Panel title="Key figures">
       {/* Multi-column, not a grid: sections have wildly different row
           counts (7 vs 3), and a grid sizes every row to its tallest member,
           which left ragged holes under the short ones. Columns let each

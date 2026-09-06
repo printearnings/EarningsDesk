@@ -49,7 +49,10 @@ export function CalendarDayClient() {
           empty={
             <>
               No date given.{" "}
-              <Link href="/calendar/" className="underline decoration-dotted underline-offset-2">
+              <Link
+                href="/calendar/"
+                className="underline decoration-dotted underline-offset-2"
+              >
                 Back to the calendar
               </Link>
               .
@@ -118,7 +121,9 @@ export function CalendarDayClient() {
                     <td className="px-4 py-2.5">
                       <SessionChip session={e.session} />
                     </td>
-                    <td className="px-4 py-2.5 text-[var(--color-body)]">{e.verdict ?? EMPTY}</td>
+                    <td className="px-4 py-2.5 text-[var(--color-body)]">
+                      {e.verdict ?? EMPTY}
+                    </td>
                     <td className="tnum px-4 py-2.5 text-[var(--color-body)]">
                       {e.spot != null ? money(e.spot) : EMPTY}
                     </td>

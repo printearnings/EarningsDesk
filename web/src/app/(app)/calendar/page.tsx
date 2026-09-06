@@ -15,7 +15,6 @@ export default async function CalendarPage() {
       <div className="px-6 py-6">
         <Panel
           title="Earnings calendar"
-          subtitle="Every tracked ticker's report date"
           bodyClassName="px-0 py-0"
           empty={calendar.entries.length === 0 ? "No tracked earnings events yet." : undefined}
         >

@@ -75,7 +75,9 @@ export function CpiChart({ months }: { months: CpiMonth[] }) {
 
     if (points.length < 2) return null;
 
-    const values = points.flatMap((p) => [p.headline, p.core]).filter((v): v is number => v !== null);
+    const values = points
+      .flatMap((p) => [p.headline, p.core])
+      .filter((v): v is number => v !== null);
     const min = Math.min(...values, 0);
     const max = Math.max(...values, 0);
     const span = max - min || 1;
@@ -116,7 +118,17 @@ export function CpiChart({ months }: { months: CpiMonth[] }) {
       .filter((idx) => (seen.has(idx) ? false : (seen.add(idx), true)))
       .map((idx) => ({ x: x(idx), label: monthLabel(points[idx].month) }));
 
-    return { points, x, y, headline: path("headline"), core: path("core"), ticks, monthTicks, zeroY: y(0), showZero: lo < 0 };
+    return {
+      points,
+      x,
+      y,
+      headline: path("headline"),
+      core: path("core"),
+      ticks,
+      monthTicks,
+      zeroY: y(0),
+      showZero: lo < 0,
+    };
   }, [months, basis]);
 
   if (!chart) {
@@ -163,7 +175,9 @@ export function CpiChart({ months }: { months: CpiMonth[] }) {
           role="img"
           aria-label={`CPI ${BASIS_LABEL[basis].toLowerCase()}, headline and core.`}
           onMouseLeave={() => setHover(null)}
-          onMouseMove={(e) => hoverFromClientX(e.clientX, e.currentTarget.getBoundingClientRect())}
+          onMouseMove={(e) =>
+            hoverFromClientX(e.clientX, e.currentTarget.getBoundingClientRect())
+          }
         >
           {chart.ticks.map((t) => (
             <g key={t}>
@@ -207,7 +221,9 @@ export function CpiChart({ months }: { months: CpiMonth[] }) {
               key={i}
               x={t.x}
               y={H - PAD.bottom + 16}
-              textAnchor={i === 0 ? "start" : i === chart.monthTicks.length - 1 ? "end" : "middle"}
+              textAnchor={
+                i === 0 ? "start" : i === chart.monthTicks.length - 1 ? "end" : "middle"
+              }
               fontSize={10}
               fill="var(--color-viz-axis)"
             >

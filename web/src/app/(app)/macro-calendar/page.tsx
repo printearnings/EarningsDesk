@@ -19,11 +19,7 @@ export default async function MacroCalendarPage() {
       />
 
       <div className="space-y-6 px-6 py-6">
-        <Panel
-          title="FOMC, CPI, PPI & jobs"
-          subtitle="The macro dates that move every ticker at once, not just the one reporting that week"
-          bodyClassName="px-0 py-0"
-        >
+        <Panel title="FOMC, CPI, PPI & jobs" bodyClassName="px-0 py-0">
           <MacroCalendarList events={MACRO_EVENTS} />
         </Panel>
 

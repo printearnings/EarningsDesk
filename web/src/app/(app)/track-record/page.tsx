@@ -87,7 +87,7 @@ export default async function TrackRecordPage() {
       <TopBar title="Track record" eyebrow="Scored against reality" tickers={index.tickers} />
 
       <div className="space-y-6 px-6 py-6">
-        <Panel title="The bottom line" subtitle="In plain terms">
+        <Panel title="The bottom line">
           <div className="space-y-3">
             <p className="display text-xl">{summarize(record)}</p>
             <p className="text-[var(--color-body)]">
@@ -193,10 +193,7 @@ export default async function TrackRecordPage() {
           </div>
         </Panel>
 
-        <Panel
-          title="Was the pricing call right?"
-          subtitle='How often "this move is overpriced" or "underpriced" actually held up'
-        >
+        <Panel title="Was the pricing call right?">
           <dl className="grid grid-cols-2 gap-5 sm:grid-cols-4">
             <StatCard label="Scored events" value={String(record.scored)} />
             <StatCard label="RICH/CHEAP calls" value={String(record.directional)} />
@@ -210,10 +207,7 @@ export default async function TrackRecordPage() {
           </dl>
         </Panel>
 
-        <Panel
-          title="What the suggested trade actually returned"
-          subtitle="The real spread, priced at real option prices the day before and the day after each print"
-        >
+        <Panel title="What the suggested trade actually returned">
           <dl className="grid grid-cols-2 gap-5 sm:grid-cols-4">
             <StatCard
               label="Selling: trades"
@@ -277,10 +271,7 @@ export default async function TrackRecordPage() {
           </p>
         </Panel>
 
-        <Panel
-          title="The same question, on a simpler measure"
-          subtitle="A rough proxy that ignores which strikes were used. Kept for comparison with the real result above"
-        >
+        <Panel title="The same question, on a simpler measure">
           <dl className="grid grid-cols-2 gap-5 sm:grid-cols-4">
             <StatCard label="RICH calls scored" value={String(record.rich_edge_scored)} />
             <StatCard
@@ -316,10 +307,7 @@ export default async function TrackRecordPage() {
           </p>
         </Panel>
 
-        <Panel
-          title="Did the up-or-down lean call it right?"
-          subtitle="Independent of the pricing call above"
-        >
+        <Panel title="Did the up-or-down lean call it right?">
           <dl className="grid grid-cols-2 gap-5 sm:grid-cols-4">
             <StatCard label="Scored reads" value={String(record.dir_scored)} />
             <StatCard label="Correct" value={String(record.dir_correct)} />

@@ -188,7 +188,16 @@ async function checkRateLimit(
   if (current >= limit) return { ok: false, remaining: 0, limit };
 
   // Expire a little past the window so a clock skew can't leave it live.
-  await env.RATE_LIMIT.put(key, String(current + 1), { expirationTtl: 3900 });
+  // Fail open on a KV write error — most importantly the free-tier daily
+  // put() cap: the GET above already confirmed we're under the limit, so
+  // serving the request is correct. 500-ing the whole data route because a
+  // counter couldn't be incremented is the worse outcome. Worst case the
+  // count stops rising until the hourly window rolls.
+  try {
+    await env.RATE_LIMIT.put(key, String(current + 1), { expirationTtl: 3900 });
+  } catch {
+    // Availability of the data route wins over a perfectly exact counter.
+  }
   return { ok: true, remaining: limit - current - 1, limit };
 }
 
@@ -210,7 +219,13 @@ export async function checkGlobalRateLimit(
   const current = Number((await env.RATE_LIMIT.get(key)) ?? 0);
   if (current >= limit) return { ok: false, remaining: 0, limit };
 
-  await env.RATE_LIMIT.put(key, String(current + 1), { expirationTtl: 3900 });
+  // Fail open on a KV write error (see checkRateLimit) — a capped daily put()
+  // must not 500 a page-view-triggered data route.
+  try {
+    await env.RATE_LIMIT.put(key, String(current + 1), { expirationTtl: 3900 });
+  } catch {
+    // Availability wins; the GET-side check still enforces a frozen count.
+  }
   return { ok: true, remaining: limit - current - 1, limit };
 }
 

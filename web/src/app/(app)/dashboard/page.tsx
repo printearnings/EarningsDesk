@@ -167,9 +167,6 @@ export default async function DashboardPage() {
               <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-[var(--color-panel-title)]">
                 Implied move
               </h2>
-              <span className="text-sm text-[var(--color-muted)]">
-                avg across weekly reporters, last 8 weeks
-              </span>
               {latestTrend !== null && (
                 <span className="tnum ml-auto text-xl font-semibold text-[var(--color-heading)]">
                   {pctRange(latestTrend)}
@@ -189,9 +186,6 @@ export default async function DashboardPage() {
               <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-[var(--color-panel-title)]">
                 Top setups this week
               </h2>
-              <p className="mt-1 text-sm text-[var(--color-brand-muted)]">
-                Where the vol read sees the clearest edge
-              </p>
             </div>
             {topSetups.length === 0 ? (
               <p className="flex-1 px-5 py-8 text-sm text-[var(--color-muted)]">
@@ -231,7 +225,6 @@ export default async function DashboardPage() {
         {/* Reporting soon — the act-on-it surface */}
         <Panel
           title="Reporting soon"
-          subtitle={`${entries.length} in the next ${calendar.window_days} days — pick one and go`}
           action={
             <Link href="/calendar/" className={PANEL_ACTION_CLASS}>
               Full calendar <span aria-hidden>→</span>

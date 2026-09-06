@@ -92,7 +92,6 @@ export function InsidersPanel({
 
   return (
     <Panel
-      subtitle="Officers, directors, and 10%+ owners buying or selling shares, filed within two business days of the trade"
       bodyClassName="px-0 py-0"
       empty={
         !loading && data && data.transactions.length === 0

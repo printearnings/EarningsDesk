@@ -62,9 +62,7 @@ export function backtestImpliedMove(
     return null;
   }
 
-  const magnitudes = moves
-    .map((m) => Math.abs(m.move))
-    .filter((m) => Number.isFinite(m));
+  const magnitudes = moves.map((m) => Math.abs(m.move)).filter((m) => Number.isFinite(m));
 
   if (magnitudes.length < MIN_MOVES_FOR_BACKTEST) return null;
 

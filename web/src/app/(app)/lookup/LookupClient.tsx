@@ -171,17 +171,13 @@ export function LookupClient({ trackedTickers }: { trackedTickers: string[] }) {
           <RefreshPanel ticker={ticker} nextReportDate={result.next_report_date} />
 
           {result.prices.length > 1 && (
-            <Panel title="Price" subtitle="Past year of daily closes">
+            <Panel title="Price">
               <PriceChart prices={result.prices} events={[]} ticker={ticker} />
             </Panel>
           )}
 
           {result.earnings_history.length > 0 && (
-            <Panel
-              title="Earnings history"
-              subtitle="By fiscal quarter end, not announcement date (tracked names carry the announcement date; this lookup does not)"
-              bodyClassName="px-0 py-0"
-            >
+            <Panel title="Earnings history" bodyClassName="px-0 py-0">
               <div className="overflow-x-auto">
                 <table className="tnum w-full min-w-[28rem] text-sm">
                   <thead>

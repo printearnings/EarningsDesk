@@ -15,7 +15,6 @@ import { OpenInterestChart } from "@/components/OpenInterestChart";
 import { OptionsSimulator } from "@/components/OptionsSimulator";
 import { Panel, Stat } from "@/components/Panel";
 import { PriceChart } from "@/components/PriceChart";
-import { StrategyCard } from "@/components/StrategyCard";
 import type { PricePoint, TickerPage as TickerData } from "@/lib/api";
 import {
   EMPTY,
@@ -122,7 +121,7 @@ export function TickerTabs({ data }: { data: TickerData }) {
             {/* Not "marked on every view" — the marker only appears where a
                 report date actually falls inside the window on screen, which
                 for a 1D/5D intraday range is the exception, not the rule. */}
-            <Panel subtitle="Daily and intraday prices. Past earnings dates are marked where they fall in view; click one for that day's price.">
+            <Panel>
               <PriceChart prices={data.prices} events={data.history} ticker={data.ticker} />
             </Panel>
           </div>
@@ -142,10 +141,7 @@ export function TickerTabs({ data }: { data: TickerData }) {
 
         {visited.has("history") && (
           <div hidden={active !== "history"} className="space-y-6">
-            <Panel
-              title="Implied vs realized"
-              subtitle="What options priced in each quarter, against what the stock did"
-            >
+            <Panel title="Implied vs realized">
               <ImpliedVsRealized rows={data.history} />
             </Panel>
             <HistoryTable data={data} />
@@ -293,17 +289,6 @@ function OptionsPanelCard({ data }: { data: TickerData }) {
           </div>
         )}
       </Panel>
-
-      {/* Between the numbers and the simulator on purpose: it reads the
-          verdict stated above it, and the simulator below is where that
-          turns into actual priced legs. Direction is shown as its own chip
-          but no longer feeds the structure — see StrategyCard. */}
-      <StrategyCard
-        verdict={o.verdict}
-        ivInverted={o.iv_inverted}
-        pastMoves={data.past_moves ?? []}
-        impliedMove={o.implied_move}
-      />
 
       {simulatorOpen && (
         <OptionsSimulator
@@ -463,7 +448,6 @@ function HistoryTable({ data }: { data: TickerData }) {
 
   return (
     <Panel
-      subtitle="The last eight reports: EPS, surprise, and the move against what was priced in"
       bodyClassName="px-0 py-0"
       empty={
         rows.length === 0 ? "No earnings history recorded for this symbol yet." : undefined

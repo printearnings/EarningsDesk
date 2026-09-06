@@ -4,1221 +4,1221 @@
  */
 
 export interface paths {
-    "/healthz": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Healthz
-         * @description Liveness + configuration report.
-         *
-         *     Deliberately reports *which* feature flags are off rather than just
-         *     ok/not-ok: the most likely failure here is a silently unloaded .env,
-         *     which looks identical to a healthy app until you request real data.
-         */
-        get: operations["healthz_healthz_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+  "/healthz": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/calendar": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Calendar */
-        get: operations["get_calendar_api_calendar_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * Healthz
+     * @description Liveness + configuration report.
+     *
+     *     Deliberately reports *which* feature flags are off rather than just
+     *     ok/not-ok: the most likely failure here is a silently unloaded .env,
+     *     which looks identical to a healthy app until you request real data.
+     */
+    get: operations["healthz_healthz_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/calendar": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/ticker/{ticker}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Ticker */
-        get: operations["get_ticker_api_ticker__ticker__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** Get Calendar */
+    get: operations["get_calendar_api_calendar_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/ticker/{ticker}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/calendar/full": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Calendar Full */
-        get: operations["get_calendar_full_api_calendar_full_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** Get Ticker */
+    get: operations["get_ticker_api_ticker__ticker__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/calendar/full": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/past-earnings": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Past Earnings */
-        get: operations["get_past_earnings_api_past_earnings_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** Get Calendar Full */
+    get: operations["get_calendar_full_api_calendar_full_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/past-earnings": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/signals": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Signals */
-        get: operations["get_signals_api_signals_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** Get Past Earnings */
+    get: operations["get_past_earnings_api_past_earnings_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/signals": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/track-record": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Track Record */
-        get: operations["get_track_record_api_track_record_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** Get Signals */
+    get: operations["get_signals_api_signals_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/track-record": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/dashboard-news": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Dashboard News */
-        get: operations["get_dashboard_news_api_dashboard_news_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** Get Track Record */
+    get: operations["get_track_record_api_track_record_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/dashboard-news": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/index": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Index */
-        get: operations["get_index_api_index_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** Get Dashboard News */
+    get: operations["get_dashboard_news_api_dashboard_news_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/index": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
+    /** Get Index */
+    get: operations["get_index_api_index_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
-    schemas: {
-        /**
-         * AiSummary
-         * @description Structured so the UI can lay it out, rather than dumping a paragraph.
-         *
-         *     Describes what the numbers say. Never recommends a trade — see the
-         *     conventions in the engine's PLAN-BOT.md.
-         */
-        AiSummary: {
-            /** Headline */
-            headline: string;
-            /** Setup */
-            setup: string;
-            /** History Read */
-            history_read: string;
-            /**
-             * Watch Items
-             * @default []
-             */
-            watch_items: string[];
-            /**
-             * Confidence
-             * @description low | medium | high
-             * @default low
-             */
-            confidence: string;
-            /** Model */
-            model?: string | null;
-        };
-        /**
-         * AnalystRatingRow
-         * @description One analyst upgrade/downgrade/initiation, as filed.
-         */
-        AnalystRatingRow: {
-            /**
-             * Date
-             * Format: date
-             */
-            date: string;
-            /** Firm */
-            firm?: string | null;
-            /**
-             * Action
-             * @description up | down | init | main | reit
-             */
-            action?: string | null;
-            /** From Grade */
-            from_grade?: string | null;
-            /** To Grade */
-            to_grade?: string | null;
-            /** Price Target Action */
-            price_target_action?: string | null;
-            /** Current Price Target */
-            current_price_target?: number | null;
-            /** Prior Price Target */
-            prior_price_target?: number | null;
-        };
-        /** CalendarEntry */
-        CalendarEntry: {
-            /** Ticker */
-            ticker: string;
-            /**
-             * Report Date
-             * Format: date
-             */
-            report_date: string;
-            /** Session */
-            session?: string | null;
-            /** Days Until */
-            days_until: number;
-            /** Verdict */
-            verdict?: string | null;
-            /** Direction */
-            direction?: string | null;
-            /** Implied Move */
-            implied_move?: number | null;
-            /** Hist Avg Move */
-            hist_avg_move?: number | null;
-            /** Edge Score */
-            edge_score?: number | null;
-            /**
-             * Spot
-             * @description current price, not point-in-time at report_date
-             */
-            spot?: number | null;
-        };
-        /** CalendarPage */
-        CalendarPage: {
-            /**
-             * As Of
-             * Format: date
-             */
-            as_of: string;
-            /** Window Days */
-            window_days: number;
-            /**
-             * Entries
-             * @default []
-             */
-            entries: components["schemas"]["CalendarEntry"][];
-        };
-        /**
-         * DashboardNewsItem
-         * @description A `NewsItem` plus which tracked company it's about — the ticker page's
-         *     news list needs no such field (it's implicitly the page's own ticker),
-         *     but a feed spanning the whole universe has to say whose story this is.
-         */
-        DashboardNewsItem: {
-            /** Title */
-            title: string;
-            /** Url */
-            url?: string | null;
-            /** Publisher */
-            publisher?: string | null;
-            /** Published At */
-            published_at?: string | null;
-            /** Thumbnail Url */
-            thumbnail_url?: string | null;
-            /** Ticker */
-            ticker: string;
-            /** Company Name */
-            company_name?: string | null;
-            /** Company Domain */
-            company_domain?: string | null;
-        };
-        /** DashboardNewsPage */
-        DashboardNewsPage: {
-            /** Items */
-            items: components["schemas"]["DashboardNewsItem"][];
-        };
-        /**
-         * EarningsHistoryRow
-         * @description One past (or upcoming) earnings event, everything we know about it.
-         */
-        EarningsHistoryRow: {
-            /**
-             * Report Date
-             * Format: date
-             */
-            report_date: string;
-            /**
-             * Session
-             * @description "BMO" | "AMC" | null when unknown
-             */
-            session?: string | null;
-            /** Eps Estimate */
-            eps_estimate?: number | null;
-            /** Eps Actual */
-            eps_actual?: number | null;
-            /**
-             * Eps Surprise
-             * @description percent, e.g. 5.54 == +5.54%
-             */
-            eps_surprise?: number | null;
-            /**
-             * Implied Move
-             * @description fraction, e.g. 0.078 == ±7.8%
-             */
-            implied_move?: number | null;
-            /**
-             * Realized Move
-             * @description signed close-to-close fraction
-             */
-            realized_move?: number | null;
-            /** Beat Implied */
-            beat_implied?: boolean | null;
-            /**
-             * Verdict
-             * @description RICH | CHEAP | FAIR
-             */
-            verdict?: string | null;
-            /**
-             * Direction
-             * @description BULLISH | BEARISH | NEUTRAL
-             */
-            direction?: string | null;
-            /** Correct Direction */
-            correct_direction?: boolean | null;
-            /** Gap Open Pct */
-            gap_open_pct?: number | null;
-            /** Gap Filled */
-            gap_filled?: boolean | null;
-            /**
-             * Vol Ratio
-             * @description earnings-day volume / 20d average
-             */
-            vol_ratio?: number | null;
-            /**
-             * Pnl
-             * @description long-straddle proxy return
-             */
-            pnl?: number | null;
-        };
-        /**
-         * Fundamentals
-         * @description Company ratio grid — valuation, profitability, ownership, float.
-         *
-         *     Every field optional: yfinance omits a key entirely for a company that
-         *     genuinely has no such value (no dividend, no analyst coverage, a recent
-         *     IPO with no trailing EPS). That absence is information, and renders as
-         *     an em dash rather than a zero.
-         */
-        Fundamentals: {
-            /** Market Cap */
-            market_cap?: number | null;
-            /** Enterprise Value */
-            enterprise_value?: number | null;
-            /** Trailing Pe */
-            trailing_pe?: number | null;
-            /** Forward Pe */
-            forward_pe?: number | null;
-            /** Peg Ratio */
-            peg_ratio?: number | null;
-            /** Price To Book */
-            price_to_book?: number | null;
-            /** Price To Sales */
-            price_to_sales?: number | null;
-            /** Return On Equity */
-            return_on_equity?: number | null;
-            /** Return On Assets */
-            return_on_assets?: number | null;
-            /** Gross Margin */
-            gross_margin?: number | null;
-            /** Operating Margin */
-            operating_margin?: number | null;
-            /** Profit Margin */
-            profit_margin?: number | null;
-            /** Revenue Growth */
-            revenue_growth?: number | null;
-            /** Earnings Growth */
-            earnings_growth?: number | null;
-            /** Trailing Eps */
-            trailing_eps?: number | null;
-            /** Forward Eps */
-            forward_eps?: number | null;
-            /** Debt To Equity */
-            debt_to_equity?: number | null;
-            /** Current Ratio */
-            current_ratio?: number | null;
-            /** Quick Ratio */
-            quick_ratio?: number | null;
-            /** Held Pct Insiders */
-            held_pct_insiders?: number | null;
-            /** Held Pct Institutions */
-            held_pct_institutions?: number | null;
-            /** Shares Outstanding */
-            shares_outstanding?: number | null;
-            /** Float Shares */
-            float_shares?: number | null;
-            /** Short Ratio */
-            short_ratio?: number | null;
-            /** Short Pct Of Float */
-            short_pct_of_float?: number | null;
-            /** Beta */
-            beta?: number | null;
-            /** Fifty Two Week High */
-            fifty_two_week_high?: number | null;
-            /** Fifty Two Week Low */
-            fifty_two_week_low?: number | null;
-            /** Dividend Yield */
-            dividend_yield?: number | null;
-            /** Payout Ratio */
-            payout_ratio?: number | null;
-            /** Target Mean Price */
-            target_mean_price?: number | null;
-            /**
-             * Recommendation Mean
-             * @description 1-5, lower = more bullish
-             */
-            recommendation_mean?: number | null;
-            /** Number Of Analysts */
-            number_of_analysts?: number | null;
-        };
-        /** HTTPValidationError */
-        HTTPValidationError: {
-            /** Detail */
-            detail?: components["schemas"]["ValidationError"][];
-        };
-        /**
-         * HistoryStats
-         * @description Aggregates over the earnings history. Mirrors core.llm_context.TickerContext.
-         *
-         *     `hit_rate` is null below 4 scored events on purpose — a single correct call
-         *     reads as 100% accuracy and that number would get screenshotted. See
-         *     MIN_EVENTS_FOR_HIT_RATE.
-         */
-        HistoryStats: {
-            /** N Events */
-            n_events: number;
-            /** Hit Rate */
-            hit_rate?: number | null;
-            /** Avg Pnl */
-            avg_pnl?: number | null;
-            /** Avg Implied Move */
-            avg_implied_move?: number | null;
-            /** Avg Realized Move */
-            avg_realized_move?: number | null;
-            /**
-             * Overpricing Bias
-             * @description positive = market consistently overestimates the move
-             */
-            overpricing_bias?: number | null;
-            /** Avg Gap Open Pct */
-            avg_gap_open_pct?: number | null;
-            /** Gap Fill Rate */
-            gap_fill_rate?: number | null;
-            /** Avg Vol Ratio */
-            avg_vol_ratio?: number | null;
-        };
-        /**
-         * NewsItem
-         * @description One story. Only `title` is guaranteed — a feed item can arrive without a
-         *     resolvable link, and the UI renders those as plain text rather than as a
-         *     dead anchor.
-         */
-        NewsItem: {
-            /** Title */
-            title: string;
-            /** Url */
-            url?: string | null;
-            /** Publisher */
-            publisher?: string | null;
-            /** Published At */
-            published_at?: string | null;
-            /** Thumbnail Url */
-            thumbnail_url?: string | null;
-        };
-        /**
-         * OptionsPanel
-         * @description What the options market is pricing right now (as of the snapshot).
-         */
-        OptionsPanel: {
-            /** Implied Move */
-            implied_move?: number | null;
-            /** Hist Avg Move */
-            hist_avg_move?: number | null;
-            /**
-             * Richness
-             * @description implied / historical - 1; +0.30 means 30% richer than typical
-             */
-            richness?: number | null;
-            /** Verdict */
-            verdict?: string | null;
-            /**
-             * Edge Score
-             * @description 0-10
-             */
-            edge_score?: number | null;
-            /** Put Call Ratio */
-            put_call_ratio?: number | null;
-            /** Atm Open Interest */
-            atm_open_interest?: number | null;
-            /** Atm Strike */
-            atm_strike?: number | null;
-            /** Atm Expiry */
-            atm_expiry?: string | null;
-            /**
-             * Call Volume
-             * @description today's total call contracts traded
-             */
-            call_volume?: number | null;
-            /**
-             * Put Volume
-             * @description today's total put contracts traded
-             */
-            put_volume?: number | null;
-            /**
-             * Atm Volume
-             * @description today's call+put volume at the ATM strike, vs. atm_open_interest
-             */
-            atm_volume?: number | null;
-            /**
-             * Oi By Strike
-             * @description a window of strikes around the ATM, for a liquidity chart
-             */
-            oi_by_strike?: components["schemas"]["StrikeOpenInterest"][] | null;
-            /**
-             * Skew Put Iv
-             * @description IV of the ~25-delta put
-             */
-            skew_put_iv?: number | null;
-            /**
-             * Skew Call Iv
-             * @description IV of the ~25-delta call
-             */
-            skew_call_iv?: number | null;
-            /**
-             * Skew Risk Reversal
-             * @description put IV minus call IV at ~25 delta. Positive = downside protection is the expensive side, the ordinary state for equities, so only an unusual level is informative. Describes option pricing, not a directional forecast.
-             */
-            skew_risk_reversal?: number | null;
-            /** Iv Front */
-            iv_front?: number | null;
-            /** Iv Back */
-            iv_back?: number | null;
-            /**
-             * Iv Inverted
-             * @description front IV above back IV — the earnings premium
-             */
-            iv_inverted?: boolean | null;
-        };
-        /** PastEarningsPage */
-        PastEarningsPage: {
-            /**
-             * Rows
-             * @default []
-             */
-            rows: components["schemas"]["PastEarningsRow"][];
-        };
-        /**
-         * PastEarningsRow
-         * @description One earnings event, any ticker — the cross-universe history feed.
-         *
-         *     Distinct from EarningsHistoryRow (per-ticker, in TickerPage): same shape
-         *     of fields, but this one carries `ticker` since it spans the whole
-         *     universe.
-         */
-        PastEarningsRow: {
-            /** Ticker */
-            ticker: string;
-            /**
-             * Report Date
-             * Format: date
-             */
-            report_date: string;
-            /** Session */
-            session?: string | null;
-            /** Eps Estimate */
-            eps_estimate?: number | null;
-            /** Eps Actual */
-            eps_actual?: number | null;
-            /** Eps Surprise */
-            eps_surprise?: number | null;
-            /** Implied Move */
-            implied_move?: number | null;
-            /** Verdict */
-            verdict?: string | null;
-            /** Direction */
-            direction?: string | null;
-            /** Realized Move */
-            realized_move?: number | null;
-            /** Beat Implied */
-            beat_implied?: boolean | null;
-            /** Gap Open Pct */
-            gap_open_pct?: number | null;
-            /** Gap Filled */
-            gap_filled?: boolean | null;
-            /** Vol Ratio */
-            vol_ratio?: number | null;
-            /** Pnl */
-            pnl?: number | null;
-            /**
-             * Spot
-             * @description current price, not the price on report_date
-             */
-            spot?: number | null;
-        };
-        /**
-         * PastMove
-         * @description One past print's realized move — the observations behind
-         *     `hist_avg_move`.
-         *
-         *     Derived from daily closes rather than read off the scored history: only
-         *     ~3% of history rows carry a realized move, since that field is written
-         *     by the scoring pipeline going forward and was never backfilled.
-         */
-        PastMove: {
-            /**
-             * Report Date
-             * Format: date
-             */
-            report_date: string;
-            /**
-             * Move
-             * @description signed fraction, -0.06 = down 6%
-             */
-            move: number;
-        };
-        /**
-         * PeerEarnings
-         * @description One related company's most recent completed print — how a similar-product
-         *     peer's last quarter actually played out, shown so a reader sizing up this
-         *     name's upcoming report can see the recent earnings environment for its
-         *     cohort.
-         *
-         *     Prices bracket the reacting session (see the engine's realized_move rules);
-         *     `move` is the signed fraction between them. `report_date` is that peer's own
-         *     print date, not this ticker's.
-         */
-        PeerEarnings: {
-            /** Ticker */
-            ticker: string;
-            /** Company Name */
-            company_name?: string | null;
-            /**
-             * Company Domain
-             * @description for a logo lookup, e.g. 'amd.com'
-             */
-            company_domain?: string | null;
-            /**
-             * Report Date
-             * Format: date
-             */
-            report_date: string;
-            /**
-             * Session
-             * @description BMO | AMC | null when unknown
-             */
-            session?: string | null;
-            /**
-             * Price Before
-             * @description close the session before the print
-             */
-            price_before: number;
-            /**
-             * Price After
-             * @description close the session that reacted to the print
-             */
-            price_after: number;
-            /**
-             * Move
-             * @description signed fraction, -0.06 = down 6%
-             */
-            move: number;
-        };
-        /** PricePoint */
-        PricePoint: {
-            /**
-             * Date
-             * Format: date
-             */
-            date: string;
-            /** Close */
-            close: number;
-            /** Open */
-            open?: number | null;
-            /** High */
-            high?: number | null;
-            /** Low */
-            low?: number | null;
-            /** Volume */
-            volume?: number | null;
-        };
-        /** SignalRow */
-        SignalRow: {
-            /** Ticker */
-            ticker: string;
-            /**
-             * Run Date
-             * Format: date
-             */
-            run_date: string;
-            /**
-             * Report Date
-             * Format: date
-             */
-            report_date: string;
-            /**
-             * Workflow
-             * @description "A" = vol rich/cheap, "B" = directional
-             */
-            workflow: string;
-            /** Verdict */
-            verdict?: string | null;
-            /** Direction */
-            direction?: string | null;
-            /** Implied Move */
-            implied_move?: number | null;
-            /** Edge Score */
-            edge_score?: number | null;
-            /** Confidence */
-            confidence?: number | null;
-            /**
-             * Spot
-             * @description current price, not the price at run_date
-             */
-            spot?: number | null;
-            /**
-             * Beat Implied
-             * @description null = event hasn't happened/been scored yet, not a miss
-             */
-            beat_implied?: boolean | null;
-            /**
-             * Correct Direction
-             * @description null = event hasn't happened/been scored yet, not a miss
-             */
-            correct_direction?: boolean | null;
-        };
-        /** SignalsPage */
-        SignalsPage: {
-            /**
-             * Rows
-             * @default []
-             */
-            rows: components["schemas"]["SignalRow"][];
-        };
-        /**
-         * SiteIndex
-         * @description Everything the frontend needs to render search and build static routes.
-         */
-        SiteIndex: {
-            /**
-             * Generated At
-             * Format: date-time
-             */
-            generated_at: string;
-            /**
-             * Tickers
-             * @default []
-             */
-            tickers: components["schemas"]["TickerIndexEntry"][];
-        };
-        /**
-         * StrikeOpenInterest
-         * @description Open interest at one strike, split by side — one bar of the
-         *     open-interest-by-strike chart.
-         */
-        StrikeOpenInterest: {
-            /** Strike */
-            strike: number;
-            /** Call Oi */
-            call_oi: number;
-            /** Put Oi */
-            put_oi: number;
-        };
-        /** TickerIndexEntry */
-        TickerIndexEntry: {
-            /** Ticker */
-            ticker: string;
-            /** Company Name */
-            company_name?: string | null;
-            /** Company Domain */
-            company_domain?: string | null;
-            /** Next Report Date */
-            next_report_date?: string | null;
-            /** Next Report Session */
-            next_report_session?: string | null;
-            /** Verdict */
-            verdict?: string | null;
-            /** Spot */
-            spot?: number | null;
-            /** Implied Move */
-            implied_move?: number | null;
-        };
-        /** TickerPage */
-        TickerPage: {
-            /** Ticker */
-            ticker: string;
-            /**
-             * Is Tracked
-             * @description False = outside the universe; no signal track record exists
-             * @default true
-             */
-            is_tracked: boolean;
-            /** As Of */
-            as_of?: string | null;
-            /** Snapshot Age Hours */
-            snapshot_age_hours?: number | null;
-            /**
-             * Is Stale
-             * @default false
-             */
-            is_stale: boolean;
-            /** Company Name */
-            company_name?: string | null;
-            /**
-             * Company Domain
-             * @description for a logo lookup, e.g. 'walmart.com'
-             */
-            company_domain?: string | null;
-            /** Spot */
-            spot?: number | null;
-            /** Next Report Date */
-            next_report_date?: string | null;
-            /** Next Report Session */
-            next_report_session?: string | null;
-            /** Days Until Report */
-            days_until_report?: number | null;
-            /**
-             * Direction
-             * @description BULLISH | BEARISH | NEUTRAL — the validated options-flow + sentiment lean for the *next* report, refined daily starting a few days out. Absent (not NEUTRAL) until that window opens; describes what the market's flow suggests, not a recommendation.
-             */
-            direction?: string | null;
-            /**
-             * Direction Confidence
-             * @description 0-1
-             */
-            direction_confidence?: number | null;
-            /**
-             * Direction As Of
-             * @description the date this read was last refreshed, for an age/freshness label
-             */
-            direction_as_of?: string | null;
-            options?: components["schemas"]["OptionsPanel"] | null;
-            /**
-             * History
-             * @default []
-             */
-            history: components["schemas"]["EarningsHistoryRow"][];
-            stats?: components["schemas"]["HistoryStats"] | null;
-            /**
-             * Prices
-             * @default []
-             */
-            prices: components["schemas"]["PricePoint"][];
-            /**
-             * News
-             * @description null = fetch failed; [] = genuinely no news
-             */
-            news?: components["schemas"]["NewsItem"][] | null;
-            /**
-             * News Sentiment
-             * @description -1..1
-             */
-            news_sentiment?: number | null;
-            /**
-             * Analyst Score
-             * @description -1..1
-             */
-            analyst_score?: number | null;
-            /**
-             * Analyst Rating Raw
-             * @description Seeking Alpha 1-5
-             */
-            analyst_rating_raw?: number | null;
-            /**
-             * Past Moves
-             * @description Realized move per past print, oldest first. Empty until the nightly build populates it — a normal not-yet state, not an error.
-             * @default []
-             */
-            past_moves: components["schemas"]["PastMove"][];
-            /**
-             * Peers
-             * @description Related companies (curated similar-product peers, else same-sector tracked names) with their most recent completed print's before/after prices. Empty when no peer has usable recent-earnings data yet.
-             * @default []
-             */
-            peers: components["schemas"]["PeerEarnings"][];
-            /** @description null = the lookup failed or the symbol is unknown */
-            fundamentals?: components["schemas"]["Fundamentals"] | null;
-            /**
-             * Analyst Ratings
-             * @description newest first; empty = no coverage or the lookup failed
-             * @default []
-             */
-            analyst_ratings: components["schemas"]["AnalystRatingRow"][];
-            ai_summary?: components["schemas"]["AiSummary"] | null;
-        };
-        /**
-         * TrackRecordPage
-         * @description Verdict accuracy and direction accuracy stay separate.
-         *
-         *     They are two independent axes — "the market overpriced this move" and "the
-         *     stock went up" are different claims. Collapsing them into one score would
-         *     misrepresent what the engine actually predicts.
-         */
-        TrackRecordPage: {
-            /** Scored */
-            scored: number;
-            /** Directional */
-            directional: number;
-            /** Correct */
-            correct: number;
-            /** Accuracy */
-            accuracy?: number | null;
-            /** Avg Long Straddle Pnl */
-            avg_long_straddle_pnl?: number | null;
-            /**
-             * Dir Scored
-             * @default 0
-             */
-            dir_scored: number;
-            /**
-             * Dir Correct
-             * @default 0
-             */
-            dir_correct: number;
-            /** Dir Accuracy */
-            dir_accuracy?: number | null;
-            /** Rich Edge */
-            rich_edge?: number | null;
-            /**
-             * Rich Edge Scored
-             * @default 0
-             */
-            rich_edge_scored: number;
-            /** Cheap Edge */
-            cheap_edge?: number | null;
-            /**
-             * Cheap Edge Scored
-             * @default 0
-             */
-            cheap_edge_scored: number;
-            /**
-             * Structure Scored
-             * @default 0
-             */
-            structure_scored: number;
-            /**
-             * Structure Wins
-             * @default 0
-             */
-            structure_wins: number;
-            /** Structure Win Rate */
-            structure_win_rate?: number | null;
-            /** Structure Avg Pnl Pct */
-            structure_avg_pnl_pct?: number | null;
-            /**
-             * Structure Sell Scored
-             * @default 0
-             */
-            structure_sell_scored: number;
-            /** Structure Sell Win Rate */
-            structure_sell_win_rate?: number | null;
-            /** Structure Sell Avg Pnl Pct */
-            structure_sell_avg_pnl_pct?: number | null;
-            /**
-             * Structure Buy Scored
-             * @default 0
-             */
-            structure_buy_scored: number;
-            /** Structure Buy Win Rate */
-            structure_buy_win_rate?: number | null;
-            /** Structure Buy Avg Pnl Pct */
-            structure_buy_avg_pnl_pct?: number | null;
-        };
-        /** ValidationError */
-        ValidationError: {
-            /** Location */
-            loc: (string | number)[];
-            /** Message */
-            msg: string;
-            /** Error Type */
-            type: string;
-            /** Input */
-            input?: unknown;
-            /** Context */
-            ctx?: Record<string, never>;
-        };
+  schemas: {
+    /**
+     * AiSummary
+     * @description Structured so the UI can lay it out, rather than dumping a paragraph.
+     *
+     *     Describes what the numbers say. Never recommends a trade — see the
+     *     conventions in the engine's PLAN-BOT.md.
+     */
+    AiSummary: {
+      /** Headline */
+      headline: string;
+      /** Setup */
+      setup: string;
+      /** History Read */
+      history_read: string;
+      /**
+       * Watch Items
+       * @default []
+       */
+      watch_items: string[];
+      /**
+       * Confidence
+       * @description low | medium | high
+       * @default low
+       */
+      confidence: string;
+      /** Model */
+      model?: string | null;
     };
-    responses: never;
-    parameters: never;
-    requestBodies: never;
-    headers: never;
-    pathItems: never;
+    /**
+     * AnalystRatingRow
+     * @description One analyst upgrade/downgrade/initiation, as filed.
+     */
+    AnalystRatingRow: {
+      /**
+       * Date
+       * Format: date
+       */
+      date: string;
+      /** Firm */
+      firm?: string | null;
+      /**
+       * Action
+       * @description up | down | init | main | reit
+       */
+      action?: string | null;
+      /** From Grade */
+      from_grade?: string | null;
+      /** To Grade */
+      to_grade?: string | null;
+      /** Price Target Action */
+      price_target_action?: string | null;
+      /** Current Price Target */
+      current_price_target?: number | null;
+      /** Prior Price Target */
+      prior_price_target?: number | null;
+    };
+    /** CalendarEntry */
+    CalendarEntry: {
+      /** Ticker */
+      ticker: string;
+      /**
+       * Report Date
+       * Format: date
+       */
+      report_date: string;
+      /** Session */
+      session?: string | null;
+      /** Days Until */
+      days_until: number;
+      /** Verdict */
+      verdict?: string | null;
+      /** Direction */
+      direction?: string | null;
+      /** Implied Move */
+      implied_move?: number | null;
+      /** Hist Avg Move */
+      hist_avg_move?: number | null;
+      /** Edge Score */
+      edge_score?: number | null;
+      /**
+       * Spot
+       * @description current price, not point-in-time at report_date
+       */
+      spot?: number | null;
+    };
+    /** CalendarPage */
+    CalendarPage: {
+      /**
+       * As Of
+       * Format: date
+       */
+      as_of: string;
+      /** Window Days */
+      window_days: number;
+      /**
+       * Entries
+       * @default []
+       */
+      entries: components["schemas"]["CalendarEntry"][];
+    };
+    /**
+     * DashboardNewsItem
+     * @description A `NewsItem` plus which tracked company it's about — the ticker page's
+     *     news list needs no such field (it's implicitly the page's own ticker),
+     *     but a feed spanning the whole universe has to say whose story this is.
+     */
+    DashboardNewsItem: {
+      /** Title */
+      title: string;
+      /** Url */
+      url?: string | null;
+      /** Publisher */
+      publisher?: string | null;
+      /** Published At */
+      published_at?: string | null;
+      /** Thumbnail Url */
+      thumbnail_url?: string | null;
+      /** Ticker */
+      ticker: string;
+      /** Company Name */
+      company_name?: string | null;
+      /** Company Domain */
+      company_domain?: string | null;
+    };
+    /** DashboardNewsPage */
+    DashboardNewsPage: {
+      /** Items */
+      items: components["schemas"]["DashboardNewsItem"][];
+    };
+    /**
+     * EarningsHistoryRow
+     * @description One past (or upcoming) earnings event, everything we know about it.
+     */
+    EarningsHistoryRow: {
+      /**
+       * Report Date
+       * Format: date
+       */
+      report_date: string;
+      /**
+       * Session
+       * @description "BMO" | "AMC" | null when unknown
+       */
+      session?: string | null;
+      /** Eps Estimate */
+      eps_estimate?: number | null;
+      /** Eps Actual */
+      eps_actual?: number | null;
+      /**
+       * Eps Surprise
+       * @description percent, e.g. 5.54 == +5.54%
+       */
+      eps_surprise?: number | null;
+      /**
+       * Implied Move
+       * @description fraction, e.g. 0.078 == ±7.8%
+       */
+      implied_move?: number | null;
+      /**
+       * Realized Move
+       * @description signed close-to-close fraction
+       */
+      realized_move?: number | null;
+      /** Beat Implied */
+      beat_implied?: boolean | null;
+      /**
+       * Verdict
+       * @description RICH | CHEAP | FAIR
+       */
+      verdict?: string | null;
+      /**
+       * Direction
+       * @description BULLISH | BEARISH | NEUTRAL
+       */
+      direction?: string | null;
+      /** Correct Direction */
+      correct_direction?: boolean | null;
+      /** Gap Open Pct */
+      gap_open_pct?: number | null;
+      /** Gap Filled */
+      gap_filled?: boolean | null;
+      /**
+       * Vol Ratio
+       * @description earnings-day volume / 20d average
+       */
+      vol_ratio?: number | null;
+      /**
+       * Pnl
+       * @description long-straddle proxy return
+       */
+      pnl?: number | null;
+    };
+    /**
+     * Fundamentals
+     * @description Company ratio grid — valuation, profitability, ownership, float.
+     *
+     *     Every field optional: yfinance omits a key entirely for a company that
+     *     genuinely has no such value (no dividend, no analyst coverage, a recent
+     *     IPO with no trailing EPS). That absence is information, and renders as
+     *     an em dash rather than a zero.
+     */
+    Fundamentals: {
+      /** Market Cap */
+      market_cap?: number | null;
+      /** Enterprise Value */
+      enterprise_value?: number | null;
+      /** Trailing Pe */
+      trailing_pe?: number | null;
+      /** Forward Pe */
+      forward_pe?: number | null;
+      /** Peg Ratio */
+      peg_ratio?: number | null;
+      /** Price To Book */
+      price_to_book?: number | null;
+      /** Price To Sales */
+      price_to_sales?: number | null;
+      /** Return On Equity */
+      return_on_equity?: number | null;
+      /** Return On Assets */
+      return_on_assets?: number | null;
+      /** Gross Margin */
+      gross_margin?: number | null;
+      /** Operating Margin */
+      operating_margin?: number | null;
+      /** Profit Margin */
+      profit_margin?: number | null;
+      /** Revenue Growth */
+      revenue_growth?: number | null;
+      /** Earnings Growth */
+      earnings_growth?: number | null;
+      /** Trailing Eps */
+      trailing_eps?: number | null;
+      /** Forward Eps */
+      forward_eps?: number | null;
+      /** Debt To Equity */
+      debt_to_equity?: number | null;
+      /** Current Ratio */
+      current_ratio?: number | null;
+      /** Quick Ratio */
+      quick_ratio?: number | null;
+      /** Held Pct Insiders */
+      held_pct_insiders?: number | null;
+      /** Held Pct Institutions */
+      held_pct_institutions?: number | null;
+      /** Shares Outstanding */
+      shares_outstanding?: number | null;
+      /** Float Shares */
+      float_shares?: number | null;
+      /** Short Ratio */
+      short_ratio?: number | null;
+      /** Short Pct Of Float */
+      short_pct_of_float?: number | null;
+      /** Beta */
+      beta?: number | null;
+      /** Fifty Two Week High */
+      fifty_two_week_high?: number | null;
+      /** Fifty Two Week Low */
+      fifty_two_week_low?: number | null;
+      /** Dividend Yield */
+      dividend_yield?: number | null;
+      /** Payout Ratio */
+      payout_ratio?: number | null;
+      /** Target Mean Price */
+      target_mean_price?: number | null;
+      /**
+       * Recommendation Mean
+       * @description 1-5, lower = more bullish
+       */
+      recommendation_mean?: number | null;
+      /** Number Of Analysts */
+      number_of_analysts?: number | null;
+    };
+    /** HTTPValidationError */
+    HTTPValidationError: {
+      /** Detail */
+      detail?: components["schemas"]["ValidationError"][];
+    };
+    /**
+     * HistoryStats
+     * @description Aggregates over the earnings history. Mirrors core.llm_context.TickerContext.
+     *
+     *     `hit_rate` is null below 4 scored events on purpose — a single correct call
+     *     reads as 100% accuracy and that number would get screenshotted. See
+     *     MIN_EVENTS_FOR_HIT_RATE.
+     */
+    HistoryStats: {
+      /** N Events */
+      n_events: number;
+      /** Hit Rate */
+      hit_rate?: number | null;
+      /** Avg Pnl */
+      avg_pnl?: number | null;
+      /** Avg Implied Move */
+      avg_implied_move?: number | null;
+      /** Avg Realized Move */
+      avg_realized_move?: number | null;
+      /**
+       * Overpricing Bias
+       * @description positive = market consistently overestimates the move
+       */
+      overpricing_bias?: number | null;
+      /** Avg Gap Open Pct */
+      avg_gap_open_pct?: number | null;
+      /** Gap Fill Rate */
+      gap_fill_rate?: number | null;
+      /** Avg Vol Ratio */
+      avg_vol_ratio?: number | null;
+    };
+    /**
+     * NewsItem
+     * @description One story. Only `title` is guaranteed — a feed item can arrive without a
+     *     resolvable link, and the UI renders those as plain text rather than as a
+     *     dead anchor.
+     */
+    NewsItem: {
+      /** Title */
+      title: string;
+      /** Url */
+      url?: string | null;
+      /** Publisher */
+      publisher?: string | null;
+      /** Published At */
+      published_at?: string | null;
+      /** Thumbnail Url */
+      thumbnail_url?: string | null;
+    };
+    /**
+     * OptionsPanel
+     * @description What the options market is pricing right now (as of the snapshot).
+     */
+    OptionsPanel: {
+      /** Implied Move */
+      implied_move?: number | null;
+      /** Hist Avg Move */
+      hist_avg_move?: number | null;
+      /**
+       * Richness
+       * @description implied / historical - 1; +0.30 means 30% richer than typical
+       */
+      richness?: number | null;
+      /** Verdict */
+      verdict?: string | null;
+      /**
+       * Edge Score
+       * @description 0-10
+       */
+      edge_score?: number | null;
+      /** Put Call Ratio */
+      put_call_ratio?: number | null;
+      /** Atm Open Interest */
+      atm_open_interest?: number | null;
+      /** Atm Strike */
+      atm_strike?: number | null;
+      /** Atm Expiry */
+      atm_expiry?: string | null;
+      /**
+       * Call Volume
+       * @description today's total call contracts traded
+       */
+      call_volume?: number | null;
+      /**
+       * Put Volume
+       * @description today's total put contracts traded
+       */
+      put_volume?: number | null;
+      /**
+       * Atm Volume
+       * @description today's call+put volume at the ATM strike, vs. atm_open_interest
+       */
+      atm_volume?: number | null;
+      /**
+       * Oi By Strike
+       * @description a window of strikes around the ATM, for a liquidity chart
+       */
+      oi_by_strike?: components["schemas"]["StrikeOpenInterest"][] | null;
+      /**
+       * Skew Put Iv
+       * @description IV of the ~25-delta put
+       */
+      skew_put_iv?: number | null;
+      /**
+       * Skew Call Iv
+       * @description IV of the ~25-delta call
+       */
+      skew_call_iv?: number | null;
+      /**
+       * Skew Risk Reversal
+       * @description put IV minus call IV at ~25 delta. Positive = downside protection is the expensive side, the ordinary state for equities, so only an unusual level is informative. Describes option pricing, not a directional forecast.
+       */
+      skew_risk_reversal?: number | null;
+      /** Iv Front */
+      iv_front?: number | null;
+      /** Iv Back */
+      iv_back?: number | null;
+      /**
+       * Iv Inverted
+       * @description front IV above back IV — the earnings premium
+       */
+      iv_inverted?: boolean | null;
+    };
+    /** PastEarningsPage */
+    PastEarningsPage: {
+      /**
+       * Rows
+       * @default []
+       */
+      rows: components["schemas"]["PastEarningsRow"][];
+    };
+    /**
+     * PastEarningsRow
+     * @description One earnings event, any ticker — the cross-universe history feed.
+     *
+     *     Distinct from EarningsHistoryRow (per-ticker, in TickerPage): same shape
+     *     of fields, but this one carries `ticker` since it spans the whole
+     *     universe.
+     */
+    PastEarningsRow: {
+      /** Ticker */
+      ticker: string;
+      /**
+       * Report Date
+       * Format: date
+       */
+      report_date: string;
+      /** Session */
+      session?: string | null;
+      /** Eps Estimate */
+      eps_estimate?: number | null;
+      /** Eps Actual */
+      eps_actual?: number | null;
+      /** Eps Surprise */
+      eps_surprise?: number | null;
+      /** Implied Move */
+      implied_move?: number | null;
+      /** Verdict */
+      verdict?: string | null;
+      /** Direction */
+      direction?: string | null;
+      /** Realized Move */
+      realized_move?: number | null;
+      /** Beat Implied */
+      beat_implied?: boolean | null;
+      /** Gap Open Pct */
+      gap_open_pct?: number | null;
+      /** Gap Filled */
+      gap_filled?: boolean | null;
+      /** Vol Ratio */
+      vol_ratio?: number | null;
+      /** Pnl */
+      pnl?: number | null;
+      /**
+       * Spot
+       * @description current price, not the price on report_date
+       */
+      spot?: number | null;
+    };
+    /**
+     * PastMove
+     * @description One past print's realized move — the observations behind
+     *     `hist_avg_move`.
+     *
+     *     Derived from daily closes rather than read off the scored history: only
+     *     ~3% of history rows carry a realized move, since that field is written
+     *     by the scoring pipeline going forward and was never backfilled.
+     */
+    PastMove: {
+      /**
+       * Report Date
+       * Format: date
+       */
+      report_date: string;
+      /**
+       * Move
+       * @description signed fraction, -0.06 = down 6%
+       */
+      move: number;
+    };
+    /**
+     * PeerEarnings
+     * @description One related company's most recent completed print — how a similar-product
+     *     peer's last quarter actually played out, shown so a reader sizing up this
+     *     name's upcoming report can see the recent earnings environment for its
+     *     cohort.
+     *
+     *     Prices bracket the reacting session (see the engine's realized_move rules);
+     *     `move` is the signed fraction between them. `report_date` is that peer's own
+     *     print date, not this ticker's.
+     */
+    PeerEarnings: {
+      /** Ticker */
+      ticker: string;
+      /** Company Name */
+      company_name?: string | null;
+      /**
+       * Company Domain
+       * @description for a logo lookup, e.g. 'amd.com'
+       */
+      company_domain?: string | null;
+      /**
+       * Report Date
+       * Format: date
+       */
+      report_date: string;
+      /**
+       * Session
+       * @description BMO | AMC | null when unknown
+       */
+      session?: string | null;
+      /**
+       * Price Before
+       * @description close the session before the print
+       */
+      price_before: number;
+      /**
+       * Price After
+       * @description close the session that reacted to the print
+       */
+      price_after: number;
+      /**
+       * Move
+       * @description signed fraction, -0.06 = down 6%
+       */
+      move: number;
+    };
+    /** PricePoint */
+    PricePoint: {
+      /**
+       * Date
+       * Format: date
+       */
+      date: string;
+      /** Close */
+      close: number;
+      /** Open */
+      open?: number | null;
+      /** High */
+      high?: number | null;
+      /** Low */
+      low?: number | null;
+      /** Volume */
+      volume?: number | null;
+    };
+    /** SignalRow */
+    SignalRow: {
+      /** Ticker */
+      ticker: string;
+      /**
+       * Run Date
+       * Format: date
+       */
+      run_date: string;
+      /**
+       * Report Date
+       * Format: date
+       */
+      report_date: string;
+      /**
+       * Workflow
+       * @description "A" = vol rich/cheap, "B" = directional
+       */
+      workflow: string;
+      /** Verdict */
+      verdict?: string | null;
+      /** Direction */
+      direction?: string | null;
+      /** Implied Move */
+      implied_move?: number | null;
+      /** Edge Score */
+      edge_score?: number | null;
+      /** Confidence */
+      confidence?: number | null;
+      /**
+       * Spot
+       * @description current price, not the price at run_date
+       */
+      spot?: number | null;
+      /**
+       * Beat Implied
+       * @description null = event hasn't happened/been scored yet, not a miss
+       */
+      beat_implied?: boolean | null;
+      /**
+       * Correct Direction
+       * @description null = event hasn't happened/been scored yet, not a miss
+       */
+      correct_direction?: boolean | null;
+    };
+    /** SignalsPage */
+    SignalsPage: {
+      /**
+       * Rows
+       * @default []
+       */
+      rows: components["schemas"]["SignalRow"][];
+    };
+    /**
+     * SiteIndex
+     * @description Everything the frontend needs to render search and build static routes.
+     */
+    SiteIndex: {
+      /**
+       * Generated At
+       * Format: date-time
+       */
+      generated_at: string;
+      /**
+       * Tickers
+       * @default []
+       */
+      tickers: components["schemas"]["TickerIndexEntry"][];
+    };
+    /**
+     * StrikeOpenInterest
+     * @description Open interest at one strike, split by side — one bar of the
+     *     open-interest-by-strike chart.
+     */
+    StrikeOpenInterest: {
+      /** Strike */
+      strike: number;
+      /** Call Oi */
+      call_oi: number;
+      /** Put Oi */
+      put_oi: number;
+    };
+    /** TickerIndexEntry */
+    TickerIndexEntry: {
+      /** Ticker */
+      ticker: string;
+      /** Company Name */
+      company_name?: string | null;
+      /** Company Domain */
+      company_domain?: string | null;
+      /** Next Report Date */
+      next_report_date?: string | null;
+      /** Next Report Session */
+      next_report_session?: string | null;
+      /** Verdict */
+      verdict?: string | null;
+      /** Spot */
+      spot?: number | null;
+      /** Implied Move */
+      implied_move?: number | null;
+    };
+    /** TickerPage */
+    TickerPage: {
+      /** Ticker */
+      ticker: string;
+      /**
+       * Is Tracked
+       * @description False = outside the universe; no signal track record exists
+       * @default true
+       */
+      is_tracked: boolean;
+      /** As Of */
+      as_of?: string | null;
+      /** Snapshot Age Hours */
+      snapshot_age_hours?: number | null;
+      /**
+       * Is Stale
+       * @default false
+       */
+      is_stale: boolean;
+      /** Company Name */
+      company_name?: string | null;
+      /**
+       * Company Domain
+       * @description for a logo lookup, e.g. 'walmart.com'
+       */
+      company_domain?: string | null;
+      /** Spot */
+      spot?: number | null;
+      /** Next Report Date */
+      next_report_date?: string | null;
+      /** Next Report Session */
+      next_report_session?: string | null;
+      /** Days Until Report */
+      days_until_report?: number | null;
+      /**
+       * Direction
+       * @description BULLISH | BEARISH | NEUTRAL — the validated options-flow + sentiment lean for the *next* report, refined daily starting a few days out. Absent (not NEUTRAL) until that window opens; describes what the market's flow suggests, not a recommendation.
+       */
+      direction?: string | null;
+      /**
+       * Direction Confidence
+       * @description 0-1
+       */
+      direction_confidence?: number | null;
+      /**
+       * Direction As Of
+       * @description the date this read was last refreshed, for an age/freshness label
+       */
+      direction_as_of?: string | null;
+      options?: components["schemas"]["OptionsPanel"] | null;
+      /**
+       * History
+       * @default []
+       */
+      history: components["schemas"]["EarningsHistoryRow"][];
+      stats?: components["schemas"]["HistoryStats"] | null;
+      /**
+       * Prices
+       * @default []
+       */
+      prices: components["schemas"]["PricePoint"][];
+      /**
+       * News
+       * @description null = fetch failed; [] = genuinely no news
+       */
+      news?: components["schemas"]["NewsItem"][] | null;
+      /**
+       * News Sentiment
+       * @description -1..1
+       */
+      news_sentiment?: number | null;
+      /**
+       * Analyst Score
+       * @description -1..1
+       */
+      analyst_score?: number | null;
+      /**
+       * Analyst Rating Raw
+       * @description Seeking Alpha 1-5
+       */
+      analyst_rating_raw?: number | null;
+      /**
+       * Past Moves
+       * @description Realized move per past print, oldest first. Empty until the nightly build populates it — a normal not-yet state, not an error.
+       * @default []
+       */
+      past_moves: components["schemas"]["PastMove"][];
+      /**
+       * Peers
+       * @description Related companies (curated similar-product peers, else same-sector tracked names) with their most recent completed print's before/after prices. Empty when no peer has usable recent-earnings data yet.
+       * @default []
+       */
+      peers: components["schemas"]["PeerEarnings"][];
+      /** @description null = the lookup failed or the symbol is unknown */
+      fundamentals?: components["schemas"]["Fundamentals"] | null;
+      /**
+       * Analyst Ratings
+       * @description newest first; empty = no coverage or the lookup failed
+       * @default []
+       */
+      analyst_ratings: components["schemas"]["AnalystRatingRow"][];
+      ai_summary?: components["schemas"]["AiSummary"] | null;
+    };
+    /**
+     * TrackRecordPage
+     * @description Verdict accuracy and direction accuracy stay separate.
+     *
+     *     They are two independent axes — "the market overpriced this move" and "the
+     *     stock went up" are different claims. Collapsing them into one score would
+     *     misrepresent what the engine actually predicts.
+     */
+    TrackRecordPage: {
+      /** Scored */
+      scored: number;
+      /** Directional */
+      directional: number;
+      /** Correct */
+      correct: number;
+      /** Accuracy */
+      accuracy?: number | null;
+      /** Avg Long Straddle Pnl */
+      avg_long_straddle_pnl?: number | null;
+      /**
+       * Dir Scored
+       * @default 0
+       */
+      dir_scored: number;
+      /**
+       * Dir Correct
+       * @default 0
+       */
+      dir_correct: number;
+      /** Dir Accuracy */
+      dir_accuracy?: number | null;
+      /** Rich Edge */
+      rich_edge?: number | null;
+      /**
+       * Rich Edge Scored
+       * @default 0
+       */
+      rich_edge_scored: number;
+      /** Cheap Edge */
+      cheap_edge?: number | null;
+      /**
+       * Cheap Edge Scored
+       * @default 0
+       */
+      cheap_edge_scored: number;
+      /**
+       * Structure Scored
+       * @default 0
+       */
+      structure_scored: number;
+      /**
+       * Structure Wins
+       * @default 0
+       */
+      structure_wins: number;
+      /** Structure Win Rate */
+      structure_win_rate?: number | null;
+      /** Structure Avg Pnl Pct */
+      structure_avg_pnl_pct?: number | null;
+      /**
+       * Structure Sell Scored
+       * @default 0
+       */
+      structure_sell_scored: number;
+      /** Structure Sell Win Rate */
+      structure_sell_win_rate?: number | null;
+      /** Structure Sell Avg Pnl Pct */
+      structure_sell_avg_pnl_pct?: number | null;
+      /**
+       * Structure Buy Scored
+       * @default 0
+       */
+      structure_buy_scored: number;
+      /** Structure Buy Win Rate */
+      structure_buy_win_rate?: number | null;
+      /** Structure Buy Avg Pnl Pct */
+      structure_buy_avg_pnl_pct?: number | null;
+    };
+    /** ValidationError */
+    ValidationError: {
+      /** Location */
+      loc: (string | number)[];
+      /** Message */
+      msg: string;
+      /** Error Type */
+      type: string;
+      /** Input */
+      input?: unknown;
+      /** Context */
+      ctx?: Record<string, never>;
+    };
+  };
+  responses: never;
+  parameters: never;
+  requestBodies: never;
+  headers: never;
+  pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    healthz_healthz_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-        };
+  healthz_healthz_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    get_calendar_api_calendar_get: {
-        parameters: {
-            query?: {
-                days?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CalendarPage"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          };
         };
+      };
     };
-    get_ticker_api_ticker__ticker__get: {
-        parameters: {
-            query?: {
-                /** @description fetch the price chart series */
-                with_prices?: boolean;
-            };
-            header?: never;
-            path: {
-                ticker: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TickerPage"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
+  };
+  get_calendar_api_calendar_get: {
+    parameters: {
+      query?: {
+        days?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    get_calendar_full_api_calendar_full_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CalendarPage"];
-                };
-            };
+        content: {
+          "application/json": components["schemas"]["CalendarPage"];
         };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
     };
-    get_past_earnings_api_past_earnings_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PastEarningsPage"];
-                };
-            };
-        };
+  };
+  get_ticker_api_ticker__ticker__get: {
+    parameters: {
+      query?: {
+        /** @description fetch the price chart series */
+        with_prices?: boolean;
+      };
+      header?: never;
+      path: {
+        ticker: string;
+      };
+      cookie?: never;
     };
-    get_signals_api_signals_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SignalsPage"];
-                };
-            };
+        content: {
+          "application/json": components["schemas"]["TickerPage"];
         };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
     };
-    get_track_record_api_track_record_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TrackRecordPage"];
-                };
-            };
-        };
+  };
+  get_calendar_full_api_calendar_full_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    get_dashboard_news_api_dashboard_news_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DashboardNewsPage"];
-                };
-            };
+        content: {
+          "application/json": components["schemas"]["CalendarPage"];
         };
+      };
     };
-    get_index_api_index_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SiteIndex"];
-                };
-            };
-        };
+  };
+  get_past_earnings_api_past_earnings_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PastEarningsPage"];
+        };
+      };
+    };
+  };
+  get_signals_api_signals_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SignalsPage"];
+        };
+      };
+    };
+  };
+  get_track_record_api_track_record_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TrackRecordPage"];
+        };
+      };
+    };
+  };
+  get_dashboard_news_api_dashboard_news_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DashboardNewsPage"];
+        };
+      };
+    };
+  };
+  get_index_api_index_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SiteIndex"];
+        };
+      };
+    };
+  };
 }

@@ -96,20 +96,12 @@ export function AnalystRatings({ rows }: { rows: AnalystRatingRow[] }) {
 
   if (rows.length === 0) {
     return (
-      <Panel
-        title="Analyst actions"
-        subtitle="Upgrades, downgrades, and price-target changes"
-        empty="No recent analyst coverage for this symbol."
-      />
+      <Panel title="Analyst actions" empty="No recent analyst coverage for this symbol." />
     );
   }
 
   return (
-    <Panel
-      title="Analyst actions"
-      subtitle="Upgrades, downgrades, and price-target changes, newest first"
-      bodyClassName="px-0 py-0"
-    >
+    <Panel title="Analyst actions" bodyClassName="px-0 py-0">
       <div className="flex flex-wrap items-center gap-x-5 gap-y-3 border-b border-[var(--color-border)] px-5 py-4">
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="eyebrow text-[var(--color-muted)]">Action</span>

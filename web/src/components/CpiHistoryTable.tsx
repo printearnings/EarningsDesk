@@ -41,7 +41,6 @@ export function CpiHistoryTable() {
   return (
     <Panel
       title="CPI, as released"
-      subtitle="Headline and core, month-over-month and year-over-year"
       bodyClassName="px-0 py-0"
       empty={
         !loading && (!data || data.months.length === 0)
@@ -61,43 +60,43 @@ export function CpiHistoryTable() {
               <CpiChart months={data.months} />
             </div>
             <div className="overflow-x-auto">
-            <table className="tnum w-full min-w-[32rem] text-sm">
-              <thead>
-                <tr className="border-b border-[var(--color-border)] bg-[var(--color-table-head)] text-left">
-                  {["Month", "Headline MoM", "Headline YoY", "Core MoM", "Core YoY"].map(
-                    (h) => (
-                      <th key={h} className="eyebrow px-3 py-2.5 font-medium">
-                        {h}
-                      </th>
-                    ),
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {data.months.map((m) => (
-                  <tr
-                    key={m.month}
-                    className="border-b border-[var(--color-border-subtle)] last:border-b-0"
-                  >
-                    <td className="px-3 py-2.5 whitespace-nowrap text-[var(--color-body)]">
-                      {monthLabel(m.month)}
-                    </td>
-                    <td className="px-3 py-2.5 font-medium text-[var(--color-heading)]">
-                      {pctRaw(m.mom_pct, 1)}
-                    </td>
-                    <td className="px-3 py-2.5 font-medium text-[var(--color-heading)]">
-                      {pctRaw(m.yoy_pct, 1)}
-                    </td>
-                    <td className="px-3 py-2.5 text-[var(--color-body)]">
-                      {pctRaw(m.core_mom_pct, 1)}
-                    </td>
-                    <td className="px-3 py-2.5 text-[var(--color-body)]">
-                      {pctRaw(m.core_yoy_pct, 1)}
-                    </td>
+              <table className="tnum w-full min-w-[32rem] text-sm">
+                <thead>
+                  <tr className="border-b border-[var(--color-border)] bg-[var(--color-table-head)] text-left">
+                    {["Month", "Headline MoM", "Headline YoY", "Core MoM", "Core YoY"].map(
+                      (h) => (
+                        <th key={h} className="eyebrow px-3 py-2.5 font-medium">
+                          {h}
+                        </th>
+                      ),
+                    )}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {data.months.map((m) => (
+                    <tr
+                      key={m.month}
+                      className="border-b border-[var(--color-border-subtle)] last:border-b-0"
+                    >
+                      <td className="px-3 py-2.5 whitespace-nowrap text-[var(--color-body)]">
+                        {monthLabel(m.month)}
+                      </td>
+                      <td className="px-3 py-2.5 font-medium text-[var(--color-heading)]">
+                        {pctRaw(m.mom_pct, 1)}
+                      </td>
+                      <td className="px-3 py-2.5 font-medium text-[var(--color-heading)]">
+                        {pctRaw(m.yoy_pct, 1)}
+                      </td>
+                      <td className="px-3 py-2.5 text-[var(--color-body)]">
+                        {pctRaw(m.core_mom_pct, 1)}
+                      </td>
+                      <td className="px-3 py-2.5 text-[var(--color-body)]">
+                        {pctRaw(m.core_yoy_pct, 1)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </>
         )
