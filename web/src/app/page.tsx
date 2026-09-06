@@ -58,14 +58,14 @@ export default async function LandingPage() {
           <Logo size="lg" onBrand />
 
           <h1 className="display mt-6 max-w-3xl text-5xl !text-[var(--color-on-brand)] sm:text-6xl">
-            Implied move vs. history,
+            Know what&rsquo;s priced in
             <br />
             before the print.
           </h1>
 
           <p className="mt-5 max-w-xl text-lg text-[var(--color-on-brand-muted)]">
-            The move options are pricing into an earnings report, against what the stock did the
-            last eight quarters.
+            What the options market expects from the report, next to how the stock has actually
+            moved its last eight quarters. The data and the read &mdash; you make the call.
           </p>
 
           <div className="mt-8 max-w-xl">
@@ -152,9 +152,9 @@ export default async function LandingPage() {
           <strong className="font-medium text-[var(--color-body)]">
             Not financial advice.
           </strong>{" "}
-          PrintEarnings reports current options pricing and a stock&rsquo;s historical
-          post-earnings behavior. It does not predict outcomes. Past behavior does not constrain
-          the next print.
+          PrintEarnings reports what the options market is pricing, how a stock has behaved
+          around past earnings, and a flow-and-sentiment directional read. It does not predict
+          outcomes. Past behavior does not constrain the next print.
         </p>
       </section>
 
