@@ -60,6 +60,9 @@
      solid (not gradient) since subtitles run full sentences and a gradient
      reads worse the longer the string. */
   --color-brand-muted: #35507d;
+  /* Panel/card titles — navy in light, a brighter blue in dark so they stay
+     legible on the dark panel (plain --color-brand read too dim there). */
+  --color-panel-title: #1e3a6e;
   /* Full-bleed dark feature band — the landing hero, and anywhere else a
      deliberately saturated marketing surface is warranted. Never a panel,
      button, or chip fill; always full-bleed. */
@@ -196,8 +199,8 @@
    * `-strong` is the more pronounced version for the chart hero. */
   --gradient-tile: linear-gradient(
     155deg,
-    color-mix(in srgb, var(--color-viz-sma) 6%, var(--color-panel)) 0%,
-    var(--color-panel) 55%
+    color-mix(in srgb, var(--color-viz-sma) 11%, var(--color-panel)) 0%,
+    var(--color-panel) 58%
   );
   --gradient-tile-strong: linear-gradient(
     155deg,
@@ -255,6 +258,7 @@
     --color-brand: #3d64ad;
     --color-brand-hover: #4a76c9;
     --color-brand-muted: #9fb3d9;
+    --color-panel-title: #7ea6e6;
     --color-band: #16294f;
     --gradient-brand: linear-gradient(135deg, #5a89d6 0%, #8fb4ec 100%);
     --color-table-head: #23262d;
@@ -311,6 +315,7 @@
   --color-brand: #3d64ad;
   --color-brand-hover: #4a76c9;
   --color-brand-muted: #9fb3d9;
+  --color-panel-title: #7ea6e6;
   --color-band: #16294f;
   --gradient-brand: linear-gradient(135deg, #5a89d6 0%, #8fb4ec 100%);
   --color-table-head: #23262d;

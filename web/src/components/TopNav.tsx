@@ -82,16 +82,17 @@ export function TopNav({ tickers }: { tickers: TickerIndexEntry[] }) {
         backdropFilter: "blur(10px)",
       }}
     >
-      <div className="mx-auto flex h-16 w-full max-w-[1320px] items-center gap-3 px-4 sm:px-6">
-        <div className="lg:hidden">
-          <MobileNav />
+      <div className="mx-auto grid h-16 w-full max-w-[1320px] grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 sm:px-6">
+        <div className="flex items-center gap-3">
+          <div className="lg:hidden">
+            <MobileNav />
+          </div>
+          <Link href="/" aria-label="PrintEarnings" className="shrink-0">
+            <Logo size="sm" />
+          </Link>
         </div>
 
-        <Link href="/" aria-label="PrintEarnings" className="shrink-0">
-          <Logo size="sm" />
-        </Link>
-
-        <nav className="ml-3 hidden items-center gap-1 lg:flex">
+        <nav className="hidden items-center gap-1 lg:flex">
           {PRIMARY.map((item) => (
             <Link
               key={item.href}
@@ -151,7 +152,7 @@ export function TopNav({ tickers }: { tickers: TickerIndexEntry[] }) {
           </div>
         </nav>
 
-        <div className="ml-auto flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center justify-end gap-2 sm:gap-3">
           <div className="w-auto sm:w-56">
             <TickerSearch tickers={tickers} compact />
           </div>

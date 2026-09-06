@@ -104,7 +104,7 @@ export default async function DashboardPage() {
         (e.verdict === "RICH" || e.verdict === "CHEAP") && typeof e.edge_score === "number",
     )
     .sort((a, b) => (b.edge_score ?? 0) - (a.edge_score ?? 0))
-    .slice(0, 6);
+    .slice(0, 5);
 
   const richCount = entries.filter((e) => e.verdict === "RICH").length;
 
@@ -124,7 +124,7 @@ export default async function DashboardPage() {
 
       <div className="space-y-6 px-6 pb-10">
         {/* KPI row */}
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard
             label="Reporting this week"
             value={String(entries.length)}
@@ -150,7 +150,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* Hero: implied-move trend + verdict mix */}
-        <div className="grid items-stretch gap-6 xl:grid-cols-3">
+        <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
           {/* Chart tile carries a soft accent-gradient ground (both themes,
               via color-mix with the panel) rather than a flat white card. */}
           <div
@@ -161,7 +161,7 @@ export default async function DashboardPage() {
             }}
           >
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-5 pt-4 pb-1">
-              <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-[var(--color-brand)]">
+              <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-[var(--color-panel-title)]">
                 Implied move
               </h2>
               <span className="text-sm text-[var(--color-muted)]">
@@ -183,7 +183,7 @@ export default async function DashboardPage() {
             style={{ background: "var(--gradient-tile)", boxShadow: "var(--shadow-card)" }}
           >
             <div className="border-b border-[var(--color-border-subtle)] px-5 py-4">
-              <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-[var(--color-brand)]">
+              <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-[var(--color-panel-title)]">
                 Top setups this week
               </h2>
               <p className="mt-1 text-sm text-[var(--color-brand-muted)]">
@@ -266,7 +266,7 @@ export default async function DashboardPage() {
         </Panel>
 
         {/* Support row: recent signals · macro · news */}
-        <div className="grid items-start gap-6 xl:grid-cols-3">
+        <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
           <Panel
             title="Recent signals"
             bodyClassName="px-0 py-0"

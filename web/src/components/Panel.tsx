@@ -54,7 +54,7 @@ export function Panel({
         <header className="flex flex-wrap items-baseline justify-between gap-3 border-b border-[var(--color-border-subtle)] px-5 py-4">
           <div>
             {title && (
-              <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-[var(--color-brand)]">
+              <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-[var(--color-panel-title)]">
                 {title}
               </h2>
             )}
