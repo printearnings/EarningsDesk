@@ -52,7 +52,7 @@ export default async function DashboardPage() {
   const todayIso = new Date().toISOString().slice(0, 10);
   const upcomingMacro = MACRO_EVENTS.filter((e) => e.date >= todayIso)
     .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(0, 5);
+    .slice(0, 6);
 
   return (
     <>
@@ -179,7 +179,7 @@ export default async function DashboardPage() {
             empty={signals.rows.length === 0 ? "No signals recorded yet." : undefined}
           >
             <ul>
-              {signals.rows.slice(0, 5).map((row) => (
+              {signals.rows.slice(0, 6).map((row) => (
                 <li
                   key={`${row.ticker}-${row.run_date}-${row.workflow}`}
                   className="border-b border-[var(--color-border-subtle)] last:border-b-0"
@@ -236,36 +236,35 @@ export default async function DashboardPage() {
             empty={news.items.length === 0 ? "No recent headlines." : undefined}
           >
             <ul>
-              {news.items.slice(0, 5).map((item) => (
+              {news.items.slice(0, 6).map((item) => (
                 <li
                   key={item.url ?? `${item.ticker}-${item.title}`}
-                  className="border-b border-[var(--color-border-subtle)] px-5 py-3 last:border-b-0"
+                  className="flex items-center gap-2.5 border-b border-[var(--color-border-subtle)] px-5 py-3 last:border-b-0"
                 >
-                  <div className="mb-1 flex items-center gap-2">
-                    <Link
-                      href={`/t/${item.ticker}/`}
-                      className="font-mono text-xs font-semibold text-[var(--color-brand)] hover:underline"
-                    >
-                      {item.ticker}
-                    </Link>
-                    <span className="text-2xs text-[var(--color-muted)]">
-                      {[item.publisher, relativeDaysFromDate(item.published_at)]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </span>
-                  </div>
+                  <Link
+                    href={`/t/${item.ticker}/`}
+                    className="w-11 shrink-0 font-mono text-xs font-semibold text-[var(--color-brand)] hover:underline"
+                  >
+                    {item.ticker}
+                  </Link>
                   {item.url ? (
                     <a
                       href={item.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm text-[var(--color-heading)] underline-offset-4 hover:underline"
+                      title={item.title}
+                      className="min-w-0 flex-1 truncate text-sm text-[var(--color-heading)] underline-offset-4 hover:underline"
                     >
                       {item.title}
                     </a>
                   ) : (
-                    <span className="text-sm text-[var(--color-heading)]">{item.title}</span>
+                    <span className="min-w-0 flex-1 truncate text-sm text-[var(--color-heading)]">
+                      {item.title}
+                    </span>
                   )}
+                  <span className="text-2xs shrink-0 text-[var(--color-muted)]">
+                    {relativeDaysFromDate(item.published_at)}
+                  </span>
                 </li>
               ))}
             </ul>
