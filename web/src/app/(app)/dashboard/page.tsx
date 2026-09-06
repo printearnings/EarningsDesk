@@ -96,6 +96,11 @@ export default async function DashboardPage() {
       ? priced.reduce((sum, e) => sum + (e.implied_move ?? 0), 0) / priced.length
       : null;
 
+  const biggest = priced.reduce<(typeof priced)[number] | null>(
+    (m, e) => ((e.implied_move ?? 0) > (m?.implied_move ?? -Infinity) ? e : m),
+    null,
+  );
+
   const verdicts = { RICH: 0, CHEAP: 0, FAIR: 0 };
   for (const e of entries) {
     if (e.verdict === "RICH" || e.verdict === "CHEAP" || e.verdict === "FAIR")
@@ -151,9 +156,8 @@ export default async function DashboardPage() {
           <div
             className="rounded-[var(--radius-panel)] xl:col-span-2"
             style={{
+              background: "var(--gradient-tile-strong)",
               boxShadow: "var(--shadow-card)",
-              background:
-                "linear-gradient(155deg, color-mix(in srgb, var(--color-viz-sma) 12%, var(--color-panel)) 0%, var(--color-panel) 58%)",
             }}
           >
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-5 pt-4 pb-1">
@@ -175,8 +179,8 @@ export default async function DashboardPage() {
           </div>
 
           <div
-            className="flex flex-col rounded-[var(--radius-panel)] bg-[var(--color-panel)]"
-            style={{ boxShadow: "var(--shadow-card)" }}
+            className="flex flex-col rounded-[var(--radius-panel)]"
+            style={{ background: "var(--gradient-tile)", boxShadow: "var(--shadow-card)" }}
           >
             <div className="border-b border-[var(--color-border-subtle)] px-5 py-4">
               <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-[var(--color-brand)]">
@@ -219,6 +223,17 @@ export default async function DashboardPage() {
                 </>
               )}
             </div>
+            {biggest && (
+              <div className="text-2xs border-t border-[var(--color-border-subtle)] px-5 py-3 text-[var(--color-muted)]">
+                Biggest priced move ·{" "}
+                <span className="font-mono font-semibold text-[var(--color-heading)]">
+                  {biggest.ticker}
+                </span>{" "}
+                <span className="tnum text-[var(--color-heading)]">
+                  {pctRange(biggest.implied_move)}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 

@@ -82,7 +82,7 @@ export function TopNav({ tickers }: { tickers: TickerIndexEntry[] }) {
         backdropFilter: "blur(10px)",
       }}
     >
-      <div className="flex h-16 items-center gap-3 px-4 sm:px-6">
+      <div className="mx-auto flex h-16 w-full max-w-[1320px] items-center gap-3 px-4 sm:px-6">
         <div className="lg:hidden">
           <MobileNav />
         </div>

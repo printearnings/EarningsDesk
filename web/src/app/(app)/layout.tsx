@@ -18,7 +18,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="flex min-h-screen flex-col">
       <DisclaimerGate />
       <TopNav tickers={index.tickers} />
-      <div className="flex min-w-0 flex-1 flex-col">
+      {/* Cap the content width: with the sidebar gone, an uncapped column let
+          full-width SVG charts (which scale their own fonts by width) blow up
+          on wide screens. This keeps the reading measure and the charts sane. */}
+      <div className="mx-auto flex w-full max-w-[1320px] min-w-0 flex-1 flex-col">
         {children}
         <Footer />
       </div>

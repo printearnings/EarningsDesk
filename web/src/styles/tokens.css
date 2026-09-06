@@ -189,6 +189,22 @@
    * This is the ONE elevation: cards carry this shadow and no border. */
   --shadow-card: 0 1px 2px rgb(0 0 0 / 5%), 0 14px 30px -16px rgb(0 0 0 / 16%);
 
+  /* ---- Tile ground ----
+   * A soft accent-to-panel gradient shared by every card, so tiles read as a
+   * lifted, tinted surface rather than flat white. References the theme's own
+   * accent + panel vars, so it re-resolves per theme with no dark override.
+   * `-strong` is the more pronounced version for the chart hero. */
+  --gradient-tile: linear-gradient(
+    155deg,
+    color-mix(in srgb, var(--color-viz-sma) 6%, var(--color-panel)) 0%,
+    var(--color-panel) 55%
+  );
+  --gradient-tile-strong: linear-gradient(
+    155deg,
+    color-mix(in srgb, var(--color-viz-sma) 12%, var(--color-panel)) 0%,
+    var(--color-panel) 58%
+  );
+
   /* ---- Motion ----
    * Emil Kowalski's design-eng rules (see .claude/skills/emil-design-eng):
    * built-in CSS easings are too weak for UI; use a stronger custom curve.

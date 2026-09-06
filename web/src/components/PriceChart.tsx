@@ -105,7 +105,10 @@ function axisLabel(range: Range, key: string): string {
     return new Date(key).toLocaleDateString(undefined, { month: "short", day: "numeric" });
   }
   const [y, m, d] = key.slice(0, 10).split("-").map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return new Date(y, m - 1, d).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
 }
 
 interface Point {
@@ -582,6 +585,10 @@ function ChartBody({
     const span = max - min || Math.max(max * 0.02, 0.01);
     const lo = min - span * 0.08;
     const hi = max + span * 0.08;
+    // Decimals for the y-axis labels, from the visible price span: a $33 stock
+    // ranging ~$1 needs cents or three ticks all read "$33"; a $500 name needs
+    // none. Keyed off the span, not the price level.
+    const priceDecimals = hi - lo < 1 ? 3 : hi - lo < 20 ? 2 : hi - lo < 200 ? 1 : 0;
 
     const plotW = W - PAD.left - PAD.right;
     const plotH = H - PAD.top - PAD.bottom;
@@ -675,6 +682,7 @@ function ChartBody({
       plotH,
       min,
       max,
+      priceDecimals,
     };
   }, [
     visible,
@@ -991,7 +999,7 @@ function ChartBody({
                 fontSize={10}
                 fill="var(--color-viz-axis)"
               >
-                ${t.toFixed(0)}
+                ${t.toFixed(chart.priceDecimals)}
               </text>
             </g>
           ))}
