@@ -137,7 +137,7 @@ export function MonthCalendar({ entries }: { entries: CalendarEntry[] }) {
   return (
     <div>
       <div className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4">
-        <h2 className="text-[15px] font-medium text-[var(--color-heading)]">
+        <h2 className="text-base font-semibold text-[var(--color-heading)]">
           {MONTH_NAMES[cursor.month]} {cursor.year}
         </h2>
         <div className="flex items-center gap-1">
@@ -367,14 +367,14 @@ function DayCellView({ cell }: { cell: DayCell }) {
               key={e.ticker}
               href={`/t/${e.ticker}/`}
               title={`${e.ticker}${e.spot != null ? ` · ${money(e.spot)}` : ""} · implied ${pctRange(e.implied_move)}${session ? ` · reports ${session}` : ""}`}
-              className="pressable text-2xs flex items-center gap-1 rounded-[3px] px-1 py-0.5 transition-colors hover:bg-[var(--color-panel-soft)]"
+              className="pressable flex items-center gap-1 rounded-[3px] px-1 py-0.5 text-xs transition-colors hover:bg-[var(--color-panel-soft)]"
             >
               <VerdictDot verdict={e.verdict} />
               <span className="truncate font-mono font-medium text-[var(--color-heading)]">
                 {e.ticker}
               </span>
               {(e.session === "BMO" || e.session === "AMC") && (
-                <span className="ml-auto shrink-0 font-mono text-[9px] text-[var(--color-muted)]">
+                <span className="ml-auto shrink-0 font-mono text-[10px] text-[var(--color-muted)]">
                   {e.session}
                 </span>
               )}
@@ -384,7 +384,7 @@ function DayCellView({ cell }: { cell: DayCell }) {
         {overflow > 0 && (
           <Link
             href={`/calendar/day/?date=${cell.iso}`}
-            className="text-2xs pressable block rounded-[3px] px-1 text-[var(--color-muted)] underline decoration-dotted underline-offset-2 transition-colors hover:text-[var(--color-heading)]"
+            className="pressable block rounded-[3px] px-1 text-xs text-[var(--color-muted)] underline decoration-dotted underline-offset-2 transition-colors hover:text-[var(--color-heading)]"
           >
             +{overflow} more
           </Link>
