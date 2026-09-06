@@ -77,7 +77,12 @@ export default async function DashboardPage() {
           />
         </div>
 
-        <div className="grid gap-6 xl:grid-cols-2">
+        {/* items-start: each tile sizes to its own content instead of being
+            stretched to the tallest column — otherwise the shorter side (here
+            the hero, sat next to a three-tile stack) fills the difference with
+            an empty void. The hero's own page size is tuned below so the two
+            columns land close to level with real content, not blank space. */}
+        <div className="grid items-start gap-6 xl:grid-cols-2">
           <Panel
             title="Next to report"
             subtitle={`${calendar.entries.length} in the next ${calendar.window_days} days`}
@@ -92,7 +97,7 @@ export default async function DashboardPage() {
               calendar.entries.length === 0 ? "Nothing scheduled in the window." : undefined
             }
           >
-            <NextToReportList entries={calendar.entries} />
+            <NextToReportList entries={calendar.entries} pageSize={12} />
           </Panel>
 
           <div className="space-y-6">

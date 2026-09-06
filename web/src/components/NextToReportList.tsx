@@ -8,7 +8,7 @@ import { Pagination } from "@/components/Pagination";
 import { pctRange, relativeDays } from "@/lib/format";
 import type { CalendarEntry } from "@/lib/types";
 
-const PAGE_SIZE = 8;
+const DEFAULT_PAGE_SIZE = 8;
 
 /**
  * The Dashboard's "Next to report" panel — previously a hard `slice(0, 8)`
@@ -17,10 +17,21 @@ const PAGE_SIZE = 8;
  * fetched (the same "no extra request, the window is small enough to just
  * slice in the browser" pattern TickersScreener/MacroCalendarList use), so
  * paging forward costs nothing beyond a re-render.
+ *
+ * `pageSize` is a prop because this is the dashboard's tallest tile: the
+ * dashboard sizes it to sit level with the stack of shorter tiles beside it,
+ * so the space it occupies is spent on real upcoming names rather than an
+ * empty stretch.
  */
-export function NextToReportList({ entries }: { entries: CalendarEntry[] }) {
+export function NextToReportList({
+  entries,
+  pageSize = DEFAULT_PAGE_SIZE,
+}: {
+  entries: CalendarEntry[];
+  pageSize?: number;
+}) {
   const [page, setPage] = useState(1);
-  const paged = entries.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const paged = entries.slice((page - 1) * pageSize, page * pageSize);
 
   return (
     <div>
@@ -66,7 +77,7 @@ export function NextToReportList({ entries }: { entries: CalendarEntry[] }) {
       </ul>
       <Pagination
         page={page}
-        pageSize={PAGE_SIZE}
+        pageSize={pageSize}
         total={entries.length}
         onPageChange={setPage}
       />
