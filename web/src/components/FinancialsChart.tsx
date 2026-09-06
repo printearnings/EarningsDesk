@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { barPath } from "@/lib/chartShapes";
 import { type FinancialsQuarter, periodLabel } from "@/lib/useFinancials";
 import { formatDate, moneyCompact } from "@/lib/format";
 
@@ -146,24 +147,30 @@ export function FinancialsChart({ quarters }: { quarters: FinancialsQuarter[] })
                 />
 
                 {d.revenue !== null && (
-                  <rect
-                    x={revenueX}
-                    y={Math.min(y(d.revenue), zeroY)}
-                    width={barW}
-                    height={Math.abs(zeroY - y(d.revenue))}
-                    rx={2}
+                  <path
+                    d={barPath(
+                      revenueX,
+                      Math.min(y(d.revenue), zeroY),
+                      barW,
+                      Math.abs(zeroY - y(d.revenue)) || 1,
+                      3,
+                      d.revenue >= 0,
+                    )}
                     fill="var(--color-viz-sma)"
                     className="transition-opacity duration-[var(--duration-fast)]"
                     opacity={dimmed ? 0.35 : 1}
                   />
                 )}
                 {d.netIncome !== null && (
-                  <rect
-                    x={netIncomeX}
-                    y={Math.min(y(d.netIncome), zeroY)}
-                    width={barW}
-                    height={Math.abs(zeroY - y(d.netIncome)) || 1}
-                    rx={2}
+                  <path
+                    d={barPath(
+                      netIncomeX,
+                      Math.min(y(d.netIncome), zeroY),
+                      barW,
+                      Math.abs(zeroY - y(d.netIncome)) || 1,
+                      3,
+                      d.netIncome >= 0,
+                    )}
                     fill={d.netIncome < 0 ? "var(--color-negative)" : "var(--color-viz-ema)"}
                     className="transition-opacity duration-[var(--duration-fast)]"
                     opacity={dimmed ? 0.35 : 1}

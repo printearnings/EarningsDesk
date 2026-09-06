@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 
+import { barPath } from "@/lib/chartShapes";
 import { EMPTY, compact, formatDateShort, money, moneyCompact } from "@/lib/format";
 import type { InsiderTransaction } from "@/lib/useInsiders";
 import type { PricePoint } from "@/lib/types";
@@ -105,7 +106,10 @@ export function InsiderActivityChart({
 
     const maxValue = Math.max(...positioned.map((r) => r.t.value));
     const baseline = PAD.top + plotH;
-    const barW = Math.min(MAX_BAR_W, Math.max(2, plotW / Math.max(positioned.length, 24) / 1.5));
+    const barW = Math.min(
+      MAX_BAR_W,
+      Math.max(2, plotW / Math.max(positioned.length, 24) / 1.5),
+    );
 
     // Square-root scale, not linear. Insider trade sizes span orders of
     // magnitude — a 10%-owner trust unloading $467M next to executives
@@ -142,7 +146,17 @@ export function InsiderActivityChart({
     const buyTotal = positioned.filter((r) => r.t.isBuy).reduce((s, r) => s + r.t.value, 0);
     const sellTotal = positioned.filter((r) => !r.t.isBuy).reduce((s, r) => s + r.t.value, 0);
 
-    return { line, bars, priceTicks, dateTicks, yPrice, maxValue, baseline, buyTotal, sellTotal };
+    return {
+      line,
+      bars,
+      priceTicks,
+      dateTicks,
+      yPrice,
+      maxValue,
+      baseline,
+      buyTotal,
+      sellTotal,
+    };
   }, [transactions, prices]);
 
   if (!chart) {
@@ -192,7 +206,9 @@ export function InsiderActivityChart({
               key={i}
               x={t.x}
               y={H - PAD.bottom + 16}
-              textAnchor={i === 0 ? "start" : i === chart.dateTicks.length - 1 ? "end" : "middle"}
+              textAnchor={
+                i === 0 ? "start" : i === chart.dateTicks.length - 1 ? "end" : "middle"
+              }
               fontSize={10}
               fill="var(--color-viz-axis)"
             >
@@ -203,13 +219,9 @@ export function InsiderActivityChart({
           {/* Bars under the price line: the line is the primary series and
               shouldn't be interrupted by them. */}
           {chart.bars.map((b) => (
-            <rect
+            <path
               key={b.i}
-              x={b.x}
-              y={b.y}
-              width={b.width}
-              height={b.height}
-              rx={1}
+              d={barPath(b.x, b.y, b.width, b.height, 2)}
               fill={b.trade.isBuy ? "var(--color-positive)" : "var(--color-negative)"}
               opacity={hover === null || hover === b.i ? 0.75 : 0.3}
               className="transition-opacity duration-[var(--duration-fast)]"
