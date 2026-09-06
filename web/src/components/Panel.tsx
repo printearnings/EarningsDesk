@@ -47,20 +47,14 @@ export function Panel({
 }) {
   return (
     <section
-      className="rounded-[var(--radius-panel)] border border-[var(--color-border)] bg-[var(--color-panel)]"
+      className="rounded-[var(--radius-panel)] bg-[var(--color-panel)]"
       style={{ boxShadow: "var(--shadow-card)" }}
     >
       {(title || subtitle || action) && (
-        <header
-          className="flex flex-wrap items-baseline justify-between gap-3 rounded-t-[var(--radius-panel)] border-b border-[var(--color-border)] px-5 py-4"
-          style={{ backgroundImage: "var(--gradient-panel-header)" }}
-        >
+        <header className="flex flex-wrap items-baseline justify-between gap-3 border-b border-[var(--color-border-subtle)] px-5 py-4">
           <div>
             {title && (
-              <h2
-                className="bg-clip-text text-[15px] font-semibold text-transparent"
-                style={{ backgroundImage: "var(--gradient-brand)" }}
-              >
+              <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-[var(--color-brand)]">
                 {title}
               </h2>
             )}
@@ -128,7 +122,7 @@ export function Stat({
 export function StatCard(props: Parameters<typeof Stat>[0]) {
   return (
     <div
-      className="rounded-[var(--radius-panel)] border border-[var(--color-border)] bg-[var(--color-panel)] px-5 py-4"
+      className="rounded-[var(--radius-panel)] bg-[var(--color-panel)] px-5 py-4"
       style={{ boxShadow: "var(--shadow-card)" }}
     >
       <Stat {...props} />

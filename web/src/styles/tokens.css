@@ -179,14 +179,15 @@
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 10px;
-  --radius-panel: 12px;
+  --radius-panel: 16px;
   --radius-chip: 6px;
   --radius-pill: 999px;
 
   /* ---- Depth ----
-   * Whisper-soft and layered, never one heavy shadow — two low-alpha shadows
-   * stacked to suggest ambient + direct light. */
-  --shadow-card: 0 0 0.5px rgb(0 0 0 / 14%), 0 1px 1px rgb(0 0 0 / 24%);
+   * A soft, lifted elevation — a tight contact shadow plus a wide, offset
+   * ambient one, so cards read as raised off the page rather than outlined.
+   * This is the ONE elevation: cards carry this shadow and no border. */
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 5%), 0 14px 30px -16px rgb(0 0 0 / 16%);
 
   /* ---- Motion ----
    * Emil Kowalski's design-eng rules (see .claude/skills/emil-design-eng):
@@ -282,7 +283,7 @@
     --color-warning: #f0a94e;
     --color-warning-bg: #2a2013;
 
-    --shadow-card: 0 0 0.5px rgb(0 0 0 / 40%), 0 1px 1px rgb(0 0 0 / 55%);
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 40%), 0 16px 34px -18px rgb(0 0 0 / 62%);
   }
 }
 
@@ -338,5 +339,5 @@
   --color-warning: #f0a94e;
   --color-warning-bg: #2a2013;
 
-  --shadow-card: 0 0 0.5px rgb(0 0 0 / 40%), 0 1px 1px rgb(0 0 0 / 55%);
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 40%), 0 16px 34px -18px rgb(0 0 0 / 62%);
 }

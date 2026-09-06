@@ -1,28 +1,28 @@
 import Link from "next/link";
 
-import { DirectionChip, MacroEventChip, VerdictChip } from "@/components/Chip";
-import { CompanyLogo } from "@/components/CompanyLogo";
-import { NewsThumbnail } from "@/components/NewsThumbnail";
-import { NextToReportList } from "@/components/NextToReportList";
+import { DirectionChip, MacroEventChip, SessionChip, VerdictChip } from "@/components/Chip";
 import { Panel, StatCard } from "@/components/Panel";
 import { TopBar } from "@/components/TopBar";
 import { getCalendar, getDashboardNews, getIndex, getSignals, getTrackRecord } from "@/lib/api";
-import { formatDateShort, pct, pctRange, relativeDaysFromDate } from "@/lib/format";
+import {
+  EMPTY,
+  formatDateShort,
+  pct,
+  pctRange,
+  relativeDays,
+  relativeDaysFromDate,
+} from "@/lib/format";
 import { MACRO_EVENTS } from "@/lib/macroEvents";
 
 export const metadata = { title: "Dashboard | PrintEarnings" };
 
-// A solid chip, not a plain underlined link — these sit inside the Panel
-// header's colored wash, where bare text reads as decoration rather than
-// something clickable. The white chip pops against that tint in both modes.
 const PANEL_ACTION_CLASS =
-  "pressable inline-flex shrink-0 items-center gap-1 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-panel)] px-2.5 py-1 text-xs font-medium text-[var(--color-heading)] transition-colors hover:border-[var(--color-brand)] hover:text-[var(--color-brand)]";
+  "pressable inline-flex shrink-0 items-center gap-1 rounded-[var(--radius-sm)] px-2 py-1 text-xs font-medium text-[var(--color-brand)] transition-colors hover:bg-[var(--color-panel-soft)]";
 
 /**
- * The overview: what's coming, what the engine has said lately, and how those
- * calls have actually worked out. Everything here is a summary that links to a
- * fuller page — this is the "where do I go next" surface, not a place to read
- * detail.
+ * The overview: what's coming, the read on it, and how the calls have landed.
+ * A summary surface that links deeper — leads with the names reporting soon
+ * (the thing a reader acts on), with everything else as calmer support.
  */
 export default async function DashboardPage() {
   const [index, calendar, signals, record, news] = await Promise.all([
@@ -33,30 +33,37 @@ export default async function DashboardPage() {
     getDashboardNews(),
   ]);
 
-  const priced = calendar.entries.filter((e) => typeof e.implied_move === "number");
-  const rich = calendar.entries.filter((e) => e.verdict === "RICH").length;
+  const entries = calendar.entries;
+  const priced = entries.filter((e) => typeof e.implied_move === "number");
   const avgImplied =
     priced.length > 0
       ? priced.reduce((sum, e) => sum + (e.implied_move ?? 0), 0) / priced.length
       : null;
 
-  // Next few Fed/inflation/jobs dates. Filtered at build time (this page is
-  // statically exported and rebuilt twice daily), like the relative-time
-  // treatment already used for news below.
+  const verdicts = { RICH: 0, CHEAP: 0, FAIR: 0 };
+  for (const e of entries) {
+    if (e.verdict === "RICH" || e.verdict === "CHEAP" || e.verdict === "FAIR")
+      verdicts[e.verdict]++;
+  }
+  const verdictTotal = verdicts.RICH + verdicts.CHEAP + verdicts.FAIR;
+
+  const reporters = entries.slice(0, 9);
+
   const todayIso = new Date().toISOString().slice(0, 10);
   const upcomingMacro = MACRO_EVENTS.filter((e) => e.date >= todayIso)
     .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(0, 6);
+    .slice(0, 5);
 
   return (
     <>
       <TopBar title="Dashboard" eyebrow="Overview" tickers={index.tickers} />
 
-      <div className="space-y-6 px-6 py-6">
+      <div className="space-y-6 px-6 pb-10">
+        {/* KPI row */}
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard
             label="Reporting this week"
-            value={String(calendar.entries.length)}
+            value={String(entries.length)}
             hint="Tracked companies with a scheduled print in the window."
           />
           <StatCard
@@ -66,205 +73,284 @@ export default async function DashboardPage() {
           />
           <StatCard
             label="Rich verdicts"
-            value={String(rich)}
-            tone={rich > 0 ? "rich" : "muted"}
+            value={String(verdicts.RICH)}
+            tone={verdicts.RICH > 0 ? "rich" : "muted"}
             hint="Options pricing a bigger move than typical for the stock."
           />
           <StatCard
-            label="Calls scored"
-            value={String(record.scored)}
-            hint="Signals checked against the outcome."
+            label="Verdict accuracy"
+            value={record.accuracy === null ? EMPTY : pct(record.accuracy, 0)}
+            tone={record.accuracy === null ? "muted" : "default"}
+            hint={`${record.correct} of ${record.scored} rich/cheap calls borne out.`}
           />
         </div>
 
-        {/* items-start: each tile sizes to its own content instead of being
-            stretched to the tallest column — otherwise the shorter side (here
-            the hero, sat next to a three-tile stack) fills the difference with
-            an empty void. The hero's own page size is tuned below so the two
-            columns land close to level with real content, not blank space. */}
-        <div className="grid items-start gap-6 xl:grid-cols-2">
-          <Panel
-            title="Next to report"
-            subtitle={`${calendar.entries.length} in the next ${calendar.window_days} days`}
-            bodyClassName="px-0 py-0"
-            action={
-              <Link href="/calendar/" className={PANEL_ACTION_CLASS}>
-                Full calendar
-                <span aria-hidden>→</span>
-              </Link>
-            }
-            empty={
-              calendar.entries.length === 0 ? "Nothing scheduled in the window." : undefined
-            }
-          >
-            <NextToReportList entries={calendar.entries} pageSize={12} />
-          </Panel>
-
-          <div className="space-y-6">
+        {/* Hero: reporting soon (lead) + verdict mix */}
+        <div className="grid items-start gap-6 xl:grid-cols-3">
+          <div className="xl:col-span-2">
             <Panel
-              title="Track record"
-              subtitle="Every call, scored against what happened"
+              title="Reporting soon"
+              subtitle={`${entries.length} in the next ${calendar.window_days} days — pick one and go`}
               action={
-                <Link href="/track-record/" className={PANEL_ACTION_CLASS}>
-                  Detail
-                  <span aria-hidden>→</span>
+                <Link href="/calendar/" className={PANEL_ACTION_CLASS}>
+                  Full calendar <span aria-hidden>→</span>
                 </Link>
               }
+              empty={entries.length === 0 ? "Nothing scheduled in the window." : undefined}
             >
-              <dl className="grid grid-cols-2 gap-5">
-                <StatCard
-                  label="Verdict accuracy"
-                  /* Withheld below four scored calls — one correct verdict
-                     reads as 100%, and that number gets screenshotted. */
-                  value={record.accuracy === null ? "Not enough data" : pct(record.accuracy, 0)}
-                  tone={record.accuracy === null ? "muted" : "default"}
-                  hint={`${record.correct} of ${record.directional} rich/cheap calls borne out.`}
-                />
-                <StatCard
-                  label="Direction accuracy"
-                  value={
-                    record.dir_accuracy === null
-                      ? "Not enough data"
-                      : pct(record.dir_accuracy, 0)
-                  }
-                  tone={record.dir_accuracy === null ? "muted" : "default"}
-                  hint={`${record.dir_correct} of ${record.dir_scored} directional reads correct.`}
-                />
-              </dl>
-
-              <p className="mt-5 border-t border-[var(--color-border-subtle)] pt-4 text-sm text-[var(--color-muted)]">
-                Verdict and direction are separate claims. &ldquo;The market overpriced this
-                move&rdquo; and &ldquo;the stock went up&rdquo; are not the same bet. Scored
-                apart.
-              </p>
-            </Panel>
-
-            <Panel
-              title="Recent signals"
-              bodyClassName="px-0 py-0"
-              action={
-                <Link href="/signals/" className={PANEL_ACTION_CLASS}>
-                  All signals
-                  <span aria-hidden>→</span>
-                </Link>
-              }
-              empty={signals.rows.length === 0 ? "No signals recorded yet." : undefined}
-            >
-              <ul>
-                {signals.rows.slice(0, 6).map((row) => (
-                  <li
-                    key={`${row.ticker}-${row.run_date}-${row.workflow}`}
-                    className="border-b border-[var(--color-border-subtle)] last:border-b-0"
-                  >
+              <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {reporters.map((e) => (
+                  <li key={`${e.ticker}-${e.report_date}`}>
                     <Link
-                      href={`/t/${row.ticker}/`}
-                      className="flex items-center gap-3 px-5 py-3 hover:bg-[var(--color-panel-soft)]"
+                      href={`/t/${e.ticker}/`}
+                      className="flex h-full flex-col gap-2 rounded-[var(--radius-md)] bg-[var(--color-panel-soft)] p-3.5 transition-colors hover:bg-[var(--color-border-subtle)]"
                     >
-                      <span className="w-14 font-mono text-sm font-medium text-[var(--color-heading)]">
-                        {row.ticker}
-                      </span>
-                      <VerdictChip verdict={row.verdict} />
-                      <DirectionChip direction={row.direction} />
-                      <span className="tnum ml-auto text-sm text-[var(--color-muted)]">
-                        {formatDateShort(row.run_date)}
-                      </span>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono text-sm font-semibold text-[var(--color-heading)]">
+                          {e.ticker}
+                        </span>
+                        {e.verdict && <VerdictChip verdict={e.verdict} />}
+                      </div>
+                      <div>
+                        <div className="tnum text-xl font-semibold text-[var(--color-heading)]">
+                          {pctRange(e.implied_move)}
+                        </div>
+                        <div className="text-2xs text-[var(--color-muted)]">implied move</div>
+                      </div>
+                      <div className="text-2xs mt-auto flex items-center gap-1.5 text-[var(--color-muted)]">
+                        {relativeDays(e.days_until)}
+                        <SessionChip session={e.session} />
+                      </div>
                     </Link>
                   </li>
                 ))}
               </ul>
             </Panel>
-
-            <Panel
-              title="Macro calendar"
-              subtitle="Fed, inflation & jobs dates that move every ticker at once"
-              bodyClassName="px-0 py-0"
-              action={
-                <Link href="/macro-calendar/" className={PANEL_ACTION_CLASS}>
-                  Full calendar
-                  <span aria-hidden>→</span>
-                </Link>
-              }
-              empty={
-                upcomingMacro.length === 0 ? "Nothing scheduled in the window." : undefined
-              }
-            >
-              <ul>
-                {upcomingMacro.map((e) => (
-                  <li
-                    key={`${e.type}-${e.date}`}
-                    className="flex items-center gap-3 border-b border-[var(--color-border-subtle)] px-5 py-3 last:border-b-0"
-                  >
-                    <span className="tnum w-14 shrink-0 text-sm font-medium text-[var(--color-heading)]">
-                      {formatDateShort(e.date)}
-                    </span>
-                    <MacroEventChip type={e.type} />
-                    <span className="min-w-0 flex-1 truncate text-sm text-[var(--color-body)]">
-                      {e.label}
-                    </span>
-                    <span className="tnum ml-auto shrink-0 text-sm text-[var(--color-muted)]">
-                      {relativeDaysFromDate(e.date)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </Panel>
           </div>
+
+          <Panel
+            title="This week's verdicts"
+            subtitle="How the options market is pricing this week's prints"
+          >
+            {verdictTotal === 0 ? (
+              <p className="text-sm text-[var(--color-muted)]">
+                No priced verdicts yet this week.
+              </p>
+            ) : (
+              <div className="flex items-center gap-5">
+                <VerdictDonut
+                  rich={verdicts.RICH}
+                  cheap={verdicts.CHEAP}
+                  fair={verdicts.FAIR}
+                  total={verdictTotal}
+                />
+                <dl className="flex flex-col gap-2.5 text-sm">
+                  <LegendRow
+                    color="var(--color-verdict-rich)"
+                    label="Rich"
+                    value={verdicts.RICH}
+                  />
+                  <LegendRow
+                    color="var(--color-verdict-cheap)"
+                    label="Cheap"
+                    value={verdicts.CHEAP}
+                  />
+                  <LegendRow
+                    color="var(--color-verdict-fair)"
+                    label="Fair"
+                    value={verdicts.FAIR}
+                  />
+                </dl>
+              </div>
+            )}
+          </Panel>
         </div>
 
-        <Panel
-          title="Recent news"
-          subtitle="Latest headlines across every tracked name"
-          bodyClassName="px-0 py-0"
-          empty={news.items.length === 0 ? "No recent headlines." : undefined}
-        >
-          <ul>
-            {news.items.slice(0, 10).map((item) => (
-              <li
-                key={item.url ?? `${item.ticker}-${item.title}`}
-                className="border-b border-[var(--color-border-subtle)] px-5 py-3 last:border-b-0"
-              >
-                <div className="flex gap-3">
-                  {item.thumbnail_url && <NewsThumbnail src={item.thumbnail_url} alt="" />}
-                  <div className="min-w-0">
-                    <div className="mb-1 flex items-center gap-1.5">
-                      <CompanyLogo
-                        ticker={item.ticker}
-                        domain={item.company_domain}
-                        size={16}
-                      />
-                      <Link
-                        href={`/t/${item.ticker}/`}
-                        className="font-mono text-sm font-medium text-[var(--color-heading)] hover:underline"
-                      >
-                        {item.ticker}
-                      </Link>
-                    </div>
-                    {item.url ? (
-                      // Third-party link: no `noopener` would let the destination
-                      // page reach back via `window.opener` into this tab.
-                      <a
-                        href={item.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-[var(--color-body)] underline-offset-4 hover:text-[var(--color-heading)] hover:underline"
-                      >
-                        {item.title}
-                      </a>
-                    ) : (
-                      <span className="text-sm text-[var(--color-body)]">{item.title}</span>
-                    )}
-                    <div className="text-2xs mt-0.5 text-[var(--color-muted)]">
+        {/* Support row: recent signals · macro · news */}
+        <div className="grid items-start gap-6 xl:grid-cols-3">
+          <Panel
+            title="Recent signals"
+            bodyClassName="px-0 py-0"
+            action={
+              <Link href="/signals/" className={PANEL_ACTION_CLASS}>
+                All signals <span aria-hidden>→</span>
+              </Link>
+            }
+            empty={signals.rows.length === 0 ? "No signals recorded yet." : undefined}
+          >
+            <ul>
+              {signals.rows.slice(0, 5).map((row) => (
+                <li
+                  key={`${row.ticker}-${row.run_date}-${row.workflow}`}
+                  className="border-b border-[var(--color-border-subtle)] last:border-b-0"
+                >
+                  <Link
+                    href={`/t/${row.ticker}/`}
+                    className="flex items-center gap-3 px-5 py-3 hover:bg-[var(--color-panel-soft)]"
+                  >
+                    <span className="w-14 font-mono text-sm font-medium text-[var(--color-heading)]">
+                      {row.ticker}
+                    </span>
+                    <VerdictChip verdict={row.verdict} />
+                    <DirectionChip direction={row.direction} />
+                    <span className="tnum ml-auto text-sm text-[var(--color-muted)]">
+                      {formatDateShort(row.run_date)}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </Panel>
+
+          <Panel
+            title="Macro calendar"
+            bodyClassName="px-0 py-0"
+            action={
+              <Link href="/macro-calendar/" className={PANEL_ACTION_CLASS}>
+                Full calendar <span aria-hidden>→</span>
+              </Link>
+            }
+            empty={upcomingMacro.length === 0 ? "Nothing scheduled." : undefined}
+          >
+            <ul>
+              {upcomingMacro.map((e) => (
+                <li
+                  key={`${e.type}-${e.date}`}
+                  className="flex items-center gap-3 border-b border-[var(--color-border-subtle)] px-5 py-3 last:border-b-0"
+                >
+                  <span className="tnum w-14 shrink-0 text-sm font-medium text-[var(--color-heading)]">
+                    {formatDateShort(e.date)}
+                  </span>
+                  <MacroEventChip type={e.type} />
+                  <span className="tnum ml-auto shrink-0 text-sm text-[var(--color-muted)]">
+                    {relativeDaysFromDate(e.date)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Panel>
+
+          <Panel
+            title="Recent news"
+            bodyClassName="px-0 py-0"
+            empty={news.items.length === 0 ? "No recent headlines." : undefined}
+          >
+            <ul>
+              {news.items.slice(0, 5).map((item) => (
+                <li
+                  key={item.url ?? `${item.ticker}-${item.title}`}
+                  className="border-b border-[var(--color-border-subtle)] px-5 py-3 last:border-b-0"
+                >
+                  <div className="mb-1 flex items-center gap-2">
+                    <Link
+                      href={`/t/${item.ticker}/`}
+                      className="font-mono text-xs font-semibold text-[var(--color-brand)] hover:underline"
+                    >
+                      {item.ticker}
+                    </Link>
+                    <span className="text-2xs text-[var(--color-muted)]">
                       {[item.publisher, relativeDaysFromDate(item.published_at)]
                         .filter(Boolean)
                         .join(" · ")}
-                    </div>
+                    </span>
                   </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </Panel>
+                  {item.url ? (
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-[var(--color-heading)] underline-offset-4 hover:underline"
+                    >
+                      {item.title}
+                    </a>
+                  ) : (
+                    <span className="text-sm text-[var(--color-heading)]">{item.title}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </Panel>
+        </div>
       </div>
     </>
+  );
+}
+
+function LegendRow({ color, label, value }: { color: string; label: string; value: number }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ background: color }} />
+      <span className="text-[var(--color-body)]">{label}</span>
+      <span className="tnum ml-auto font-semibold text-[var(--color-heading)]">{value}</span>
+    </div>
+  );
+}
+
+/**
+ * The verdict split as a donut. pathLength=100 lets each segment's
+ * stroke-dasharray be a plain percentage, so no circumference math. Segments
+ * chain via a negative dashoffset equal to the cumulative percentage before
+ * them.
+ */
+function VerdictDonut({
+  rich,
+  cheap,
+  fair,
+  total,
+}: {
+  rich: number;
+  cheap: number;
+  fair: number;
+  total: number;
+}) {
+  const rp = (rich / total) * 100;
+  const cp = (cheap / total) * 100;
+  const fp = (fair / total) * 100;
+
+  return (
+    <div className="relative shrink-0" style={{ width: 128, height: 128 }}>
+      <svg viewBox="0 0 120 120" width="128" height="128" aria-hidden>
+        <circle
+          cx="60"
+          cy="60"
+          r="48"
+          fill="none"
+          stroke="var(--color-panel-soft)"
+          strokeWidth="15"
+        />
+        <g transform="rotate(-90 60 60)" fill="none" strokeWidth="15" pathLength={100}>
+          <circle
+            cx="60"
+            cy="60"
+            r="48"
+            stroke="var(--color-verdict-rich)"
+            strokeDasharray={`${rp} ${100 - rp}`}
+            strokeDashoffset="0"
+          />
+          <circle
+            cx="60"
+            cy="60"
+            r="48"
+            stroke="var(--color-verdict-cheap)"
+            strokeDasharray={`${cp} ${100 - cp}`}
+            strokeDashoffset={-rp}
+          />
+          <circle
+            cx="60"
+            cy="60"
+            r="48"
+            stroke="var(--color-verdict-fair)"
+            strokeDasharray={`${fp} ${100 - fp}`}
+            strokeDashoffset={-(rp + cp)}
+          />
+        </g>
+      </svg>
+      <div className="absolute inset-0 grid place-items-center text-center">
+        <div>
+          <div className="tnum text-2xl font-semibold text-[var(--color-heading)]">{total}</div>
+          <div className="text-2xs text-[var(--color-muted)]">priced</div>
+        </div>
+      </div>
+    </div>
   );
 }
