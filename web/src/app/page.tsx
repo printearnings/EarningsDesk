@@ -65,7 +65,7 @@ export default async function LandingPage() {
 
           <p className="mt-5 max-w-xl text-lg text-[var(--color-on-brand-muted)]">
             What the options market expects from the report, next to how the stock has actually
-            moved its last eight quarters. The data and the read &mdash; you make the call.
+            moved its last eight quarters. You get the data and the read. The call is yours.
           </p>
 
           <div className="mt-8 max-w-xl">
