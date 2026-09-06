@@ -96,17 +96,17 @@ export default async function DashboardPage() {
       ? priced.reduce((sum, e) => sum + (e.implied_move ?? 0), 0) / priced.length
       : null;
 
-  const biggest = priced.reduce<(typeof priced)[number] | null>(
-    (m, e) => ((e.implied_move ?? 0) > (m?.implied_move ?? -Infinity) ? e : m),
-    null,
-  );
+  // The clearest rich/cheap edges this week, strongest first — the "look at
+  // these" shortlist a trade-and-go reader wants, next to the trend chart.
+  const topSetups = [...entries]
+    .filter(
+      (e) =>
+        (e.verdict === "RICH" || e.verdict === "CHEAP") && typeof e.edge_score === "number",
+    )
+    .sort((a, b) => (b.edge_score ?? 0) - (a.edge_score ?? 0))
+    .slice(0, 6);
 
-  const verdicts = { RICH: 0, CHEAP: 0, FAIR: 0 };
-  for (const e of entries) {
-    if (e.verdict === "RICH" || e.verdict === "CHEAP" || e.verdict === "FAIR")
-      verdicts[e.verdict]++;
-  }
-  const verdictTotal = verdicts.RICH + verdicts.CHEAP + verdicts.FAIR;
+  const richCount = entries.filter((e) => e.verdict === "RICH").length;
 
   const trend = buildTrend(past.rows);
   const latestTrend = trend.length > 0 ? trend[trend.length - 1].value : null;
@@ -137,8 +137,8 @@ export default async function DashboardPage() {
           />
           <StatCard
             label="Rich verdicts"
-            value={String(verdicts.RICH)}
-            tone={verdicts.RICH > 0 ? "rich" : "muted"}
+            value={String(richCount)}
+            tone={richCount > 0 ? "rich" : "muted"}
             hint="Options pricing a bigger move than typical for the stock."
           />
           <StatCard
@@ -184,55 +184,43 @@ export default async function DashboardPage() {
           >
             <div className="border-b border-[var(--color-border-subtle)] px-5 py-4">
               <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-[var(--color-brand)]">
-                This week&rsquo;s verdicts
+                Top setups this week
               </h2>
               <p className="mt-1 text-sm text-[var(--color-brand-muted)]">
-                How the options market is pricing this week&rsquo;s prints
+                Where the vol read sees the clearest edge
               </p>
             </div>
-            <div className="flex flex-1 items-center justify-center gap-5 px-5 py-5">
-              {verdictTotal === 0 ? (
-                <p className="text-sm text-[var(--color-muted)]">
-                  No priced verdicts yet this week.
-                </p>
-              ) : (
-                <>
-                  <VerdictDonut
-                    rich={verdicts.RICH}
-                    cheap={verdicts.CHEAP}
-                    fair={verdicts.FAIR}
-                    total={verdictTotal}
-                  />
-                  <dl className="flex flex-col gap-2.5 text-sm">
-                    <LegendRow
-                      color="var(--color-verdict-rich)"
-                      label="Rich"
-                      value={verdicts.RICH}
-                    />
-                    <LegendRow
-                      color="var(--color-verdict-cheap)"
-                      label="Cheap"
-                      value={verdicts.CHEAP}
-                    />
-                    <LegendRow
-                      color="var(--color-verdict-fair)"
-                      label="Fair"
-                      value={verdicts.FAIR}
-                    />
-                  </dl>
-                </>
-              )}
-            </div>
-            {biggest && (
-              <div className="text-2xs border-t border-[var(--color-border-subtle)] px-5 py-3 text-[var(--color-muted)]">
-                Biggest priced move ·{" "}
-                <span className="font-mono font-semibold text-[var(--color-heading)]">
-                  {biggest.ticker}
-                </span>{" "}
-                <span className="tnum text-[var(--color-heading)]">
-                  {pctRange(biggest.implied_move)}
-                </span>
-              </div>
+            {topSetups.length === 0 ? (
+              <p className="flex-1 px-5 py-8 text-sm text-[var(--color-muted)]">
+                No edged setups priced yet this week.
+              </p>
+            ) : (
+              <ul className="flex-1">
+                {topSetups.map((e) => (
+                  <li
+                    key={`${e.ticker}-${e.report_date}`}
+                    className="border-b border-[var(--color-border-subtle)] last:border-b-0"
+                  >
+                    <Link
+                      href={`/t/${e.ticker}/`}
+                      className="flex items-center gap-3 px-5 py-3 hover:bg-[var(--color-panel-soft)]"
+                    >
+                      <span className="w-12 font-mono text-sm font-semibold text-[var(--color-heading)]">
+                        {e.ticker}
+                      </span>
+                      {e.verdict && <VerdictChip verdict={e.verdict} />}
+                      <span className="ml-auto flex flex-col items-end">
+                        <span className="tnum text-sm font-medium text-[var(--color-heading)]">
+                          {pctRange(e.implied_move)}
+                        </span>
+                        <span className="text-2xs text-[var(--color-muted)]">
+                          vs {pctRange(e.hist_avg_move)} typical
+                        </span>
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
         </div>
@@ -351,83 +339,5 @@ export default async function DashboardPage() {
         </div>
       </div>
     </>
-  );
-}
-
-function LegendRow({ color, label, value }: { color: string; label: string; value: number }) {
-  return (
-    <div className="flex items-center gap-2">
-      <span className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ background: color }} />
-      <span className="text-[var(--color-body)]">{label}</span>
-      <span className="tnum ml-auto font-semibold text-[var(--color-heading)]">{value}</span>
-    </div>
-  );
-}
-
-/**
- * Verdict split as a donut. pathLength=100 lets each segment's dasharray be a
- * plain percentage; segments chain via a negative dashoffset equal to the
- * cumulative percentage before them.
- */
-function VerdictDonut({
-  rich,
-  cheap,
-  fair,
-  total,
-}: {
-  rich: number;
-  cheap: number;
-  fair: number;
-  total: number;
-}) {
-  const rp = (rich / total) * 100;
-  const cp = (cheap / total) * 100;
-  const fp = (fair / total) * 100;
-
-  return (
-    <div className="relative shrink-0" style={{ width: 128, height: 128 }}>
-      <svg viewBox="0 0 120 120" width="128" height="128" aria-hidden>
-        <circle
-          cx="60"
-          cy="60"
-          r="48"
-          fill="none"
-          stroke="var(--color-panel-soft)"
-          strokeWidth="15"
-        />
-        <g transform="rotate(-90 60 60)" fill="none" strokeWidth="15" pathLength={100}>
-          <circle
-            cx="60"
-            cy="60"
-            r="48"
-            stroke="var(--color-verdict-rich)"
-            strokeDasharray={`${rp} ${100 - rp}`}
-            strokeDashoffset="0"
-          />
-          <circle
-            cx="60"
-            cy="60"
-            r="48"
-            stroke="var(--color-verdict-cheap)"
-            strokeDasharray={`${cp} ${100 - cp}`}
-            strokeDashoffset={-rp}
-          />
-          <circle
-            cx="60"
-            cy="60"
-            r="48"
-            stroke="var(--color-verdict-fair)"
-            strokeDasharray={`${fp} ${100 - fp}`}
-            strokeDashoffset={-(rp + cp)}
-          />
-        </g>
-      </svg>
-      <div className="absolute inset-0 grid place-items-center text-center">
-        <div>
-          <div className="tnum text-2xl font-semibold text-[var(--color-heading)]">{total}</div>
-          <div className="text-2xs text-[var(--color-muted)]">priced</div>
-        </div>
-      </div>
-    </div>
   );
 }
