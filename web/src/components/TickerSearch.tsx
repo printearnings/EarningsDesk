@@ -260,7 +260,11 @@ export function TickerSearch({
         }}
         onFocus={() => setOpen(true)}
         onKeyDown={onKeyDown}
-        className={`w-full rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-panel)] text-[var(--color-heading)] placeholder:text-[var(--color-muted)] focus:border-[var(--color-brand)] focus:outline-none ${input}`}
+        // appearance-none + the search-decoration resets strip iOS Safari's
+        // native search-field chrome (extra padding, its own rounded pill and
+        // clear button), which otherwise inflated the compact box past the CSS
+        // width so it rendered wider and taller than the matching icon buttons.
+        className={`w-full appearance-none rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-panel)] text-[var(--color-heading)] placeholder:text-[var(--color-muted)] focus:border-[var(--color-brand)] focus:outline-none [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden ${input}`}
       />
 
       {open && query.trim() && (

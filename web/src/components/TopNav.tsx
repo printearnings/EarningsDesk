@@ -82,23 +82,29 @@ export function TopNav({ tickers }: { tickers: TickerIndexEntry[] }) {
         backdropFilter: "blur(10px)",
       }}
     >
-      {/* Mobile/tablet: a plain flex row — menu+logo pinned left, search
-          pinned right. The centered 3-column grid is a desktop-only layout;
-          running it below lg left the two 1fr side columns balancing around an
-          empty (hidden-nav) center, which stranded the search mid-bar with
-          dead space beside it. It only switches to the centered grid at lg,
-          where the nav actually occupies the middle column. */}
-      <div className="mx-auto flex h-16 w-full max-w-[1320px] items-center justify-between gap-3 px-4 sm:px-6 lg:grid lg:grid-cols-[1fr_auto_1fr]">
+      {/* Three columns at every width, but the middle holds different things:
+          on mobile the logo (so it sits centered between the menu and search),
+          on desktop the primary nav (with the logo moved into the left column
+          instead). Equal 1fr side columns keep whatever is in the middle truly
+          centered on screen. */}
+      <div className="mx-auto grid h-16 w-full max-w-[1320px] grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 sm:px-6">
         <div className="flex items-center gap-3">
           <div className="lg:hidden">
             <MobileNav />
           </div>
-          <Link href="/" aria-label="PrintEarnings" className="shrink-0">
+          {/* Desktop logo, left column. On mobile the logo lives in the center
+              column below instead. */}
+          <Link href="/" aria-label="PrintEarnings" className="hidden shrink-0 lg:block">
             <Logo size="sm" />
           </Link>
         </div>
 
-        <nav className="hidden items-center gap-1 lg:flex">
+        {/* Mobile logo, centered. */}
+        <Link href="/" aria-label="PrintEarnings" className="justify-self-center lg:hidden">
+          <Logo size="sm" />
+        </Link>
+
+        <nav className="hidden items-center gap-1 justify-self-center lg:flex">
           {PRIMARY.map((item) => (
             <Link
               key={item.href}
