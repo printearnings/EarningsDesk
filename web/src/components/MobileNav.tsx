@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { Logo } from "@/components/Logo";
 import { HELP, MAIN, MORE_DATA } from "@/components/Sidebar";
@@ -39,7 +40,14 @@ export function MobileNav() {
       if (e.key === "Escape") setOpen(false);
     }
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    // Freeze the page behind the drawer so a touch-scroll drags the drawer's
+    // own list, not the dashboard underneath it.
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
   }, [open]);
 
   return (
@@ -54,61 +62,74 @@ export function MobileNav() {
         <MenuIcon />
       </button>
 
-      {open && (
-        <>
-          {/* Same origin-aware entrance every popover in this app uses:
+      {/* The drawer must render into document.body, not here: this component
+          lives inside the sticky top nav, and `sticky z-30` on that header
+          creates its own stacking context. A drawer painted inside it can
+          never rise above the header's own right-side actions — the theme
+          toggle bled out past the drawer's edge through the dim overlay.
+          Portaling to the body escapes that context so the overlay covers the
+          whole viewport, header included. `open` only flips true on a client
+          click, so document always exists by the time this renders (SSR and
+          first paint both have open=false — no hydration mismatch). */}
+      {open &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <>
+            {/* Same origin-aware entrance every popover in this app uses:
               scale/opacity from `@starting-style`, not a JS-driven mount
-              animation. */}
-          <div
-            className="fixed inset-0 z-30 bg-[var(--color-heading)]/30 opacity-100 transition-opacity duration-[var(--duration-base)] ease-[var(--ease-out)] starting:opacity-0"
-            onClick={() => setOpen(false)}
-            aria-hidden
-          />
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Navigation"
-            className="fixed inset-y-0 left-0 z-40 flex w-64 origin-left translate-x-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-panel)] opacity-100 transition-[opacity,transform] duration-[var(--duration-base)] ease-[var(--ease-out)] starting:translate-x-[-100%] starting:opacity-0"
-          >
-            <div className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4">
-              <Logo size="sm" />
-              <div className="flex items-center gap-1">
-                <ThemeToggle />
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  aria-label="Close menu"
-                  className="pressable flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-muted)] hover:bg-[var(--color-panel-soft)] hover:text-[var(--color-heading)]"
-                >
-                  <CloseIcon />
-                </button>
+              animation. z-[60]/[70] clear the sticky top nav (z-30) so the
+              overlay covers it rather than letting its actions peek through. */}
+            <div
+              className="fixed inset-0 z-[60] bg-[var(--color-heading)]/40 opacity-100 transition-opacity duration-[var(--duration-base)] ease-[var(--ease-out)] starting:opacity-0"
+              onClick={() => setOpen(false)}
+              aria-hidden
+            />
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label="Navigation"
+              className="fixed inset-y-0 left-0 z-[70] flex w-[min(18rem,85vw)] origin-left translate-x-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-panel)] opacity-100 transition-[opacity,transform] duration-[var(--duration-base)] ease-[var(--ease-out)] starting:translate-x-[-100%] starting:opacity-0"
+            >
+              <div className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4">
+                <Logo size="sm" />
+                <div className="flex items-center gap-1">
+                  <ThemeToggle />
+                  <button
+                    type="button"
+                    onClick={() => setOpen(false)}
+                    aria-label="Close menu"
+                    className="pressable flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-muted)] hover:bg-[var(--color-panel-soft)] hover:text-[var(--color-heading)]"
+                  >
+                    <CloseIcon />
+                  </button>
+                </div>
               </div>
+
+              <nav className="flex-1 overflow-y-auto px-2 pt-3">
+                <ul className="space-y-0.5">
+                  {MAIN.map((item) => (
+                    <DrawerItem key={item.href} {...item} pathname={pathname} />
+                  ))}
+                </ul>
+
+                <p className="eyebrow px-2 pt-6 pb-2">More data</p>
+                <ul className="space-y-0.5">
+                  {MORE_DATA.map((item) => (
+                    <DrawerItem key={item.href} {...item} pathname={pathname} />
+                  ))}
+                </ul>
+
+                <p className="eyebrow px-2 pt-6 pb-2">Help</p>
+                <ul className="space-y-0.5">
+                  {HELP.map((item) => (
+                    <DrawerItem key={item.href} {...item} pathname={pathname} />
+                  ))}
+                </ul>
+              </nav>
             </div>
-
-            <nav className="flex-1 overflow-y-auto px-2 pt-3">
-              <ul className="space-y-0.5">
-                {MAIN.map((item) => (
-                  <DrawerItem key={item.href} {...item} pathname={pathname} />
-                ))}
-              </ul>
-
-              <p className="eyebrow px-2 pt-6 pb-2">More data</p>
-              <ul className="space-y-0.5">
-                {MORE_DATA.map((item) => (
-                  <DrawerItem key={item.href} {...item} pathname={pathname} />
-                ))}
-              </ul>
-
-              <p className="eyebrow px-2 pt-6 pb-2">Help</p>
-              <ul className="space-y-0.5">
-                {HELP.map((item) => (
-                  <DrawerItem key={item.href} {...item} pathname={pathname} />
-                ))}
-              </ul>
-            </nav>
-          </div>
-        </>
-      )}
+          </>,
+          document.body,
+        )}
     </div>
   );
 }

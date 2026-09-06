@@ -149,12 +149,15 @@ export default async function DashboardPage() {
           />
         </div>
 
-        {/* Hero: implied-move trend + verdict mix */}
-        <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
+        {/* Hero: implied-move trend + verdict mix. items-stretch keeps the two
+            cards the same height; each card fills that height from the inside
+            (chart centered, setup rows distributed) so neither ends with a
+            lopsided gap. */}
+        <div className="grid grid-cols-1 items-stretch gap-6 xl:grid-cols-3">
           {/* Chart tile carries a soft accent-gradient ground (both themes,
               via color-mix with the panel) rather than a flat white card. */}
           <div
-            className="rounded-[var(--radius-panel)] xl:col-span-2"
+            className="flex flex-col rounded-[var(--radius-panel)] xl:col-span-2"
             style={{
               background: "var(--gradient-tile-strong)",
               boxShadow: "var(--shadow-card)",
@@ -173,7 +176,7 @@ export default async function DashboardPage() {
                 </span>
               )}
             </div>
-            <div className="px-3 pb-3">
+            <div className="flex flex-1 items-center px-3 pb-3">
               <ImpliedMoveTrend points={trend} />
             </div>
           </div>
@@ -195,15 +198,15 @@ export default async function DashboardPage() {
                 No edged setups priced yet this week.
               </p>
             ) : (
-              <ul className="flex-1">
+              <ul className="flex flex-1 flex-col">
                 {topSetups.map((e) => (
                   <li
                     key={`${e.ticker}-${e.report_date}`}
-                    className="border-b border-[var(--color-border-subtle)] last:border-b-0"
+                    className="flex flex-1 border-b border-[var(--color-border-subtle)] last:border-b-0"
                   >
                     <Link
                       href={`/t/${e.ticker}/`}
-                      className="flex items-center gap-3 px-5 py-3 hover:bg-[var(--color-panel-soft)]"
+                      className="flex w-full items-center gap-3 px-5 py-3 hover:bg-[var(--color-panel-soft)]"
                     >
                       <span className="w-12 font-mono text-sm font-semibold text-[var(--color-heading)]">
                         {e.ticker}

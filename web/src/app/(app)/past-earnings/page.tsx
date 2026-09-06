@@ -8,8 +8,9 @@ export const metadata = { title: "Past earnings | PrintEarnings" };
 /**
  * Every past earnings report across the whole tracked universe, newest first
  * — the cross-ticker counterpart to the per-ticker history table on /t/[ticker].
- * Capped server-side at 300 rows (api/app/routers.py::PAST_EARNINGS_LIMIT);
- * this is a feed to scan, not a paginated archive.
+ * Capped server-side at 300 rows (api/app/routers.py::PAST_EARNINGS_LIMIT),
+ * paged client-side (PastEarningsTable) so it reads as a scannable archive
+ * rather than one endless scroll.
  */
 export default async function PastEarningsPage() {
   const [index, data] = await Promise.all([getIndex(), getPastEarnings()]);

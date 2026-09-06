@@ -13,8 +13,12 @@ import {
   VERDICTS,
   toggleInSet,
 } from "@/components/FilterGroup";
+import { Pagination } from "@/components/Pagination";
 import type { PastEarningsRow } from "@/lib/api";
 import { eps, formatDateShort, money, pctRange, pctRaw, pctSigned, ratio } from "@/lib/format";
+
+// 300-row feed split into scannable pages rather than one endless scroll.
+const PAGE_SIZE = 25;
 
 const HEADERS = [
   "Date",
@@ -73,6 +77,20 @@ export function PastEarningsTable({ rows }: { rows: PastEarningsRow[] }) {
         : b.report_date.localeCompare(a.report_date),
     );
   }, [rows, verdicts, directions, tickerQuery, filtersActive, sortDir]);
+
+  // Paginate the filtered/sorted view. Reset to page 1 whenever the result set
+  // changes (a new filter, a re-sort) so the reader isn't stranded on a page
+  // that no longer exists — the render-time reset idiom used elsewhere here,
+  // keyed off the inputs that reshape `filtered`.
+  const [page, setPage] = useState(1);
+  const resetKey = `${sortDir}|${tickerQuery.trim().toUpperCase()}|${[...verdicts].sort().join(",")}|${[...directions].sort().join(",")}`;
+  const [prevResetKey, setPrevResetKey] = useState(resetKey);
+  if (prevResetKey !== resetKey) {
+    setPrevResetKey(resetKey);
+    setPage(1);
+  }
+
+  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <>
@@ -150,7 +168,7 @@ export function PastEarningsTable({ rows }: { rows: PastEarningsRow[] }) {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((r) => (
+              {paged.map((r) => (
                 <tr
                   key={`${r.ticker}-${r.report_date}`}
                   className="border-b border-[var(--color-border-subtle)] last:border-b-0"
@@ -208,6 +226,15 @@ export function PastEarningsTable({ rows }: { rows: PastEarningsRow[] }) {
             </tbody>
           </table>
         </div>
+      )}
+
+      {filtered.length > 0 && (
+        <Pagination
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={filtered.length}
+          onPageChange={setPage}
+        />
       )}
     </>
   );
