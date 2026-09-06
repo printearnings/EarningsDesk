@@ -1,9 +1,17 @@
 import Link from "next/link";
 
 import { DirectionChip, MacroEventChip, SessionChip, VerdictChip } from "@/components/Chip";
+import { ImpliedMoveTrend, type TrendPoint } from "@/components/ImpliedMoveTrend";
 import { Panel, StatCard } from "@/components/Panel";
 import { TopBar } from "@/components/TopBar";
-import { getCalendar, getDashboardNews, getIndex, getSignals, getTrackRecord } from "@/lib/api";
+import {
+  getCalendar,
+  getDashboardNews,
+  getIndex,
+  getPastEarnings,
+  getSignals,
+  getTrackRecord,
+} from "@/lib/api";
 import {
   EMPTY,
   formatDateShort,
@@ -19,18 +27,65 @@ export const metadata = { title: "Dashboard | PrintEarnings" };
 const PANEL_ACTION_CLASS =
   "pressable inline-flex shrink-0 items-center gap-1 rounded-[var(--radius-sm)] px-2 py-1 text-xs font-medium text-[var(--color-brand)] transition-colors hover:bg-[var(--color-panel-soft)]";
 
+// The Monday (UTC) that starts the week a date falls in — the bucket key for
+// the weekly implied-move trend.
+function mondayISO(iso: string): string {
+  const d = new Date(`${iso.slice(0, 10)}T00:00:00Z`);
+  const dow = (d.getUTCDay() + 6) % 7;
+  d.setUTCDate(d.getUTCDate() - dow);
+  return d.toISOString().slice(0, 10);
+}
+
+function shortMonth(iso: string): string {
+  return new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+/** Average implied move per week over the last 8 weeks, from real past prints. */
+function buildTrend(
+  rows: { report_date: string; implied_move?: number | null }[],
+): TrendPoint[] {
+  const buckets = new Map<string, { sum: number; n: number }>();
+  for (const r of rows) {
+    if (typeof r.implied_move !== "number") continue;
+    const key = mondayISO(r.report_date);
+    const b = buckets.get(key) ?? { sum: 0, n: 0 };
+    b.sum += r.implied_move;
+    b.n += 1;
+    buckets.set(key, b);
+  }
+  const thisMonday = mondayISO(new Date().toISOString());
+  const base = new Date(`${thisMonday}T00:00:00Z`);
+  const weeks: string[] = [];
+  for (let i = 7; i >= 0; i--) {
+    const d = new Date(base);
+    d.setUTCDate(d.getUTCDate() - i * 7);
+    weeks.push(d.toISOString().slice(0, 10));
+  }
+  return weeks
+    .map((m) => {
+      const b = buckets.get(m);
+      return b && b.n > 0 ? { label: shortMonth(m), value: b.sum / b.n } : null;
+    })
+    .filter((p): p is TrendPoint => p !== null);
+}
+
 /**
  * The overview: what's coming, the read on it, and how the calls have landed.
- * A summary surface that links deeper — leads with the names reporting soon
- * (the thing a reader acts on), with everything else as calmer support.
+ * Leads with the implied-move trend and this week's verdict mix, then the
+ * names reporting soon, then calmer support tiles.
  */
 export default async function DashboardPage() {
-  const [index, calendar, signals, record, news] = await Promise.all([
+  const [index, calendar, signals, record, news, past] = await Promise.all([
     getIndex(),
     getCalendar(7),
     getSignals(),
     getTrackRecord(),
     getDashboardNews(),
+    getPastEarnings(),
   ]);
 
   const entries = calendar.entries;
@@ -47,7 +102,10 @@ export default async function DashboardPage() {
   }
   const verdictTotal = verdicts.RICH + verdicts.CHEAP + verdicts.FAIR;
 
-  const reporters = entries.slice(0, 9);
+  const trend = buildTrend(past.rows);
+  const latestTrend = trend.length > 0 ? trend[trend.length - 1].value : null;
+
+  const reporters = entries.slice(0, 10);
 
   const todayIso = new Date().toISOString().slice(0, 10);
   const upcomingMacro = MACRO_EVENTS.filter((e) => e.date >= todayIso)
@@ -85,47 +143,34 @@ export default async function DashboardPage() {
           />
         </div>
 
-        {/* Hero: reporting soon (lead) + verdict mix */}
+        {/* Hero: implied-move trend + verdict mix */}
         <div className="grid items-start gap-6 xl:grid-cols-3">
-          <div className="xl:col-span-2">
-            <Panel
-              title="Reporting soon"
-              subtitle={`${entries.length} in the next ${calendar.window_days} days — pick one and go`}
-              action={
-                <Link href="/calendar/" className={PANEL_ACTION_CLASS}>
-                  Full calendar <span aria-hidden>→</span>
-                </Link>
-              }
-              empty={entries.length === 0 ? "Nothing scheduled in the window." : undefined}
-            >
-              <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {reporters.map((e) => (
-                  <li key={`${e.ticker}-${e.report_date}`}>
-                    <Link
-                      href={`/t/${e.ticker}/`}
-                      className="flex h-full flex-col gap-2 rounded-[var(--radius-md)] bg-[var(--color-panel-soft)] p-3.5 transition-colors hover:bg-[var(--color-border-subtle)]"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-mono text-sm font-semibold text-[var(--color-heading)]">
-                          {e.ticker}
-                        </span>
-                        {e.verdict && <VerdictChip verdict={e.verdict} />}
-                      </div>
-                      <div>
-                        <div className="tnum text-xl font-semibold text-[var(--color-heading)]">
-                          {pctRange(e.implied_move)}
-                        </div>
-                        <div className="text-2xs text-[var(--color-muted)]">implied move</div>
-                      </div>
-                      <div className="text-2xs mt-auto flex items-center gap-1.5 text-[var(--color-muted)]">
-                        {relativeDays(e.days_until)}
-                        <SessionChip session={e.session} />
-                      </div>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </Panel>
+          {/* Chart tile carries a soft accent-gradient ground (both themes,
+              via color-mix with the panel) rather than a flat white card. */}
+          <div
+            className="rounded-[var(--radius-panel)] xl:col-span-2"
+            style={{
+              boxShadow: "var(--shadow-card)",
+              background:
+                "linear-gradient(155deg, color-mix(in srgb, var(--color-viz-sma) 12%, var(--color-panel)) 0%, var(--color-panel) 58%)",
+            }}
+          >
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-5 pt-4 pb-1">
+              <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-[var(--color-brand)]">
+                Implied move
+              </h2>
+              <span className="text-sm text-[var(--color-muted)]">
+                avg across weekly reporters, last 8 weeks
+              </span>
+              {latestTrend !== null && (
+                <span className="tnum ml-auto text-xl font-semibold text-[var(--color-heading)]">
+                  {pctRange(latestTrend)}
+                </span>
+              )}
+            </div>
+            <div className="px-3 pb-3">
+              <ImpliedMoveTrend points={trend} />
+            </div>
           </div>
 
           <Panel
@@ -165,6 +210,46 @@ export default async function DashboardPage() {
             )}
           </Panel>
         </div>
+
+        {/* Reporting soon — the act-on-it surface */}
+        <Panel
+          title="Reporting soon"
+          subtitle={`${entries.length} in the next ${calendar.window_days} days — pick one and go`}
+          action={
+            <Link href="/calendar/" className={PANEL_ACTION_CLASS}>
+              Full calendar <span aria-hidden>→</span>
+            </Link>
+          }
+          empty={entries.length === 0 ? "Nothing scheduled in the window." : undefined}
+        >
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {reporters.map((e) => (
+              <li key={`${e.ticker}-${e.report_date}`}>
+                <Link
+                  href={`/t/${e.ticker}/`}
+                  className="flex h-full flex-col gap-2 rounded-[var(--radius-md)] bg-[var(--color-panel-soft)] p-3.5 transition-colors hover:bg-[var(--color-border-subtle)]"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono text-sm font-semibold text-[var(--color-heading)]">
+                      {e.ticker}
+                    </span>
+                    {e.verdict && <VerdictChip verdict={e.verdict} />}
+                  </div>
+                  <div>
+                    <div className="tnum text-xl font-semibold text-[var(--color-heading)]">
+                      {pctRange(e.implied_move)}
+                    </div>
+                    <div className="text-2xs text-[var(--color-muted)]">implied move</div>
+                  </div>
+                  <div className="text-2xs mt-auto flex items-center gap-1.5 text-[var(--color-muted)]">
+                    {relativeDays(e.days_until)}
+                    <SessionChip session={e.session} />
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Panel>
 
         {/* Support row: recent signals · macro · news */}
         <div className="grid items-start gap-6 xl:grid-cols-3">
@@ -286,10 +371,9 @@ function LegendRow({ color, label, value }: { color: string; label: string; valu
 }
 
 /**
- * The verdict split as a donut. pathLength=100 lets each segment's
- * stroke-dasharray be a plain percentage, so no circumference math. Segments
- * chain via a negative dashoffset equal to the cumulative percentage before
- * them.
+ * Verdict split as a donut. pathLength=100 lets each segment's dasharray be a
+ * plain percentage; segments chain via a negative dashoffset equal to the
+ * cumulative percentage before them.
  */
 function VerdictDonut({
   rich,
