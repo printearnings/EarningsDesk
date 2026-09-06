@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import type { EarningsHistoryRow } from "@/lib/api";
+import { barPath } from "@/lib/chartShapes";
 import { formatDate, formatDateShort, pct, pctSigned } from "@/lib/format";
 
 /**
@@ -147,22 +148,14 @@ export function ImpliedVsRealized({ rows }: { rows: EarningsHistoryRow[] }) {
                   fill="transparent"
                 />
 
-                <rect
-                  x={impliedX}
-                  y={y(d.implied)}
-                  width={barW}
-                  height={base - y(d.implied)}
-                  rx={2}
+                <path
+                  d={barPath(impliedX, y(d.implied), barW, base - y(d.implied), 3)}
                   fill="var(--color-viz-implied)"
                   className="transition-opacity duration-[var(--duration-fast)]"
                   opacity={dimmed ? 0.35 : 1}
                 />
-                <rect
-                  x={realizedX}
-                  y={y(d.realized)}
-                  width={barW}
-                  height={base - y(d.realized)}
-                  rx={2}
+                <path
+                  d={barPath(realizedX, y(d.realized), barW, base - y(d.realized), 3)}
                   fill="var(--color-viz-realized)"
                   className="transition-opacity duration-[var(--duration-fast)]"
                   opacity={dimmed ? 0.35 : 1}

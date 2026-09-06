@@ -79,14 +79,14 @@ export function TickerTabs({ data }: { data: TickerData }) {
 
   return (
     <div>
-      {/* A bordered segmented control, not underlined text — the same shape
-          as the Range/Line-Candles/Quarterly-Annual toggles this page already
-          uses, so it reads unambiguously as "a control that switches views"
-          rather than as another row of nav links (which is exactly what the
-          plain-text underline version it replaced could be mistaken for). */}
+      {/* A segmented control: the tabs sit on a recessed track, and the active
+          one is a raised chip (panel surface + soft shadow) that slides
+          between them. Reads unambiguously as "a control that switches views"
+          rather than a row of nav links, and the lift gives the active tab a
+          clear, physical selected state. */}
       <div className="overflow-x-auto">
         <div
-          className="inline-flex gap-0.5 rounded-[var(--radius-sm)] border border-[var(--color-border)] p-0.5"
+          className="inline-flex gap-1 rounded-[var(--radius-md)] bg-[var(--color-panel-soft)] p-1"
           role="tablist"
         >
           {TABS.map((t) => (
@@ -96,7 +96,7 @@ export function TickerTabs({ data }: { data: TickerData }) {
               role="tab"
               aria-selected={active === t.id}
               onClick={() => selectTab(t.id)}
-              className={`pressable relative shrink-0 rounded-[3px] px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors ${
+              className={`pressable relative shrink-0 rounded-[calc(var(--radius-md)-4px)] px-3.5 py-1.5 text-sm font-medium whitespace-nowrap transition-colors ${
                 active === t.id
                   ? "text-[var(--color-heading)]"
                   : "text-[var(--color-muted)] hover:text-[var(--color-body)]"
@@ -105,7 +105,8 @@ export function TickerTabs({ data }: { data: TickerData }) {
               {active === t.id && (
                 <motion.div
                   layoutId="ticker-tab-pill"
-                  className="absolute inset-0 rounded-[3px] bg-[var(--color-panel-soft)]"
+                  className="absolute inset-0 rounded-[calc(var(--radius-md)-4px)] bg-[var(--color-panel)]"
+                  style={{ boxShadow: "var(--shadow-chip)" }}
                   transition={{ type: "spring", stiffness: 500, damping: 40 }}
                 />
               )}

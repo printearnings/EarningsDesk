@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { barPath } from "@/lib/chartShapes";
 import { compact, money } from "@/lib/format";
 
 /**
@@ -199,22 +200,14 @@ export function OpenInterestChart({
                   fill="transparent"
                 />
 
-                <rect
-                  x={callX}
-                  y={y(r.call_oi)}
-                  width={barW}
-                  height={base - y(r.call_oi)}
-                  rx={2}
+                <path
+                  d={barPath(callX, y(r.call_oi), barW, base - y(r.call_oi), 3)}
                   fill="var(--color-positive)"
                   className="transition-opacity duration-[var(--duration-fast)]"
                   opacity={dimmed ? 0.35 : 1}
                 />
-                <rect
-                  x={putX}
-                  y={y(r.put_oi)}
-                  width={barW}
-                  height={base - y(r.put_oi)}
-                  rx={2}
+                <path
+                  d={barPath(putX, y(r.put_oi), barW, base - y(r.put_oi), 3)}
                   fill="var(--color-negative)"
                   className="transition-opacity duration-[var(--duration-fast)]"
                   opacity={dimmed ? 0.35 : 1}

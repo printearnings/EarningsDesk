@@ -191,6 +191,9 @@
    * ambient one, so cards read as raised off the page rather than outlined.
    * This is the ONE elevation: cards carry this shadow and no border. */
   --shadow-card: 0 1px 2px rgb(0 0 0 / 5%), 0 14px 30px -16px rgb(0 0 0 / 16%);
+  /* A lighter lift for small raised controls (the segmented-tab chip) — a
+     card's shadow is too heavy on a 28px pill. */
+  --shadow-chip: 0 1px 1px rgb(0 0 0 / 5%), 0 2px 6px -2px rgb(0 0 0 / 12%);
 
   /* ---- Tile ground ----
    * A soft accent-to-panel gradient shared by every card, so tiles read as a
@@ -304,6 +307,7 @@
     --color-warning-bg: #2a2013;
 
     --shadow-card: 0 1px 2px rgb(0 0 0 / 40%), 0 16px 34px -18px rgb(0 0 0 / 62%);
+    --shadow-chip: 0 1px 1px rgb(0 0 0 / 40%), 0 2px 8px -2px rgb(0 0 0 / 55%);
   }
 }
 
@@ -361,4 +365,5 @@
   --color-warning-bg: #2a2013;
 
   --shadow-card: 0 1px 2px rgb(0 0 0 / 40%), 0 16px 34px -18px rgb(0 0 0 / 62%);
+  --shadow-chip: 0 1px 1px rgb(0 0 0 / 40%), 0 2px 8px -2px rgb(0 0 0 / 55%);
 }

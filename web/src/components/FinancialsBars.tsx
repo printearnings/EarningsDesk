@@ -1,5 +1,6 @@
 "use client";
 
+import { barPath, mutedFill } from "@/lib/chartShapes";
 import { type FinancialsQuarter, periodLabel } from "@/lib/useFinancials";
 
 /**
@@ -142,6 +143,15 @@ function MiniBars({ series, points }: { series: Series; points: Point[] }) {
   const y = (v: number) => PAD.top + (1 - (v - min) / (max - min)) * plotH;
   const zeroY = y(0);
 
+  // The most recent period that actually has a value: it wears the full
+  // accent, while the earlier bars are muted toward the surface. A single
+  // series reading "here's the trend, here's where it lands now" without a
+  // second color or a legend.
+  let lastRealIdx = -1;
+  points.forEach((p, i) => {
+    if (p.value !== null) lastRealIdx = i;
+  });
+
   return (
     <figure className="m-0">
       <figcaption className="mb-1">
@@ -190,27 +200,24 @@ function MiniBars({ series, points }: { series: Series; points: Point[] }) {
           const barTop = Math.min(y(p.value), zeroY);
           const barH = Math.abs(zeroY - y(p.value)) || 1;
           const negative = p.value < 0;
-          const fill = negative && series.negColor ? series.negColor : series.color;
+          const isLatest = i === lastRealIdx;
+          const baseColor = negative && series.negColor ? series.negColor : series.color;
+          // Latest bar: full accent. Earlier bars: the same hue blended toward
+          // the panel, so the row reads as one series with the present spotlit.
+          const fill = isLatest ? baseColor : mutedFill(baseColor, negative ? 55 : 42);
           const labelY = negative ? barTop + barH + 10 : barTop - 4;
 
           return (
             <g key={i}>
-              <rect
-                x={cx - barW / 2}
-                y={barTop}
-                width={barW}
-                height={barH}
-                rx={2}
-                fill={fill}
-              />
+              <path d={barPath(cx - barW / 2, barTop, barW, barH, 3, !negative)} fill={fill} />
               <text
                 x={cx}
                 y={labelY}
                 textAnchor="middle"
                 className="tnum"
                 fontSize={9}
-                fontWeight={600}
-                fill="var(--color-heading)"
+                fontWeight={isLatest ? 700 : 500}
+                fill={isLatest ? "var(--color-heading)" : "var(--color-muted)"}
               >
                 {series.format(p.value)}
               </text>

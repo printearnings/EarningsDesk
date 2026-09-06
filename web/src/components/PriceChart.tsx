@@ -979,6 +979,24 @@ function ChartBody({
           onDoubleClick={() => setZoom(null)}
           ref={svgRef}
         >
+          <defs>
+            {/* Soft fill under the price line — anchored to the plot's own
+                top/bottom so the fade reads the same at any zoom. Fades to
+                nothing well before the baseline so gridlines stay legible
+                through it. */}
+            <linearGradient
+              id="price-area-fill"
+              x1="0"
+              y1={PAD.top}
+              x2="0"
+              y2={PAD.top + chart.plotH}
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop offset="0%" stopColor="var(--color-viz-price)" stopOpacity="0.16" />
+              <stop offset="100%" stopColor="var(--color-viz-price)" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+
           {/* Hairline gridlines, one step off the surface. Recessive by
               lightness, not by dashing. */}
           {chart.ticks.map((t) => (
@@ -1074,15 +1092,24 @@ function ChartBody({
               ))}
             </g>
           ) : (
-            // No area fill — Vertical draws the line alone.
-            <path
-              d={chart.line}
-              fill="none"
-              stroke="var(--color-viz-price)"
-              strokeWidth={2}
-              strokeLinejoin="round"
-              strokeLinecap="round"
-            />
+            <>
+              {/* Soft gradient area under the line, then the line on top —
+                  the filled-line treatment that reads as a price trend at a
+                  glance rather than a bare stroke. */}
+              <path
+                d={`${chart.line} L${chart.x(visible.length - 1)} ${PAD.top + chart.plotH} L${chart.x(0)} ${PAD.top + chart.plotH} Z`}
+                fill="url(#price-area-fill)"
+                stroke="none"
+              />
+              <path
+                d={chart.line}
+                fill="none"
+                stroke="var(--color-viz-price)"
+                strokeWidth={2}
+                strokeLinejoin="round"
+                strokeLinecap="round"
+              />
+            </>
           )}
 
           {/* Earnings-date badges, every range. A plain unlabeled dot reads
