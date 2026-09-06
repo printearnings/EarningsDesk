@@ -3,11 +3,13 @@
 Hybrid resolution, in priority order:
 
 1. A hand-curated list of similar-*product* competitors (CURATED). This is the
-   part sector grouping can't do — NVDA's peers are other chipmakers, not every
-   name Yahoo files under "Technology". Curated only for the names where the
-   cohort is obvious and stable; everything else falls through to:
-2. Same-sector tracked names, as a zero-maintenance backstop so a name without
-   a curated list still shows *something* relevant.
+   part even industry grouping can't do — NVDA's peers are other chipmakers, not
+   every name in "Semiconductors". Curated only for the names where the cohort
+   is obvious and stable; everything else falls through to:
+2. Same-*industry* tracked names, as a zero-maintenance backstop. Industry, not
+   sector: sector ("Consumer Cyclical") lumps GameStop in with homebuilders and
+   restaurants; industry ("Specialty Retail") is the grouping a reader reads as
+   a peer.
 
 Resolution is pure and index-driven: the caller passes a snapshot of the
 universe (ticker -> PeerRecord) and this module never touches the DB or the
@@ -56,6 +58,18 @@ CURATED: dict[str, tuple[str, ...]] = {
     "COST": ("WMT", "TGT", "BJ", "KR"),
     "HD": ("LOW",),
     "LOW": ("HD",),
+    # Specialty / broadline retail (GME's real cohort — same industry, not the
+    # whole "Consumer Cyclical" sector).
+    "GME": ("BBY", "DKS", "FIVE", "BARK", "KSS"),
+    "BBY": ("GME", "DKS", "FIVE", "KSS"),
+    "DKS": ("BBY", "FIVE", "GME", "AEO"),
+    "FIVE": ("DG", "DLTR", "DKS", "BBY"),
+    "KSS": ("M", "TGT", "BBY", "AEO"),
+    "M": ("KSS", "AEO", "TGT"),
+    "AEO": ("M", "KSS", "DKS"),
+    "DG": ("DLTR", "FIVE", "BJ"),
+    "DLTR": ("DG", "FIVE", "BJ"),
+    "BJ": ("COST", "DG", "DLTR"),
     # Payments / fintech
     "V": ("MA", "AXP", "PYPL"),
     "MA": ("V", "AXP", "PYPL"),
@@ -96,7 +110,8 @@ class PeerRecord:
     ticker: str
     company_name: str | None
     company_domain: str | None
-    sector: str | None
+    sector: str | None  # broad; kept as metadata, not used for matching
+    industry: str | None  # fine; the field the fallback groups on
     last_earnings: PeerEarnings | None
 
 
@@ -115,9 +130,9 @@ def resolve_peers(
 
     Curated peers come first. When too few of them have usable data to fill a
     panel (e.g. only one of a name's curated cohort is in the current reporting
-    window), the sector fallback tops the list up rather than the panel
+    window), the same-industry fallback tops the list up rather than the panel
     vanishing — a single lonely curated peer is worse than curated-plus-a-few
-    same-sector names.
+    same-industry names.
     """
     ticker = ticker.upper()
     self_rec = index.get(ticker)
@@ -125,12 +140,13 @@ def resolve_peers(
     # Curated peers that actually carry recent-earnings data, in curated order.
     ordered = [t for t in _curated_order(ticker, index) if index[t].last_earnings is not None]
 
-    # Top up (or, with no curated cohort, fill) from same-sector names until the
-    # panel is worth showing. _sector_order already filters to last_earnings.
+    # Top up (or, with no curated cohort, fill) from same-industry names until
+    # the panel is worth showing. _industry_order already filters to
+    # last_earnings.
     if len(ordered) < MIN_PEERS:
         seen = set(ordered)
-        sector = self_rec.sector if self_rec else None
-        ordered += [t for t in _sector_order(ticker, sector, index) if t not in seen]
+        industry = self_rec.industry if self_rec else None
+        ordered += [t for t in _industry_order(ticker, industry, index) if t not in seen]
 
     if len(ordered) < MIN_PEERS:
         return []
@@ -142,16 +158,17 @@ def _curated_order(ticker: str, index: dict[str, PeerRecord]) -> list[str]:
     return [p for p in CURATED.get(ticker, ()) if p != ticker and p in index]
 
 
-def _sector_order(ticker: str, sector: str | None, index: dict[str, PeerRecord]) -> list[str]:
-    """Same-sector tracked names, most-recent print first — the fallback when a
-    name has no curated cohort. Ordering by report recency puts the freshest,
+def _industry_order(ticker: str, industry: str | None, index: dict[str, PeerRecord]) -> list[str]:
+    """Same-industry tracked names, most-recent print first — the fallback when a
+    name has no (or too thin a) curated cohort. Industry, not sector, so the
+    matches are genuine peers; ordering by report recency puts the freshest,
     most-relevant reactions at the front."""
-    if not sector:
+    if not industry:
         return []
     mates = [
         rec
         for t, rec in index.items()
-        if t != ticker and rec.sector == sector and rec.last_earnings is not None
+        if t != ticker and rec.industry == industry and rec.last_earnings is not None
     ]
     mates.sort(key=lambda r: r.last_earnings.report_date, reverse=True)
     return [r.ticker for r in mates]

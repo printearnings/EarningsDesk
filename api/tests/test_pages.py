@@ -756,11 +756,17 @@ def test_peers_survive_a_malformed_last_earnings_blob(s):
     assert pages.ticker_page(s, "NVDA", now=NOW).peers == []
 
 
-def test_build_peer_index_carries_sector_and_last_earnings(s):
-    _snap(s, "AMD", sector="Technology", last_earnings_json=_le_json("2026-08-05", 0.05))
-    _snap(s, "KO", sector="Consumer Defensive")
+def test_build_peer_index_carries_industry_and_last_earnings(s):
+    _snap(
+        s,
+        "AMD",
+        sector="Technology",
+        industry="Semiconductors",
+        last_earnings_json=_le_json("2026-08-05", 0.05),
+    )
+    _snap(s, "KO", sector="Consumer Defensive", industry="Beverages - Non-Alcoholic")
     index = pages.build_peer_index(s)
-    assert index["AMD"].sector == "Technology"
+    assert index["AMD"].industry == "Semiconductors"
     assert index["AMD"].last_earnings.move == pytest.approx(0.05)
     assert index["KO"].last_earnings is None  # no blob -> None, not an error
 

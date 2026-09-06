@@ -338,6 +338,7 @@ def build_peer_index(session: Session) -> dict[str, PeerRecord]:
             company_name=snap.company_name,
             company_domain=snap.company_domain,
             sector=getattr(snap, "sector", None),
+            industry=getattr(snap, "industry", None),
             last_earnings=_peer_earnings_from_snap(snap),
         )
     return index
