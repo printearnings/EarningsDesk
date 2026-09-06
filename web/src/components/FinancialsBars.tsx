@@ -43,14 +43,16 @@ const SERIES: Series[] = [
     title: "Sales",
     unit: "$bln",
     color: "var(--color-viz-ema)",
-    value: (q) => (q.revenue === null ? null : q.revenue / 1e9),
+    value: (q) => (typeof q.revenue === "number" ? q.revenue / 1e9 : null),
     format: (v) => v.toFixed(2),
   },
   {
     title: "Shares outstanding",
     unit: "mln",
     color: "var(--color-viz-realized)",
-    value: (q) => (q.shares === null ? null : q.shares / 1e6),
+    // typeof, not `=== null`: a payload cached before `shares` existed omits
+    // the field entirely (undefined), which `/ 1e6` would turn into NaN.
+    value: (q) => (typeof q.shares === "number" ? q.shares / 1e6 : null),
     format: (v) => v.toFixed(0),
   },
 ];

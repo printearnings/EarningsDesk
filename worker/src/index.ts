@@ -1591,12 +1591,14 @@ async function handleFinancials(
     url.searchParams.get("timeframe") === "annual" ? "annual" : "quarterly";
 
   const cache = caches.default;
-  // v2: bumped after adding the Yahoo/SEC fallbacks below — the Cache API
-  // persists across deploys, so tickers already cached empty (queried
-  // before this existed) would otherwise keep serving that empty response
-  // for up to 24h despite the fallback now having real data for them.
+  // Bump the version whenever the payload shape changes — the Cache API
+  // persists across deploys, so tickers already cached under the old key
+  // would otherwise keep serving the old shape for up to 24h.
+  //   v2: added the Yahoo/SEC fallbacks (tickers cached empty before that).
+  //   v3: added the `shares` field (older entries lack it, which the chart
+  //       would render as NaN).
   const cacheKey = new Request(
-    `https://cache.internal/financials-v2/${ticker}/${timeframe}`,
+    `https://cache.internal/financials-v3/${ticker}/${timeframe}`,
     {
       method: "GET",
     },
