@@ -18,6 +18,8 @@
  * than a saturated block, mono uppercase text.
  */
 
+import type { MacroEventType } from "@/lib/macroEvents";
+
 const VERDICT_MEANING: Record<string, string> = {
   RICH: "Pricing a bigger move than this stock typically makes after earnings.",
   CHEAP: "Pricing a smaller move than this stock typically makes after earnings.",
@@ -168,9 +170,13 @@ const MACRO_EVENT_STYLE: Record<string, string> = {
   // free instead of re-earning a colorblind-safe pair from scratch.
   FOMC: "border-[var(--color-viz-sma)]/25 bg-[var(--color-viz-sma)]/10 text-[var(--color-viz-sma)]",
   CPI: "border-[var(--color-viz-ema)]/25 bg-[var(--color-viz-ema)]/10 text-[var(--color-viz-ema)]",
+  // Amber and green extend the FOMC/CPI blue/purple pair — four distinct hues,
+  // all already CVD-validated tokens (see the note above).
+  PPI: "border-[var(--color-viz-realized)]/25 bg-[var(--color-viz-realized)]/10 text-[var(--color-viz-realized)]",
+  JOBS: "border-[var(--color-positive)]/25 bg-[var(--color-positive)]/10 text-[var(--color-positive)]",
 };
 
-export function MacroEventChip({ type }: { type: "FOMC" | "CPI" }) {
+export function MacroEventChip({ type }: { type: MacroEventType }) {
   return <span className={`${BASE} ${MACRO_EVENT_STYLE[type]}`}>{type}</span>;
 }
 

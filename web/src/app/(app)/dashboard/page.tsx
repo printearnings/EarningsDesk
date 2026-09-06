@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { DirectionChip, VerdictChip } from "@/components/Chip";
+import { DirectionChip, MacroEventChip, VerdictChip } from "@/components/Chip";
 import { CompanyLogo } from "@/components/CompanyLogo";
 import { NewsThumbnail } from "@/components/NewsThumbnail";
 import { NextToReportList } from "@/components/NextToReportList";
@@ -8,6 +8,7 @@ import { Panel, StatCard } from "@/components/Panel";
 import { TopBar } from "@/components/TopBar";
 import { getCalendar, getDashboardNews, getIndex, getSignals, getTrackRecord } from "@/lib/api";
 import { formatDateShort, pct, pctRange, relativeDaysFromDate } from "@/lib/format";
+import { MACRO_EVENTS } from "@/lib/macroEvents";
 
 export const metadata = { title: "Dashboard | PrintEarnings" };
 
@@ -38,6 +39,14 @@ export default async function DashboardPage() {
     priced.length > 0
       ? priced.reduce((sum, e) => sum + (e.implied_move ?? 0), 0) / priced.length
       : null;
+
+  // Next few Fed/inflation/jobs dates. Filtered at build time (this page is
+  // statically exported and rebuilt twice daily), like the relative-time
+  // treatment already used for news below.
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const upcomingMacro = MACRO_EVENTS.filter((e) => e.date >= todayIso)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(0, 6);
 
   return (
     <>
@@ -155,6 +164,41 @@ export default async function DashboardPage() {
                         {formatDateShort(row.run_date)}
                       </span>
                     </Link>
+                  </li>
+                ))}
+              </ul>
+            </Panel>
+
+            <Panel
+              title="Macro calendar"
+              subtitle="Fed, inflation & jobs dates that move every ticker at once"
+              bodyClassName="px-0 py-0"
+              action={
+                <Link href="/macro-calendar/" className={PANEL_ACTION_CLASS}>
+                  Full calendar
+                  <span aria-hidden>→</span>
+                </Link>
+              }
+              empty={
+                upcomingMacro.length === 0 ? "Nothing scheduled in the window." : undefined
+              }
+            >
+              <ul>
+                {upcomingMacro.map((e) => (
+                  <li
+                    key={`${e.type}-${e.date}`}
+                    className="flex items-center gap-3 border-b border-[var(--color-border-subtle)] px-5 py-3 last:border-b-0"
+                  >
+                    <span className="tnum w-14 shrink-0 text-sm font-medium text-[var(--color-heading)]">
+                      {formatDateShort(e.date)}
+                    </span>
+                    <MacroEventChip type={e.type} />
+                    <span className="min-w-0 flex-1 truncate text-sm text-[var(--color-body)]">
+                      {e.label}
+                    </span>
+                    <span className="tnum ml-auto shrink-0 text-sm text-[var(--color-muted)]">
+                      {relativeDaysFromDate(e.date)}
+                    </span>
                   </li>
                 ))}
               </ul>

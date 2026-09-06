@@ -14,14 +14,14 @@ export default async function MacroCalendarPage() {
     <>
       <TopBar
         title="Macro calendar"
-        eyebrow="Fed & inflation schedule"
+        eyebrow="Fed, inflation & jobs schedule"
         tickers={index.tickers}
       />
 
       <div className="space-y-6 px-6 py-6">
         <Panel
-          title="FOMC & CPI"
-          subtitle="The two macro dates that move every ticker at once, not just the one reporting that week"
+          title="FOMC, CPI, PPI & jobs"
+          subtitle="The macro dates that move every ticker at once, not just the one reporting that week"
           bodyClassName="px-0 py-0"
         >
           <MacroCalendarList events={MACRO_EVENTS} />
@@ -30,9 +30,9 @@ export default async function MacroCalendarPage() {
         <CpiHistoryTable />
 
         <p className="text-sm text-[var(--color-muted)]">
-          Dates from the Federal Reserve&rsquo;s published FOMC calendar and the BLS CPI release
-          schedule. Both are announced 12&ndash;18 months out and rarely move, but always
-          confirm against{" "}
+          Dates from the Federal Reserve&rsquo;s published FOMC calendar and the BLS release
+          schedules for CPI, PPI, and the Employment Situation. All are announced 12&ndash;18
+          months out and rarely move, but always confirm against{" "}
           <a
             href="https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
             target="_blank"
@@ -43,7 +43,7 @@ export default async function MacroCalendarPage() {
           </a>{" "}
           and{" "}
           <a
-            href="https://www.bls.gov/schedule/news_release/cpi.htm"
+            href="https://www.bls.gov/schedule/news_release/2026_sched.htm"
             target="_blank"
             rel="noopener noreferrer"
             className="underline decoration-dotted underline-offset-2 hover:text-[var(--color-body)]"

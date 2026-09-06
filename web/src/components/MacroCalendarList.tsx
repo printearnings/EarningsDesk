@@ -14,10 +14,12 @@ import {
 } from "@/lib/format";
 import type { MacroEvent, MacroEventType } from "@/lib/macroEvents";
 
-const TYPES: readonly MacroEventType[] = ["FOMC", "CPI"];
+const TYPES: readonly MacroEventType[] = ["FOMC", "CPI", "PPI", "JOBS"];
 const TYPE_DOT: Record<string, string> = {
   FOMC: "bg-[var(--color-viz-sma)]",
   CPI: "bg-[var(--color-viz-ema)]",
+  PPI: "bg-[var(--color-viz-realized)]",
+  JOBS: "bg-[var(--color-positive)]",
 };
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -54,6 +56,8 @@ export function MacroCalendarList({ events }: { events: MacroEvent[] }) {
 
   const nextFomc = upcoming.find((e) => e.type === "FOMC");
   const nextCpi = upcoming.find((e) => e.type === "CPI");
+  const nextPpi = upcoming.find((e) => e.type === "PPI");
+  const nextJobs = upcoming.find((e) => e.type === "JOBS");
 
   // No manual useMemo here — this list tops out around 20 rows a year, and
   // wrapping it broke the React Compiler's own memoization of `upcoming`
@@ -72,8 +76,20 @@ export function MacroCalendarList({ events }: { events: MacroEvent[] }) {
         <StatCard
           label="Next CPI"
           value={nextCpi ? formatDate(nextCpi.date) : EMPTY}
-          hint="Next scheduled inflation report."
+          hint="Next scheduled consumer-inflation report."
           delta={nextCpi && relativeDays(daysUntilFromDate(nextCpi.date))}
+        />
+        <StatCard
+          label="Next PPI"
+          value={nextPpi ? formatDate(nextPpi.date) : EMPTY}
+          hint="Next producer-inflation report (headline and core PPI)."
+          delta={nextPpi && relativeDays(daysUntilFromDate(nextPpi.date))}
+        />
+        <StatCard
+          label="Next jobs report"
+          value={nextJobs ? formatDate(nextJobs.date) : EMPTY}
+          hint="Next BLS Employment Situation (nonfarm payrolls)."
+          delta={nextJobs && relativeDays(daysUntilFromDate(nextJobs.date))}
         />
       </div>
 
