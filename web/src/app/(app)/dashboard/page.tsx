@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { DirectionChip, MacroEventChip, SessionChip, VerdictChip } from "@/components/Chip";
 import { ImpliedMoveTrend, type TrendPoint } from "@/components/ImpliedMoveTrend";
+import { NewsFeed } from "@/components/NewsFeed";
 import { Panel, StatCard } from "@/components/Panel";
 import { TopBar } from "@/components/TopBar";
 import {
@@ -144,7 +145,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* Hero: implied-move trend + verdict mix */}
-        <div className="grid items-start gap-6 xl:grid-cols-3">
+        <div className="grid items-stretch gap-6 xl:grid-cols-3">
           {/* Chart tile carries a soft accent-gradient ground (both themes,
               via color-mix with the panel) rather than a flat white card. */}
           <div
@@ -173,42 +174,52 @@ export default async function DashboardPage() {
             </div>
           </div>
 
-          <Panel
-            title="This week's verdicts"
-            subtitle="How the options market is pricing this week's prints"
+          <div
+            className="flex flex-col rounded-[var(--radius-panel)] bg-[var(--color-panel)]"
+            style={{ boxShadow: "var(--shadow-card)" }}
           >
-            {verdictTotal === 0 ? (
-              <p className="text-sm text-[var(--color-muted)]">
-                No priced verdicts yet this week.
+            <div className="border-b border-[var(--color-border-subtle)] px-5 py-4">
+              <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-[var(--color-brand)]">
+                This week&rsquo;s verdicts
+              </h2>
+              <p className="mt-1 text-sm text-[var(--color-brand-muted)]">
+                How the options market is pricing this week&rsquo;s prints
               </p>
-            ) : (
-              <div className="flex items-center gap-5">
-                <VerdictDonut
-                  rich={verdicts.RICH}
-                  cheap={verdicts.CHEAP}
-                  fair={verdicts.FAIR}
-                  total={verdictTotal}
-                />
-                <dl className="flex flex-col gap-2.5 text-sm">
-                  <LegendRow
-                    color="var(--color-verdict-rich)"
-                    label="Rich"
-                    value={verdicts.RICH}
+            </div>
+            <div className="flex flex-1 items-center justify-center gap-5 px-5 py-5">
+              {verdictTotal === 0 ? (
+                <p className="text-sm text-[var(--color-muted)]">
+                  No priced verdicts yet this week.
+                </p>
+              ) : (
+                <>
+                  <VerdictDonut
+                    rich={verdicts.RICH}
+                    cheap={verdicts.CHEAP}
+                    fair={verdicts.FAIR}
+                    total={verdictTotal}
                   />
-                  <LegendRow
-                    color="var(--color-verdict-cheap)"
-                    label="Cheap"
-                    value={verdicts.CHEAP}
-                  />
-                  <LegendRow
-                    color="var(--color-verdict-fair)"
-                    label="Fair"
-                    value={verdicts.FAIR}
-                  />
-                </dl>
-              </div>
-            )}
-          </Panel>
+                  <dl className="flex flex-col gap-2.5 text-sm">
+                    <LegendRow
+                      color="var(--color-verdict-rich)"
+                      label="Rich"
+                      value={verdicts.RICH}
+                    />
+                    <LegendRow
+                      color="var(--color-verdict-cheap)"
+                      label="Cheap"
+                      value={verdicts.CHEAP}
+                    />
+                    <LegendRow
+                      color="var(--color-verdict-fair)"
+                      label="Fair"
+                      value={verdicts.FAIR}
+                    />
+                  </dl>
+                </>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Reporting soon — the act-on-it surface */}
@@ -320,39 +331,7 @@ export default async function DashboardPage() {
             bodyClassName="px-0 py-0"
             empty={news.items.length === 0 ? "No recent headlines." : undefined}
           >
-            <ul>
-              {news.items.slice(0, 6).map((item) => (
-                <li
-                  key={item.url ?? `${item.ticker}-${item.title}`}
-                  className="flex items-center gap-2.5 border-b border-[var(--color-border-subtle)] px-5 py-3 last:border-b-0"
-                >
-                  <Link
-                    href={`/t/${item.ticker}/`}
-                    className="w-11 shrink-0 font-mono text-xs font-semibold text-[var(--color-brand)] hover:underline"
-                  >
-                    {item.ticker}
-                  </Link>
-                  {item.url ? (
-                    <a
-                      href={item.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title={item.title}
-                      className="min-w-0 flex-1 truncate text-sm text-[var(--color-heading)] underline-offset-4 hover:underline"
-                    >
-                      {item.title}
-                    </a>
-                  ) : (
-                    <span className="min-w-0 flex-1 truncate text-sm text-[var(--color-heading)]">
-                      {item.title}
-                    </span>
-                  )}
-                  <span className="text-2xs shrink-0 text-[var(--color-muted)]">
-                    {relativeDaysFromDate(item.published_at)}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <NewsFeed items={news.items} />
           </Panel>
         </div>
       </div>
