@@ -136,14 +136,6 @@ export function Sidebar() {
           ))}
         </ul>
       </nav>
-
-      {!collapsed && (
-        <div className="border-t border-[var(--color-border)] p-4">
-          <p className="text-2xs text-[var(--color-muted)]">
-            Data updates once a day. Live pricing available on request.
-          </p>
-        </div>
-      )}
     </aside>
   );
 }
