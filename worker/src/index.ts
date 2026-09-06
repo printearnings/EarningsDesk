@@ -1224,6 +1224,10 @@ export interface FinancialsQuarter {
   operating_income: number | null;
   net_income: number | null;
   diluted_eps: number | null;
+  // Diluted weighted-average shares outstanding for the period — the "how many
+  // slices is the pie cut into" series behind the shares-outstanding chart.
+  // A rising count dilutes per-share value; a falling one is buybacks.
+  shares: number | null;
 }
 
 /**
@@ -1512,6 +1516,14 @@ async function fetchSecAnnualFinancials(
     ["EarningsPerShareDiluted", "DilutedEarningsLossPerShare"],
     "USD/shares",
   );
+  const dilutedShares = pickSecConcept(
+    facts,
+    [
+      "WeightedAverageNumberOfDilutedSharesOutstanding",
+      "WeightedAverageNumberOfSharesOutstandingBasicAndDiluted",
+    ],
+    "shares",
+  );
 
   // One row per fiscal-year end, keyed off revenue's own annual-form
   // entries. A company can amend a prior year's filing, so the
@@ -1548,6 +1560,7 @@ async function fetchSecAnnualFinancials(
       operating_income: findAtEnd(operatingIncome, point.end),
       net_income: findAtEnd(netIncome, point.end),
       diluted_eps: findAtEnd(dilutedEps, point.end),
+      shares: findAtEnd(dilutedShares, point.end),
     });
   }
 
@@ -1648,6 +1661,7 @@ async function handleFinancials(
               operating_income_loss?: LineItem;
               net_income_loss?: LineItem;
               diluted_earnings_per_share?: LineItem;
+              diluted_average_shares?: LineItem;
             };
           };
         }>;
@@ -1666,6 +1680,7 @@ async function handleFinancials(
             operating_income: inc?.operating_income_loss?.value ?? null,
             net_income: inc?.net_income_loss?.value ?? null,
             diluted_eps: inc?.diluted_earnings_per_share?.value ?? null,
+            shares: inc?.diluted_average_shares?.value ?? null,
           };
         })
         .filter(
@@ -2198,6 +2213,10 @@ async function fetchYahooFinancials(
         operating_income: nonZero(e.operatingIncome?.raw),
         net_income: nonZero(e.netIncome?.raw),
         diluted_eps: null,
+        // Yahoo's incomeStatementHistory doesn't reliably carry diluted EPS or
+        // share counts (this fallback is for foreign filers Massive/SEC miss);
+        // leave both null rather than surface an unreliable figure.
+        shares: null,
       };
     })
     .filter((q): q is FinancialsQuarter => q !== null)

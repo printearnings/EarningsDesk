@@ -22,6 +22,7 @@ export interface FinancialsQuarter {
   operating_income: number | null;
   net_income: number | null;
   diluted_eps: number | null;
+  shares: number | null; // diluted weighted-average shares outstanding
 }
 
 interface FinancialsResponse {

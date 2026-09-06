@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 
+import { FinancialsBars } from "@/components/FinancialsBars";
 import { FinancialsChart } from "@/components/FinancialsChart";
 import { toggleInSet } from "@/components/FilterGroup";
 import { Pagination } from "@/components/Pagination";
@@ -247,6 +248,9 @@ export function FinancialsPanel({ ticker }: { ticker: string }) {
               <>
                 <div className="border-b border-[var(--color-border)] px-5 py-5">
                   <FinancialsChart quarters={filtered} />
+                </div>
+                <div className="border-b border-[var(--color-border)] px-5 py-5">
+                  <FinancialsBars quarters={filtered} />
                 </div>
                 <div className="overflow-x-auto">
                   <table className="tnum w-full min-w-[44rem] text-sm">
