@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import { AnalystRatings } from "@/components/AnalystRatings";
 import { DirectionChip, SessionChip, VerdictChip } from "@/components/Chip";
+import { CompanySnapshot, hasSnapshot } from "@/components/CompanySnapshot";
 import { FinancialsPanel } from "@/components/FinancialsPanel";
 import { FundamentalsGrid } from "@/components/FundamentalsGrid";
 import { ImpliedVsRealized } from "@/components/ImpliedVsRealized";
@@ -13,7 +14,8 @@ import { InsidersPanel } from "@/components/InsidersPanel";
 import { NewsThumbnail } from "@/components/NewsThumbnail";
 import { OpenInterestChart } from "@/components/OpenInterestChart";
 import { OptionsSimulator } from "@/components/OptionsSimulator";
-import { Panel, Stat } from "@/components/Panel";
+import { Panel, Stat, StatCard } from "@/components/Panel";
+import { PeersPanel } from "@/components/PeersPanel";
 import { PriceChart } from "@/components/PriceChart";
 import type { PricePoint, TickerPage as TickerData } from "@/lib/api";
 import {
@@ -29,19 +31,12 @@ import {
   pctRaw,
   pctSigned,
   ratio,
+  relativeDays,
   sentimentLabel,
+  sessionLabel,
 } from "@/lib/format";
 
-type TabId = "price" | "options" | "news" | "history" | "financials" | "insiders";
-
-const TABS: { id: TabId; label: string }[] = [
-  { id: "price", label: "Price" },
-  { id: "options", label: "Options" },
-  { id: "news", label: "News" },
-  { id: "history", label: "History" },
-  { id: "financials", label: "Financials" },
-  { id: "insiders", label: "Insiders" },
-];
+type TabId = "overview" | "options" | "news" | "history" | "peers" | "financials" | "insiders";
 
 /**
  * The five heavy panels below the fold, as tabs instead of a long stack — a
@@ -57,13 +52,26 @@ export function TickerTabs({ data }: { data: TickerData }) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  // Peers is only a tab when there's actually peer data — the server drops the
+  // list otherwise, and an empty tab is worse than no tab.
+  const hasPeers = (data.peers?.length ?? 0) > 0;
+  const tabs: { id: TabId; label: string }[] = [
+    { id: "overview", label: "Overview" },
+    { id: "options", label: "Options" },
+    { id: "news", label: "News" },
+    { id: "history", label: "History" },
+    ...(hasPeers ? [{ id: "peers" as TabId, label: "Peers" }] : []),
+    { id: "financials", label: "Financials" },
+    { id: "insiders", label: "Insiders" },
+  ];
+
   // The tab lives in the URL, not just component state, so a page refresh
   // (or a shared link) lands back on the tab you were reading instead of
-  // always resetting to Price.
+  // always resetting to Overview.
   const requestedTab = searchParams.get("tab");
-  const initialTab: TabId = TABS.some((t) => t.id === requestedTab)
+  const initialTab: TabId = tabs.some((t) => t.id === requestedTab)
     ? (requestedTab as TabId)
-    : "price";
+    : "overview";
 
   const [active, setActive] = useState<TabId>(initialTab);
   const [visited, setVisited] = useState<Set<TabId>>(new Set([initialTab]));
@@ -88,7 +96,7 @@ export function TickerTabs({ data }: { data: TickerData }) {
           className="inline-flex gap-1 rounded-[var(--radius-md)] bg-[var(--color-panel-soft)] p-1"
           role="tablist"
         >
-          {TABS.map((t) => (
+          {tabs.map((t) => (
             <button
               key={t.id}
               type="button"
@@ -116,14 +124,29 @@ export function TickerTabs({ data }: { data: TickerData }) {
       </div>
 
       <div className="pt-6">
-        {visited.has("price") && (
-          <div hidden={active !== "price"}>
-            {/* Not "marked on every view" — the marker only appears where a
-                report date actually falls inside the window on screen, which
-                for a 1D/5D intraday range is the exception, not the rule. */}
+        {visited.has("overview") && (
+          <div hidden={active !== "overview"} className="space-y-6">
+            {/* The earnings setup first (the reason to be here), then the
+                price chart, then the company snapshot. */}
+            <KpiRow data={data} />
             <Panel>
               <PriceChart prices={data.prices} events={data.history} ticker={data.ticker} />
             </Panel>
+            {hasSnapshot(data.fundamentals) && (
+              <CompanySnapshot
+                data={data.fundamentals}
+                spot={data.spot}
+                action={
+                  <button
+                    type="button"
+                    onClick={() => selectTab("financials")}
+                    className="pressable text-sm text-[var(--color-muted)] transition-colors hover:text-[var(--color-body)]"
+                  >
+                    Full key figures <span aria-hidden>→</span>
+                  </button>
+                }
+              />
+            )}
           </div>
         )}
 
@@ -148,6 +171,12 @@ export function TickerTabs({ data }: { data: TickerData }) {
           </div>
         )}
 
+        {hasPeers && visited.has("peers") && (
+          <div hidden={active !== "peers"}>
+            <PeersPanel peers={data.peers} />
+          </div>
+        )}
+
         {visited.has("financials") && (
           <div hidden={active !== "financials"} className="space-y-6">
             {/* Ratio grid first: it's the "what kind of company is this"
@@ -166,6 +195,47 @@ export function TickerTabs({ data }: { data: TickerData }) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/** The earnings setup: one metric per card. Two-up on mobile (a base column
+ * count so it never collapses to a single stretched column), four across from
+ * lg. */
+function KpiRow({ data }: { data: TickerData }) {
+  const o = data.options;
+  const session = sessionLabel(data.next_report_session);
+
+  return (
+    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <StatCard
+        label="Next report"
+        value={data.next_report_date ? formatDate(data.next_report_date) : EMPTY}
+        hint="The next scheduled earnings date."
+        delta={
+          <span className="text-[var(--color-muted)]">
+            {data.next_report_date
+              ? `${session ? `${session} · ` : ""}${relativeDays(data.days_until_report)}`
+              : "No confirmed earnings date"}
+          </span>
+        }
+      />
+      <StatCard
+        label="Implied move"
+        value={pctRange(o?.implied_move)}
+        tone={o?.verdict === "RICH" ? "rich" : o?.verdict === "CHEAP" ? "cheap" : "default"}
+        hint="At-the-money straddle price for this earnings date."
+      />
+      <StatCard
+        label="Typical move"
+        value={pctRange(o?.hist_avg_move)}
+        hint="Average absolute move, last eight earnings reports."
+      />
+      <StatCard
+        label="Put/call ratio"
+        value={num(o?.put_call_ratio)}
+        hint="Below 1: more call volume than put volume."
+      />
     </div>
   );
 }

@@ -4,24 +4,12 @@ import { Suspense } from "react";
 
 import { DirectionChip, VerdictChip } from "@/components/Chip";
 import { CompanyLogo } from "@/components/CompanyLogo";
-import { Eyebrow, Panel, StatCard } from "@/components/Panel";
-import { PeersPanel } from "@/components/PeersPanel";
+import { Eyebrow, Panel } from "@/components/Panel";
 import { TickerTabs } from "@/components/TickerTabs";
 import { TopBar } from "@/components/TopBar";
 import { getIndex, getTicker, getTrackRecord } from "@/lib/api";
 import type { TickerPage as TickerData, TrackRecordPage } from "@/lib/api";
-import {
-  EMPTY,
-  formatAge,
-  formatDate,
-  formatDateShort,
-  money,
-  num,
-  pct,
-  pctRange,
-  relativeDays,
-  sessionLabel,
-} from "@/lib/format";
+import { EMPTY, formatAge, formatDateShort, money, pct } from "@/lib/format";
 
 // Wider than the engine's own DIRECTION_LOOKAHEAD_DAYS (3) on purpose: a
 // reader within this window but before the read exists should see "not yet"
@@ -66,11 +54,11 @@ export default async function TickerPage({ params }: { params: Promise<{ ticker:
           </p>
         )}
 
-        <KpiRow data={data} />
-
+        {/* The AI read is a top-level summary of the whole ticker, so it sits
+            with the identity above the tabs — persistent across every tab. The
+            earnings-setup KPIs, price chart, and company snapshot now live in
+            the Overview tab; peers moved to their own tab. */}
         {data.ai_summary && <AiPanel data={data} />}
-
-        {data.peers.length > 0 && <PeersPanel peers={data.peers} />}
 
         {/* useSearchParams (for the tab-in-URL persistence) requires a
             Suspense boundary during static prerendering. */}
@@ -211,45 +199,6 @@ function MicroStat({
       <p className="eyebrow text-[var(--color-muted)]">{label}</p>
       <p className="tnum mt-0.5 text-sm font-semibold text-[var(--color-heading)]">{value}</p>
       {sub && <p className="tnum text-2xs mt-0.5 text-[var(--color-muted)]">{sub}</p>}
-    </div>
-  );
-}
-
-/** Vertical's KPI row: one metric per bordered white card. */
-function KpiRow({ data }: { data: TickerData }) {
-  const o = data.options;
-  const session = sessionLabel(data.next_report_session);
-
-  return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <StatCard
-        label="Next report"
-        value={data.next_report_date ? formatDate(data.next_report_date) : EMPTY}
-        hint="The next scheduled earnings date."
-        delta={
-          <span className="text-[var(--color-muted)]">
-            {data.next_report_date
-              ? `${session ? `${session} · ` : ""}${relativeDays(data.days_until_report)}`
-              : "No confirmed earnings date"}
-          </span>
-        }
-      />
-      <StatCard
-        label="Implied move"
-        value={pctRange(o?.implied_move)}
-        tone={o?.verdict === "RICH" ? "rich" : o?.verdict === "CHEAP" ? "cheap" : "default"}
-        hint="At-the-money straddle price for this earnings date."
-      />
-      <StatCard
-        label="Typical move"
-        value={pctRange(o?.hist_avg_move)}
-        hint="Average absolute move, last eight earnings reports."
-      />
-      <StatCard
-        label="Put/call ratio"
-        value={num(o?.put_call_ratio)}
-        hint="Below 1: more call volume than put volume."
-      />
     </div>
   );
 }
