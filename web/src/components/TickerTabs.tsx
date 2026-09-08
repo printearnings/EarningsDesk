@@ -36,7 +36,8 @@ import {
   sessionLabel,
 } from "@/lib/format";
 
-type TabId = "overview" | "options" | "news" | "history" | "peers" | "financials" | "insiders";
+type TabId =
+  "overview" | "options" | "news" | "history" | "peers" | "financials" | "analyst" | "insiders";
 
 /**
  * The five heavy panels below the fold, as tabs instead of a long stack — a
@@ -62,6 +63,7 @@ export function TickerTabs({ data }: { data: TickerData }) {
     { id: "history", label: "History" },
     ...(hasPeers ? [{ id: "peers" as TabId, label: "Peers" }] : []),
     { id: "financials", label: "Financials" },
+    { id: "analyst", label: "Analyst" },
     { id: "insiders", label: "Insiders" },
   ];
 
@@ -184,8 +186,13 @@ export function TickerTabs({ data }: { data: TickerData }) {
                 come baked into the page payload, unlike FinancialsPanel's
                 own client-fetched statements. */}
             <FundamentalsGrid data={data.fundamentals} />
-            <AnalystRatings rows={data.analyst_ratings ?? []} />
             <FinancialsPanel ticker={data.ticker} />
+          </div>
+        )}
+
+        {visited.has("analyst") && (
+          <div hidden={active !== "analyst"}>
+            <AnalystRatings rows={data.analyst_ratings ?? []} />
           </div>
         )}
 

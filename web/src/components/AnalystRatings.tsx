@@ -3,9 +3,13 @@
 import { useMemo, useState } from "react";
 
 import { toggleInSet } from "@/components/FilterGroup";
+import { Pagination } from "@/components/Pagination";
 import { Panel } from "@/components/Panel";
 import { EMPTY, formatDate, money } from "@/lib/format";
 import type { AnalystRatingRow } from "@/lib/types";
+
+// Coverage can run to dozens of actions; page it rather than one long scroll.
+const PAGE_SIZE = 12;
 
 /**
  * Analyst upgrade/downgrade history — who changed their call, when, and
@@ -93,6 +97,17 @@ export function AnalystRatings({ rows }: { rows: AnalystRatingRow[] }) {
   );
 
   const filtersActive = actions.size > 0 || year !== "";
+
+  // Paginate the filtered view, resetting to page 1 whenever a filter changes
+  // so the reader is never stranded on a page that no longer exists.
+  const [page, setPage] = useState(1);
+  const resetKey = `${year}|${[...actions].sort().join(",")}`;
+  const [prevResetKey, setPrevResetKey] = useState(resetKey);
+  if (prevResetKey !== resetKey) {
+    setPrevResetKey(resetKey);
+    setPage(1);
+  }
+  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   if (rows.length === 0) {
     return (
@@ -185,7 +200,7 @@ export function AnalystRatings({ rows }: { rows: AnalystRatingRow[] }) {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((r, i) => (
+            {paged.map((r, i) => (
               <tr
                 key={`${r.date}-${r.firm}-${i}`}
                 className="border-b border-[var(--color-border-subtle)] last:border-b-0"
@@ -213,6 +228,15 @@ export function AnalystRatings({ rows }: { rows: AnalystRatingRow[] }) {
           </tbody>
         </table>
       </div>
+
+      {filtered.length > 0 && (
+        <Pagination
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={filtered.length}
+          onPageChange={setPage}
+        />
+      )}
     </Panel>
   );
 }
