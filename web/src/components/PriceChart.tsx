@@ -992,7 +992,7 @@ function ChartBody({
               y2={PAD.top + chart.plotH}
               gradientUnits="userSpaceOnUse"
             >
-              <stop offset="0%" stopColor="var(--color-viz-price)" stopOpacity="0.16" />
+              <stop offset="0%" stopColor="var(--color-viz-price)" stopOpacity="0.2" />
               <stop offset="100%" stopColor="var(--color-viz-price)" stopOpacity="0" />
             </linearGradient>
           </defs>

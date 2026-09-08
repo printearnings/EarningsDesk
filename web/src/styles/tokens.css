@@ -294,7 +294,7 @@
 
     --color-viz-implied: #6478c4;
     --color-viz-realized: #b07f28;
-    --color-viz-price: rgb(245 242 236 / 95%);
+    --color-viz-price: #5aa9f0;
     --color-viz-grid: #3a352d;
     --color-viz-axis: #a89f8f;
 
@@ -352,7 +352,7 @@
 
   --color-viz-implied: #6478c4;
   --color-viz-realized: #b07f28;
-  --color-viz-price: rgb(245 242 236 / 95%);
+  --color-viz-price: #5aa9f0;
   --color-viz-grid: #3a352d;
   --color-viz-axis: #a89f8f;
 
