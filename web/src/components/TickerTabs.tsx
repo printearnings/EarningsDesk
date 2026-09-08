@@ -14,6 +14,7 @@ import { InsidersPanel } from "@/components/InsidersPanel";
 import { NewsThumbnail } from "@/components/NewsThumbnail";
 import { OpenInterestChart } from "@/components/OpenInterestChart";
 import { OptionsSimulator } from "@/components/OptionsSimulator";
+import { Pagination } from "@/components/Pagination";
 import { Panel, Stat, StatCard } from "@/components/Panel";
 import { PeersPanel } from "@/components/PeersPanel";
 import { PriceChart } from "@/components/PriceChart";
@@ -383,10 +384,18 @@ function OptionsPanelCard({ data }: { data: TickerData }) {
   );
 }
 
+const NEWS_PAGE_SIZE = 8;
+
 function NewsPanel({ data }: { data: TickerData }) {
-  if (data.news === null || data.news === undefined) {
+  // Hook before the early return so it's called unconditionally.
+  const [page, setPage] = useState(1);
+  const news = data.news;
+
+  if (news === null || news === undefined) {
     return <Panel empty="Could not load headlines for this symbol on the last update." />;
   }
+
+  const paged = news.slice((page - 1) * NEWS_PAGE_SIZE, page * NEWS_PAGE_SIZE);
 
   return (
     <Panel
@@ -395,10 +404,10 @@ function NewsPanel({ data }: { data: TickerData }) {
           ? `Overall tone: ${sentimentLabel(data.news_sentiment).toLowerCase()}`
           : undefined
       }
-      empty={data.news.length === 0 ? "No recent headlines." : undefined}
+      empty={news.length === 0 ? "No recent headlines." : undefined}
     >
       <ul className="space-y-3">
-        {data.news.map((item) => (
+        {paged.map((item) => (
           <li
             key={item.url ?? item.title}
             className="flex gap-3 border-b border-[var(--color-border-subtle)] pb-3 last:border-b-0 last:pb-0"
@@ -428,6 +437,17 @@ function NewsPanel({ data }: { data: TickerData }) {
           </li>
         ))}
       </ul>
+
+      {news.length > NEWS_PAGE_SIZE && (
+        <div className="mt-3 border-t border-[var(--color-border-subtle)]">
+          <Pagination
+            page={page}
+            pageSize={NEWS_PAGE_SIZE}
+            total={news.length}
+            onPageChange={setPage}
+          />
+        </div>
+      )}
 
       {typeof data.analyst_rating_raw === "number" && (
         <p className="mt-5 border-t border-[var(--color-border-subtle)] pt-4 text-sm text-[var(--color-muted)]">
