@@ -3,23 +3,27 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { COOKIE_CHOICE_KEY } from "@/lib/consent";
+
 // Bump the suffix if what's disclosed here changes materially — same
 // convention DisclaimerGate uses, so a stored "accepted" from an old
 // disclosure doesn't silently cover a new one.
-const STORAGE_KEY = "earningsdesk:cookie-choice-v1";
+// Shared with the layout's inline consent script (see lib/consent.ts).
+const STORAGE_KEY = COOKIE_CHOICE_KEY;
+
+type AdsQueue = unknown[] & { requestNonPersonalizedAds?: number };
 
 /**
  * A non-blocking bottom bar, not a modal — unlike DisclaimerGate, there is
  * nothing here that needs to stop someone from browsing before they see it.
  *
- * The only cookie this site currently sets is Cloudflare's own
- * `cf_clearance` (bot/security mitigation at the edge, not analytics,
- * advertising, or cross-site tracking — confirmed by inspecting the site's
- * actual cookies, not assumed). That kind of strictly-necessary security
- * cookie is the standard exemption in both GDPR/ePrivacy and CCPA-style
- * regimes, so "Reject" has nothing to disable today. This banner exists so
- * the choice is on record — and something to actually gate — the day this
- * site adds anything that isn't strictly necessary (analytics, ads).
+ * Two things set cookies: Cloudflare's `cf_clearance` (strictly necessary
+ * bot/security mitigation) and Google AdSense (advertising, which can be
+ * personalized). "Reject non-essential" asks Google for non-personalized ads
+ * only — applied immediately for this page, and before the first ad request
+ * on every later page load by the layout's inline consent script. Non-personalized ads can
+ * still use cookies for frequency capping, fraud prevention and aggregate
+ * reporting; the privacy page says so.
  *
  * Client-only for the same reason DisclaimerGate is: localStorage isn't
  * available during the static export's server render.
@@ -36,6 +40,10 @@ export function CookieBanner() {
 
   function choose(value: "accepted" | "rejected") {
     localStorage.setItem(STORAGE_KEY, value);
+    // Apply to this page's remaining ad requests too (the inline consent script covers
+    // every later load before the first request).
+    const w = window as unknown as { adsbygoogle?: AdsQueue };
+    (w.adsbygoogle ??= []).requestNonPersonalizedAds = value === "rejected" ? 1 : 0;
     setOpen(false);
   }
 
@@ -53,8 +61,9 @@ export function CookieBanner() {
             Cookie preferences
           </p>
           <p className="mt-1 text-sm text-[var(--color-body)]">
-            We use exactly one cookie, set by Cloudflare to keep the site secure. It&rsquo;s not
-            used for tracking, personalization, or ads.{" "}
+            Cloudflare sets a cookie to keep the site secure. Ads here are served by Google
+            AdSense, which uses cookies, including to personalize ads. Reject non-essential to see
+            only non-personalized ads.{" "}
             <Link href="/privacy/" className="underline underline-offset-2">
               Learn more
             </Link>
