@@ -2,6 +2,7 @@
   "name": "earningsdesk",
   "version": "1.8.1",
   "private": true,
+  "license": "UNLICENSED",
   "description": "Cloudflare Worker serving the EarningsDesk static site and live-refresh API",
   "type": "module",
   "scripts": {
