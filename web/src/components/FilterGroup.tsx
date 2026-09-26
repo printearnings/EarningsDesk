@@ -57,7 +57,7 @@ export function FilterGroup({
               type="button"
               onClick={() => onToggle(opt)}
               aria-pressed={isActive}
-              className={`pressable text-2xs flex items-center gap-1 rounded-[var(--radius-chip)] border px-1.5 py-0.5 font-mono font-medium tracking-[0.06em] uppercase transition-colors ${
+              className={`pressable text-2xs flex items-center gap-1 rounded-[var(--radius-chip)] border px-1.5 py-0.5 font-medium tracking-[0.06em] uppercase transition-colors ${
                 isActive
                   ? "border-[var(--color-heading)]/20 bg-[var(--color-panel-soft)] text-[var(--color-heading)]"
                   : "border-[var(--color-border)] text-[var(--color-muted)] hover:bg-[var(--color-panel-soft)]"

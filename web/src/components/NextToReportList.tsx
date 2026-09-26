@@ -47,7 +47,7 @@ export function NextToReportList({
                 href={`/t/${entry.ticker}/`}
                 className="flex items-center gap-3 px-5 py-3 hover:bg-[var(--color-panel-soft)]"
               >
-                <span className="w-14 font-mono text-sm font-medium text-[var(--color-heading)]">
+                <span className="w-14 text-sm font-medium text-[var(--color-heading)]">
                   {entry.ticker}
                 </span>
                 <VerdictChip verdict={entry.verdict} />

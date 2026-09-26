@@ -657,7 +657,7 @@ function HistoryTable({ data }: { data: TickerData }) {
                   <td className="px-3 py-2.5">
                     {pctSigned(r.gap_open_pct)}
                     {r.gap_filled === true && (
-                      <span className="ml-1.5 font-mono tracking-[0.06em] text-[var(--color-muted)] text-[var(--text-2xs)] uppercase">
+                      <span className="ml-1.5 tracking-[0.06em] text-[var(--color-muted)] text-[var(--text-2xs)] uppercase">
                         filled
                       </span>
                     )}

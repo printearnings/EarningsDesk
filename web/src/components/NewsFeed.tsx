@@ -32,7 +32,7 @@ export function NewsFeed({ items }: { items: DashboardNewsItem[] }) {
           >
             <Link
               href={`/t/${item.ticker}/`}
-              className="w-11 shrink-0 font-mono text-xs font-semibold text-[var(--color-brand)] hover:underline"
+              className="w-11 shrink-0 text-xs font-semibold text-[var(--color-brand)] hover:underline"
             >
               {item.ticker}
             </Link>

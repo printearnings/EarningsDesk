@@ -120,7 +120,7 @@ export function StrategyLegs({
                 >
                   <td className="px-4 py-2.5">
                     <span
-                      className={`text-2xs inline-flex items-center rounded-[var(--radius-chip)] border px-1.5 py-0.5 font-mono font-medium tracking-[0.06em] uppercase ${ACTION_STYLE[leg.action]}`}
+                      className={`text-2xs inline-flex items-center rounded-[var(--radius-chip)] border px-1.5 py-0.5 font-medium tracking-[0.06em] uppercase ${ACTION_STYLE[leg.action]}`}
                     >
                       {leg.action}
                     </span>

@@ -285,7 +285,7 @@ export function TickerSearch({
                 className="pressable flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm transition-colors hover:bg-[var(--color-panel-soft)]"
               >
                 <span className="text-[var(--color-muted)]">Look up</span>
-                <span className="font-mono font-medium text-[var(--color-heading)]">
+                <span className="font-medium text-[var(--color-heading)]">
                   {rawQuery}
                 </span>
                 <span className="ml-auto text-[var(--color-muted)]" aria-hidden>
@@ -310,7 +310,7 @@ export function TickerSearch({
                     }`}
                   >
                     <CompanyLogo ticker={item.ticker} domain={item.domain} size={18} />
-                    <span className="font-mono font-medium text-[var(--color-heading)]">
+                    <span className="font-medium text-[var(--color-heading)]">
                       {item.ticker}
                     </span>
                     {item.name && (

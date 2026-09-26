@@ -86,7 +86,7 @@ export default async function LandingPage() {
                       href={`/t/${entry.ticker}/`}
                       className="flex items-center gap-2.5 rounded-[var(--radius-sm)] border border-white/15 px-3 py-2 transition-colors hover:border-white/40"
                     >
-                      <span className="font-mono text-sm font-medium text-[var(--color-on-brand)]">
+                      <span className="text-sm font-medium text-[var(--color-on-brand)]">
                         {entry.ticker}
                       </span>
                       <span className="tnum text-sm text-[var(--color-on-brand-muted)]">

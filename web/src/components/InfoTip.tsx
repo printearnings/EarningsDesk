@@ -55,7 +55,7 @@ export function InfoTip({
         // other popovers.
         <span
           role="tooltip"
-          className="absolute top-full left-0 z-30 mt-1.5 w-56 origin-top rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-panel)] px-3 py-2 [font-family:var(--font-sans)] text-xs leading-snug font-normal tracking-normal text-[var(--color-body)] normal-case opacity-100 transition-[opacity,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] starting:scale-95 starting:opacity-0"
+          className="absolute top-full left-0 z-30 mt-1.5 w-56 origin-top rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-panel)] px-3 py-2 font-sans text-xs leading-snug font-normal tracking-normal text-[var(--color-body)] normal-case opacity-100 transition-[opacity,transform] duration-[var(--duration-fast)] ease-[var(--ease-out)] starting:scale-95 starting:opacity-0"
           style={{ boxShadow: "var(--shadow-card)" }}
         >
           {description}

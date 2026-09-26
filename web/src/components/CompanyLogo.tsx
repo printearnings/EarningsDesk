@@ -33,7 +33,7 @@ export function CompanyLogo({
   if (!domain || failed) {
     return (
       <span
-        className="flex shrink-0 items-center justify-center rounded-[3px] bg-[var(--color-panel-soft)] font-mono font-medium text-[var(--color-muted)]"
+        className="flex shrink-0 items-center justify-center rounded-[3px] bg-[var(--color-panel-soft)] font-medium text-[var(--color-muted)]"
         style={{ width: size, height: size, fontSize: size * 0.45 }}
         aria-hidden
       >

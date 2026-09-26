@@ -118,7 +118,7 @@ export function PastEarningsTable({ rows }: { rows: PastEarningsRow[] }) {
             value={tickerQuery}
             onChange={(e) => setTickerQuery(e.target.value)}
             placeholder="e.g. NVDA"
-            className="text-2xs w-28 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-panel)] px-2 py-1 font-mono tracking-[0.06em] text-[var(--color-heading)] uppercase placeholder:tracking-normal placeholder:text-[var(--color-muted)] placeholder:normal-case focus:border-[var(--color-brand)] focus:outline-none"
+            className="text-2xs w-28 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-panel)] px-2 py-1 tracking-[0.06em] text-[var(--color-heading)] uppercase placeholder:tracking-normal placeholder:text-[var(--color-muted)] placeholder:normal-case focus:border-[var(--color-brand)] focus:outline-none"
           />
         </div>
         {filtersActive && (
@@ -179,7 +179,7 @@ export function PastEarningsTable({ rows }: { rows: PastEarningsRow[] }) {
                   <td className="px-4 py-2.5">
                     <Link
                       href={`/t/${r.ticker}/`}
-                      className="inline-flex items-center gap-2 font-mono font-medium text-[var(--color-heading)] hover:underline"
+                      className="inline-flex items-center gap-2 font-medium text-[var(--color-heading)] hover:underline"
                     >
                       {r.ticker}
                       <SessionChip session={r.session} />
@@ -209,7 +209,7 @@ export function PastEarningsTable({ rows }: { rows: PastEarningsRow[] }) {
                   <td className="px-4 py-2.5">
                     {pctSigned(r.gap_open_pct)}
                     {r.gap_filled === true && (
-                      <span className="ml-1.5 font-mono tracking-[0.06em] text-[var(--color-muted)] text-[var(--text-2xs)] uppercase">
+                      <span className="ml-1.5 tracking-[0.06em] text-[var(--color-muted)] text-[var(--text-2xs)] uppercase">
                         filled
                       </span>
                     )}

@@ -49,7 +49,7 @@ const DIRECTION_STYLE: Record<string, string> = {
 };
 
 const BASE =
-  "inline-flex items-center rounded-[var(--radius-chip)] border px-1.5 py-0.5 font-mono text-[var(--text-2xs)] font-medium uppercase tracking-[0.06em]";
+  "inline-flex items-center rounded-[var(--radius-chip)] border px-1.5 py-0.5 text-[var(--text-2xs)] font-medium uppercase tracking-[0.06em]";
 
 export function VerdictChip({ verdict }: { verdict?: string | null }) {
   if (!verdict) return null;

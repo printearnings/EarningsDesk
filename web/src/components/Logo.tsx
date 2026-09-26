@@ -51,7 +51,7 @@ export function Wordmark({
   onBrand?: boolean;
 }) {
   return (
-    <span className={`font-mono tracking-[0.08em] uppercase ${className}`}>
+    <span className={`tracking-[0.08em] uppercase ${className}`}>
       <span
         className={onBrand ? "text-[var(--color-on-brand)]" : "text-[var(--color-heading)]"}
       >

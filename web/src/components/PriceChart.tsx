@@ -944,7 +944,7 @@ function ChartBody({
           <button
             type="button"
             onClick={() => setZoom(null)}
-            className="pressable text-2xs font-mono tracking-[0.06em] text-[var(--color-muted)] uppercase underline decoration-dotted underline-offset-2 hover:text-[var(--color-body)]"
+            className="pressable text-2xs tracking-[0.06em] text-[var(--color-muted)] uppercase underline decoration-dotted underline-offset-2 hover:text-[var(--color-body)]"
           >
             Reset zoom
           </button>
@@ -1223,7 +1223,7 @@ function ChartBody({
               </div>
             )}
             {onMarker && (
-              <div className="mt-1 font-mono tracking-[0.06em] text-[var(--color-viz-realized)] text-[var(--text-2xs)] uppercase">
+              <div className="mt-1 tracking-[0.06em] text-[var(--color-viz-realized)] text-[var(--text-2xs)] uppercase">
                 Earnings
               </div>
             )}
@@ -1242,7 +1242,7 @@ function ChartBody({
             }}
           >
             <div className="mb-1 flex items-center gap-2 border-b border-[var(--color-border-subtle)] pb-1">
-              <span className="font-mono tracking-[0.06em] text-[var(--color-viz-realized)] text-[var(--text-2xs)] uppercase">
+              <span className="tracking-[0.06em] text-[var(--color-viz-realized)] text-[var(--text-2xs)] uppercase">
                 Earnings
               </span>
               <button
@@ -1287,7 +1287,7 @@ function ChartBody({
 
       {volumePanel && (
         <div className="mt-3">
-          <div className="text-2xs mb-1 flex items-center justify-between font-mono tracking-[0.06em] text-[var(--color-muted)] uppercase">
+          <div className="text-2xs mb-1 flex items-center justify-between tracking-[0.06em] text-[var(--color-muted)] uppercase">
             <span>Volume</span>
             {hover !== null && hover < visible.length && (
               <span className="tnum text-[var(--color-heading)] normal-case">
@@ -1345,7 +1345,7 @@ function ChartBody({
 
       {rsiPanel && (
         <div className="mt-3">
-          <div className="text-2xs mb-1 font-mono tracking-[0.06em] text-[var(--color-muted)] uppercase">
+          <div className="text-2xs mb-1 tracking-[0.06em] text-[var(--color-muted)] uppercase">
             RSI 14
           </div>
           <svg viewBox={`0 0 ${W} ${RSI_H}`} className="w-full">
@@ -1396,7 +1396,7 @@ function ChartBody({
 
       {macdPanel && (
         <div className="mt-3">
-          <div className="text-2xs mb-1 flex items-center gap-3 font-mono tracking-[0.06em] text-[var(--color-muted)] uppercase">
+          <div className="text-2xs mb-1 flex items-center gap-3 tracking-[0.06em] text-[var(--color-muted)] uppercase">
             <span>MACD</span>
             <span className="inline-flex items-center gap-1 normal-case">
               <span

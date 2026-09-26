@@ -67,7 +67,7 @@ export function ImpliedMoveTrend({ points }: { points: TrendPoint[] }) {
         </linearGradient>
       </defs>
 
-      <g fontFamily="var(--font-mono)" fontSize="10" fill="var(--color-viz-axis)">
+      <g fontSize="10" className="tnum" fill="var(--color-viz-axis)">
         {ticks.map((t, k) => (
           <g key={k}>
             <line
@@ -103,7 +103,6 @@ export function ImpliedMoveTrend({ points }: { points: TrendPoint[] }) {
       />
 
       <g
-        fontFamily="var(--font-mono)"
         fontSize="9.5"
         fill="var(--color-viz-axis)"
         textAnchor="middle"

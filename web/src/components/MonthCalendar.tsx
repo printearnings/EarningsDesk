@@ -305,7 +305,7 @@ function AgendaView({
                       className="pressable flex items-center gap-2 rounded-[3px] py-0.5 text-sm transition-colors hover:bg-[var(--color-panel-soft)]"
                     >
                       <VerdictDot verdict={e.verdict} />
-                      <span className="font-mono font-medium text-[var(--color-heading)]">
+                      <span className="font-medium text-[var(--color-heading)]">
                         {e.ticker}
                       </span>
                       <SessionChip session={e.session} />
@@ -370,11 +370,11 @@ function DayCellView({ cell }: { cell: DayCell }) {
               className="pressable flex items-center gap-1 rounded-[3px] px-1 py-0.5 text-xs transition-colors hover:bg-[var(--color-panel-soft)]"
             >
               <VerdictDot verdict={e.verdict} />
-              <span className="truncate font-mono font-medium text-[var(--color-heading)]">
+              <span className="truncate font-medium text-[var(--color-heading)]">
                 {e.ticker}
               </span>
               {(e.session === "BMO" || e.session === "AMC") && (
-                <span className="ml-auto shrink-0 font-mono text-[10px] text-[var(--color-muted)]">
+                <span className="ml-auto shrink-0 text-[10px] text-[var(--color-muted)]">
                   {e.session}
                 </span>
               )}

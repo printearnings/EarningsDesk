@@ -202,7 +202,7 @@ export default async function DashboardPage() {
                       href={`/t/${e.ticker}/`}
                       className="flex w-full items-center gap-3 px-5 py-3 hover:bg-[var(--color-panel-soft)]"
                     >
-                      <span className="w-12 font-mono text-sm font-semibold text-[var(--color-heading)]">
+                      <span className="w-12 text-sm font-semibold text-[var(--color-heading)]">
                         {e.ticker}
                       </span>
                       {e.verdict && <VerdictChip verdict={e.verdict} />}
@@ -240,7 +240,7 @@ export default async function DashboardPage() {
                   className="flex h-full flex-col gap-2 rounded-[var(--radius-md)] bg-[var(--color-panel-soft)] p-3.5 transition-colors hover:bg-[var(--color-border-subtle)]"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-mono text-sm font-semibold text-[var(--color-heading)]">
+                    <span className="text-sm font-semibold text-[var(--color-heading)]">
                       {e.ticker}
                     </span>
                     {e.verdict && <VerdictChip verdict={e.verdict} />}
@@ -283,7 +283,7 @@ export default async function DashboardPage() {
                     href={`/t/${row.ticker}/`}
                     className="flex items-center gap-3 px-5 py-3 hover:bg-[var(--color-panel-soft)]"
                   >
-                    <span className="w-14 font-mono text-sm font-medium text-[var(--color-heading)]">
+                    <span className="w-14 text-sm font-medium text-[var(--color-heading)]">
                       {row.ticker}
                     </span>
                     <VerdictChip verdict={row.verdict} />

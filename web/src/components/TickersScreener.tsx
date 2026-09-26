@@ -150,7 +150,7 @@ export function TickersScreener({ tickers }: { tickers: TickerIndexEntry[] }) {
             value={tickerQuery}
             onChange={(e) => setTickerQuery(e.target.value)}
             placeholder="e.g. NVDA"
-            className="text-2xs w-32 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-panel)] px-2 py-1 font-mono tracking-[0.06em] text-[var(--color-heading)] uppercase placeholder:tracking-normal placeholder:text-[var(--color-muted)] placeholder:normal-case focus:border-[var(--color-brand)] focus:outline-none"
+            className="text-2xs w-32 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-panel)] px-2 py-1 tracking-[0.06em] text-[var(--color-heading)] uppercase placeholder:tracking-normal placeholder:text-[var(--color-muted)] placeholder:normal-case focus:border-[var(--color-brand)] focus:outline-none"
           />
         </div>
         <FilterDivider />
@@ -224,7 +224,7 @@ export function TickersScreener({ tickers }: { tickers: TickerIndexEntry[] }) {
                         className="flex items-center gap-2 hover:underline"
                       >
                         <CompanyLogo ticker={t.ticker} domain={t.company_domain} size={18} />
-                        <span className="font-mono font-medium text-[var(--color-heading)]">
+                        <span className="font-medium text-[var(--color-heading)]">
                           {t.ticker}
                         </span>
                         {t.company_name && (

@@ -31,7 +31,7 @@ const QUARTERS = ["Q1", "Q2", "Q3", "Q4"] as const;
 const PAGE_SIZE = 8;
 
 const pillClass = (active: boolean) =>
-  `pressable text-2xs rounded-[var(--radius-chip)] border px-1.5 py-0.5 font-mono font-medium tracking-[0.06em] uppercase transition-colors ${
+  `pressable text-2xs rounded-[var(--radius-chip)] border px-1.5 py-0.5 font-medium tracking-[0.06em] uppercase transition-colors ${
     active
       ? "border-[var(--color-heading)]/20 bg-[var(--color-panel-soft)] text-[var(--color-heading)]"
       : "border-[var(--color-border)] text-[var(--color-muted)] hover:bg-[var(--color-panel-soft)]"

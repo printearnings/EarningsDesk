@@ -76,7 +76,7 @@ export function Panel({
 }
 
 /**
- * A stat tile: mono uppercase eyebrow, then the value in large Inter.
+ * A stat tile: uppercase eyebrow, then the value large.
  *
  * `hint` carries the plain-English meaning — this app puts terms like "put/call
  * ratio" and "IV term structure" in front of people who may be meeting them for

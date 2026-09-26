@@ -35,13 +35,17 @@
  *      Verdict, direction, and positive/negative are untouched by any of
  *      this and keep their own validated hues, independent of brand navy.
  *   5. 16px minimum for body copy. Smaller sizes are for true micro-elements
- *      (mono eyebrows, table micro-labels) only.
+ *      (eyebrows, table micro-labels) only.
  *
  * Typography roles:
- *   Inter        — body and UI, tight -0.01em tracking applied globally.
- *   Geist Mono   — labels and eyebrows: UPPERCASE, technical, sparse.
- *   EB Garamond  — headings (`.display`), medium weight, tight tracking,
- *                  now navy — the editorial voice AND the color signal.
+ *   One family, Geist, for everything — the role is carried by weight, size,
+ *   case and tracking, never by switching typeface:
+ *     body/UI      regular, tight -0.01em tracking applied globally.
+ *     labels       (`.eyebrow`, chips, filter tabs) medium, UPPERCASE, wide
+ *                  tracking — technical and sparse.
+ *     headings     (`.display`) semibold, tighter tracking, navy — the
+ *                  color signal.
+ *     numbers      `.tnum` tabular figures, so updating columns don't jitter.
  *
  * Everything else in the app references these variables and never a literal.
  */
@@ -168,11 +172,11 @@
 
   /* ---- Typography ----
    * Families are wired to next/font in layout.tsx; these are the fallbacks. */
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, "Cascadia Mono", monospace;
-  --font-display: var(--font-eb-garamond), "Adobe Jenson Pro", Georgia, serif;
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Mono", monospace;
+  --font-display: var(--font-sans);
 
-  /* Micro sizes, for mono eyebrows and table labels only — never body copy. */
+  /* Micro sizes, for eyebrows and table labels only — never body copy. */
   --text-2xs: 0.6875rem;
   --text-eyebrow: 0.6875rem;
 

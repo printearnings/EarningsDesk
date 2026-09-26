@@ -104,7 +104,7 @@ export function SignalsTable({ rows }: { rows: SignalRow[] }) {
                   type="button"
                   onClick={() => toggleInSet(workflows, setWorkflows, w)}
                   aria-pressed={isActive}
-                  className={`pressable text-2xs rounded-[var(--radius-chip)] border px-1.5 py-0.5 font-mono font-medium tracking-[0.06em] uppercase transition-colors ${
+                  className={`pressable text-2xs rounded-[var(--radius-chip)] border px-1.5 py-0.5 font-medium tracking-[0.06em] uppercase transition-colors ${
                     isActive
                       ? "border-[var(--color-heading)]/20 bg-[var(--color-panel-soft)] text-[var(--color-heading)]"
                       : "border-[var(--color-border)] text-[var(--color-muted)] hover:bg-[var(--color-panel-soft)]"
@@ -140,7 +140,7 @@ export function SignalsTable({ rows }: { rows: SignalRow[] }) {
             value={tickerQuery}
             onChange={(e) => setTickerQuery(e.target.value)}
             placeholder="e.g. NVDA"
-            className="text-2xs w-28 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-panel)] px-2 py-1 font-mono tracking-[0.06em] text-[var(--color-heading)] uppercase placeholder:tracking-normal placeholder:text-[var(--color-muted)] placeholder:normal-case focus:border-[var(--color-brand)] focus:outline-none"
+            className="text-2xs w-28 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-panel)] px-2 py-1 tracking-[0.06em] text-[var(--color-heading)] uppercase placeholder:tracking-normal placeholder:text-[var(--color-muted)] placeholder:normal-case focus:border-[var(--color-brand)] focus:outline-none"
           />
         </div>
         <FilterDivider />
@@ -195,7 +195,7 @@ export function SignalsTable({ rows }: { rows: SignalRow[] }) {
                   <td className="px-5 py-2.5">
                     <Link
                       href={`/t/${row.ticker}/`}
-                      className="font-mono font-medium text-[var(--color-heading)] hover:underline"
+                      className="font-medium text-[var(--color-heading)] hover:underline"
                     >
                       {row.ticker}
                     </Link>

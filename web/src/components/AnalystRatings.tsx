@@ -45,7 +45,7 @@ function ActionChip({ action }: { action: string | null | undefined }) {
   if (!action) return <span className="text-[var(--color-muted)]">{EMPTY}</span>;
   return (
     <span
-      className={`text-2xs inline-flex items-center rounded-[var(--radius-chip)] border px-1.5 py-0.5 font-mono font-medium tracking-[0.06em] whitespace-nowrap uppercase ${
+      className={`text-2xs inline-flex items-center rounded-[var(--radius-chip)] border px-1.5 py-0.5 font-medium tracking-[0.06em] whitespace-nowrap uppercase ${
         ACTION_STYLE[action] ?? NEUTRAL_STYLE
       }`}
     >
@@ -129,7 +129,7 @@ export function AnalystRatings({ rows }: { rows: AnalystRatingRow[] }) {
                   type="button"
                   onClick={() => toggleInSet(actions, setActions, a)}
                   aria-pressed={isActive}
-                  className={`pressable text-2xs rounded-[var(--radius-chip)] border px-1.5 py-0.5 font-mono font-medium tracking-[0.06em] uppercase transition-colors ${
+                  className={`pressable text-2xs rounded-[var(--radius-chip)] border px-1.5 py-0.5 font-medium tracking-[0.06em] uppercase transition-colors ${
                     isActive
                       ? "border-[var(--color-heading)]/20 bg-[var(--color-panel-soft)] text-[var(--color-heading)]"
                       : "border-[var(--color-border)] text-[var(--color-muted)] hover:bg-[var(--color-panel-soft)]"

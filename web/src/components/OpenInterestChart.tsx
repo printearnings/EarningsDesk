@@ -234,7 +234,7 @@ export function OpenInterestChart({
                     x={cx}
                     y={H - 8}
                     textAnchor="middle"
-                    className="font-mono uppercase"
+                    className="uppercase"
                     fontSize={9}
                     letterSpacing={0.6}
                     fill="var(--color-muted)"

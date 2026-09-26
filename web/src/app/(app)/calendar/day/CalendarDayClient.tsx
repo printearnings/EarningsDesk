@@ -112,7 +112,7 @@ export function CalendarDayClient() {
                     <td className="px-4 py-2.5">
                       <Link
                         href={`/t/${e.ticker}/`}
-                        className="pressable inline-flex items-center gap-2 font-mono font-medium text-[var(--color-heading)] hover:underline"
+                        className="pressable inline-flex items-center gap-2 font-medium text-[var(--color-heading)] hover:underline"
                       >
                         <VerdictDot verdict={e.verdict} />
                         {e.ticker}

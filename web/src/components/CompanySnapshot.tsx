@@ -70,7 +70,7 @@ export function CompanySnapshot({
             <dt className="eyebrow text-[var(--color-muted)]">
               <InfoTip label={m.label} description={m.hint} />
             </dt>
-            <dd className="tnum mt-1.5 font-mono text-base font-semibold text-[var(--color-heading)]">
+            <dd className="tnum mt-1.5 text-base font-semibold text-[var(--color-heading)]">
               {m.value}
             </dd>
           </div>
