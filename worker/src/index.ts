@@ -54,6 +54,10 @@ export interface Env {
   RATE_LIMIT: KVNamespace;
   MASSIVE_API_KEY: string;
   SUPPORT_EMAIL: SendEmail;
+  /** Real inbox the support form delivers to. Filled at deploy from the
+   * SUPPORT_DESTINATION_EMAIL secret (same placeholder as the send_email
+   * binding's destination_address), so it never lives in source control. */
+  SUPPORT_TO_ADDRESS?: string;
   TURNSTILE_SECRET_KEY?: string;
   LIVE_REFRESH_PER_HOUR?: string;
   SEARCH_PER_HOUR?: string;
@@ -456,10 +460,10 @@ const SUPPORT_CATEGORY_LABEL: Record<SupportCategory, string> = {
 const SUPPORT_MAX_SUBJECT = 200;
 const SUPPORT_MAX_DESCRIPTION = 5000;
 const SUPPORT_FROM_ADDRESS = "support@printearnings.com";
-// Fixed at deploy time via the `send_email` binding's own `destination_address`
-// (wrangler.jsonc) — the binding refuses to send anywhere else, so this only
-// needs to match that value, never come from the request.
-const SUPPORT_TO_ADDRESS = "patrickkhai98@gmail.com";
+// The recipient is env.SUPPORT_TO_ADDRESS, filled at deploy from the same
+// secret as the `send_email` binding's `destination_address` (wrangler.jsonc).
+// The binding refuses to send anywhere else, so it only needs to match that
+// value - it never comes from the request, and never lives in source.
 
 /**
  * The rate limits alone only cap *volume* from a script hitting this route —
@@ -601,12 +605,15 @@ async function handleSupport(request: Request, env: Env): Promise<Response> {
     const { createMimeMessage } = await import("mimetext");
     const { EmailMessage } = await import("cloudflare:email");
 
+    const toAddress = env.SUPPORT_TO_ADDRESS;
+    if (!toAddress) throw new Error("SUPPORT_TO_ADDRESS is not configured");
+
     const msg = createMimeMessage();
     msg.setSender({
       name: "PrintEarnings Support",
       addr: SUPPORT_FROM_ADDRESS,
     });
-    msg.setRecipient(SUPPORT_TO_ADDRESS);
+    msg.setRecipient(toAddress);
     msg.setSubject(
       `[${SUPPORT_CATEGORY_LABEL[category as SupportCategory]}] ${subjectText}`,
     );
@@ -620,11 +627,7 @@ async function handleSupport(request: Request, env: Env): Promise<Response> {
       data: [...headerLines, "", descriptionText].join("\n"),
     });
 
-    const message = new EmailMessage(
-      SUPPORT_FROM_ADDRESS,
-      SUPPORT_TO_ADDRESS,
-      msg.asRaw(),
-    );
+    const message = new EmailMessage(SUPPORT_FROM_ADDRESS, toAddress, msg.asRaw());
     await env.SUPPORT_EMAIL.send(message);
   } catch (err) {
     console.error("support email failed", { err: String(err) });

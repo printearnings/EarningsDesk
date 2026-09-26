@@ -76,6 +76,9 @@
   ],
 
   "vars": {
+    // Support-form recipient, filled from the SUPPORT_DESTINATION_EMAIL secret by
+    // gen:wrangler-config (same placeholder as send_email.destination_address).
+    "SUPPORT_TO_ADDRESS": "__SUPPORT_DESTINATION_EMAIL__",
     "LIVE_REFRESH_PER_HOUR": "10",
     "SEARCH_PER_HOUR": "60",
     "SUPPORT_PER_HOUR": "5",
@@ -126,6 +129,9 @@
         },
       ],
       "vars": {
+        // Support-form recipient, filled from the SUPPORT_DESTINATION_EMAIL secret by
+        // gen:wrangler-config (same placeholder as send_email.destination_address).
+        "SUPPORT_TO_ADDRESS": "__SUPPORT_DESTINATION_EMAIL__",
         "LIVE_REFRESH_PER_HOUR": "10",
         "SEARCH_PER_HOUR": "60",
         "SUPPORT_PER_HOUR": "5",
