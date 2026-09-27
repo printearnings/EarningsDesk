@@ -107,6 +107,10 @@ def dump(out_dir: Path, *, with_prices: bool = True) -> dict[str, int]:
             out_dir / "track-record.json",
             pages.track_record_page(repo.track_record(session)),
         )
+        written["how-we-score.json"] = _write(
+            out_dir / "how-we-score.json",
+            pages.how_we_score_page(repo.scored_examples(session)),
+        )
 
         # Built once and shared across every page: peers are read off other
         # tickers' snapshots, so re-deriving this per page would re-scan the

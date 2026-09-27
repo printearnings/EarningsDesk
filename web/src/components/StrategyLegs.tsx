@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useMemo } from "react";
 
 import { Panel } from "@/components/Panel";
@@ -96,7 +98,15 @@ export function StrategyLegs({
   return (
     <Panel
       title={`The structure we score · ${suggestion.label}`}
-      subtitle={`Built from the loaded chain at ${formatDateShort(expiry)}. One contract per leg: an illustration, not an order.`}
+      subtitle={
+        <>
+          Built from the loaded chain at {formatDateShort(expiry)}. One contract per leg: an
+          illustration, not an order.{" "}
+          <Link href="/how-we-score/" className="text-[var(--color-brand)] hover:underline">
+            How it&rsquo;s scored →
+          </Link>
+        </>
+      }
       bodyClassName="px-0 py-0"
     >
       <div className="overflow-x-auto">

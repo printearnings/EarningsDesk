@@ -37,6 +37,7 @@ from app.schemas import (
     EarningsHistoryRow,
     Fundamentals,
     HistoryStats,
+    HowWeScorePage,
     NewsItem,
     OptionsPanel,
     PastEarningsPage,
@@ -44,6 +45,8 @@ from app.schemas import (
     PastMove,
     PeerEarnings,
     PricePoint,
+    ScoredExample,
+    ScoredLeg,
     SignalRow,
     SignalsPage,
     StrikeOpenInterest,
@@ -681,3 +684,42 @@ def track_record_page(record: TrackRecord) -> TrackRecordPage:
         all_correct=getattr(record, "all_correct", record.correct),
         all_accuracy=getattr(record, "all_accuracy", record.accuracy),
     )
+
+
+def how_we_score_page(examples: dict) -> HowWeScorePage:
+    """Engine `repo.scored_examples` -> the page model."""
+
+    def one(ex) -> ScoredExample | None:
+        if ex is None:
+            return None
+        return ScoredExample(
+            ticker=ex.ticker,
+            report_date=ex.report_date,
+            report_session=ex.report_session,
+            verdict=ex.verdict,
+            implied_move=ex.implied_move,
+            hist_avg_move=ex.hist_avg_move,
+            realized_move=ex.realized_move,
+            structure=ex.structure,
+            side=ex.side,
+            entry_date=ex.entry_date,
+            exit_date=ex.exit_date,
+            entry=ex.entry,
+            exit=ex.exit,
+            pnl_per_share=ex.pnl_per_share,
+            capital=ex.capital,
+            pnl_pct=ex.pnl_pct,
+            legs=[
+                ScoredLeg(
+                    action=leg.action,
+                    type=leg.type,
+                    strike=leg.strike,
+                    expiry=leg.expiry,
+                    entry=leg.entry,
+                    exit=leg.exit,
+                )
+                for leg in ex.legs
+            ],
+        )
+
+    return HowWeScorePage(sell=one(examples.get("sell")), buy=one(examples.get("buy")))

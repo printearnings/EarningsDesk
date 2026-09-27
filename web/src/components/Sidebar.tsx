@@ -46,6 +46,7 @@ export const MORE_DATA = [
 // than filed under supplementary data.
 export const HELP = [
   { href: "/methodology/", label: "Methodology", icon: BookIcon },
+  { href: "/how-we-score/", label: "How calls are tested", icon: BookIcon },
   { href: "/faq/", label: "FAQ", icon: QuestionIcon },
   { href: "/support/", label: "Support", icon: MailIcon },
 ];

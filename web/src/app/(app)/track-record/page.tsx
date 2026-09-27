@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { CheapStoryCallout } from "@/components/CheapStory";
 import { Panel, StatCard } from "@/components/Panel";
 import { TopBar } from "@/components/TopBar";
@@ -221,7 +222,17 @@ export default async function TrackRecordPage() {
           )}
         </Panel>
 
-        <Panel title="What the scored trade would have returned">
+        <Panel
+          title="What the scored trade would have returned"
+          action={
+            <Link
+              href="/how-we-score/"
+              className="pressable text-sm text-[var(--color-brand)] hover:underline"
+            >
+              How a trade is scored →
+            </Link>
+          }
+        >
           <dl className="grid grid-cols-2 gap-5 sm:grid-cols-4">
             <StatCard
               label="Selling: trades"

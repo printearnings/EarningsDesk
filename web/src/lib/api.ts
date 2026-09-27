@@ -24,6 +24,7 @@
 import type {
   CalendarPage,
   DashboardNewsPage,
+  HowWeScorePage,
   PastEarningsPage,
   SignalsPage,
   SiteIndex,
@@ -98,6 +99,10 @@ export function getSignals(): Promise<SignalsPage> {
 
 export function getTrackRecord(): Promise<TrackRecordPage> {
   return get<TrackRecordPage>("/api/track-record", "track-record.json");
+}
+
+export function getHowWeScore(): Promise<HowWeScorePage> {
+  return get<HowWeScorePage>("/api/how-we-score", "how-we-score.json");
 }
 
 export function getDashboardNews(): Promise<DashboardNewsPage> {

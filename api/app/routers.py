@@ -20,6 +20,7 @@ from app.deps import get_session, require_db
 from app.schemas import (
     CalendarPage,
     DashboardNewsPage,
+    HowWeScorePage,
     PastEarningsPage,
     SignalsPage,
     SiteIndex,
@@ -151,6 +152,13 @@ def _signals(session: Session) -> SignalsPage:
 @router.get("/track-record", response_model=TrackRecordPage, tags=["track-record"])
 def get_track_record(session: Session = Depends(get_session)) -> TrackRecordPage:
     return pages.track_record_page(repo.track_record(session))
+
+
+@router.get("/how-we-score", response_model=HowWeScorePage, tags=["track-record"])
+def get_how_we_score(session: Session = Depends(get_session)) -> HowWeScorePage:
+    """The most recent clean, priced trade of each kind, for the worked
+    examples on "How calls are tested"."""
+    return pages.how_we_score_page(repo.scored_examples(session))
 
 
 @router.get("/dashboard-news", response_model=DashboardNewsPage, tags=["dashboard"])

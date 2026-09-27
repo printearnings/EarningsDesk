@@ -130,6 +130,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/how-we-score": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get How We Score
+         * @description The most recent clean, priced trade of each kind, for the worked
+         *     examples on "How calls are tested".
+         */
+        get: operations["get_how_we_score_api_how_we_score_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/dashboard-news": {
         parameters: {
             query?: never;
@@ -482,6 +503,14 @@ export interface components {
             avg_vol_ratio?: number | null;
         };
         /**
+         * HowWeScorePage
+         * @description The most recent clean, priced trade of each kind, win or lose.
+         */
+        HowWeScorePage: {
+            sell?: components["schemas"]["ScoredExample"] | null;
+            buy?: components["schemas"]["ScoredExample"] | null;
+        };
+        /**
          * NewsItem
          * @description One story. Only `title` is guaranteed — a feed item can arrive without a
          *     resolvable link, and the UI renders those as plain text rather than as a
@@ -714,6 +743,91 @@ export interface components {
             low?: number | null;
             /** Volume */
             volume?: number | null;
+        };
+        /**
+         * ScoredExample
+         * @description One real scored trade, for the "how calls are tested" page.
+         */
+        ScoredExample: {
+            /** Ticker */
+            ticker: string;
+            /**
+             * Report Date
+             * Format: date
+             */
+            report_date: string;
+            /** Report Session */
+            report_session?: string | null;
+            /** Verdict */
+            verdict?: string | null;
+            /** Implied Move */
+            implied_move?: number | null;
+            /** Hist Avg Move */
+            hist_avg_move?: number | null;
+            /** Realized Move */
+            realized_move?: number | null;
+            /** Structure */
+            structure: string;
+            /**
+             * Side
+             * @description "sell" (collects premium) | "buy" (pays it)
+             */
+            side: string;
+            /** Entry Date */
+            entry_date?: string | null;
+            /** Exit Date */
+            exit_date?: string | null;
+            /**
+             * Entry
+             * @description per share; negative = a credit collected
+             */
+            entry?: number | null;
+            /** Exit */
+            exit?: number | null;
+            /** Pnl Per Share */
+            pnl_per_share?: number | null;
+            /**
+             * Capital
+             * @description per share at risk; pnl_pct's denominator
+             */
+            capital?: number | null;
+            /** Pnl Pct */
+            pnl_pct?: number | null;
+            /**
+             * Legs
+             * @default []
+             */
+            legs: components["schemas"]["ScoredLeg"][];
+        };
+        /** ScoredLeg */
+        ScoredLeg: {
+            /**
+             * Action
+             * @description "buy" | "sell"
+             */
+            action: string;
+            /**
+             * Type
+             * @description "call" | "put"
+             */
+            type: string;
+            /** Strike */
+            strike: number;
+            /**
+             * Expiry
+             * Format: date
+             */
+            expiry: string;
+            /**
+             * Entry
+             * @description per-share option price at entry
+             */
+            entry?: number | null;
+            /**
+             * Exit
+             * @description per-share option price at exit
+             */
+            exit?: number | null;
         };
         /** SignalRow */
         SignalRow: {
@@ -1218,6 +1332,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TrackRecordPage"];
+                };
+            };
+        };
+    };
+    get_how_we_score_api_how_we_score_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HowWeScorePage"];
                 };
             };
         };

@@ -213,6 +213,28 @@
         }
       }
     },
+    "/api/how-we-score": {
+      "get": {
+        "tags": [
+          "track-record"
+        ],
+        "summary": "Get How We Score",
+        "description": "The most recent clean, priced trade of each kind, for the worked\nexamples on \"How calls are tested\".",
+        "operationId": "get_how_we_score_api_how_we_score_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HowWeScorePage"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/dashboard-news": {
       "get": {
         "tags": [
@@ -1306,6 +1328,33 @@
         "title": "HistoryStats",
         "description": "Aggregates over the earnings history. Mirrors core.llm_context.TickerContext.\n\n`hit_rate` is null below 4 scored events on purpose \u2014 a single correct call\nreads as 100% accuracy and that number would get screenshotted. See\nMIN_EVENTS_FOR_HIT_RATE."
       },
+      "HowWeScorePage": {
+        "properties": {
+          "sell": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScoredExample"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "buy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScoredExample"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "title": "HowWeScorePage",
+        "description": "The most recent clean, priced trade of each kind, win or lose."
+      },
       "NewsItem": {
         "properties": {
           "title": {
@@ -1939,6 +1988,236 @@
           "close"
         ],
         "title": "PricePoint"
+      },
+      "ScoredExample": {
+        "properties": {
+          "ticker": {
+            "type": "string",
+            "title": "Ticker"
+          },
+          "report_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Report Date"
+          },
+          "report_session": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Report Session"
+          },
+          "verdict": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verdict"
+          },
+          "implied_move": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Implied Move"
+          },
+          "hist_avg_move": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hist Avg Move"
+          },
+          "realized_move": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Realized Move"
+          },
+          "structure": {
+            "type": "string",
+            "title": "Structure"
+          },
+          "side": {
+            "type": "string",
+            "title": "Side",
+            "description": "\"sell\" (collects premium) | \"buy\" (pays it)"
+          },
+          "entry_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entry Date"
+          },
+          "exit_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exit Date"
+          },
+          "entry": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entry",
+            "description": "per share; negative = a credit collected"
+          },
+          "exit": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exit"
+          },
+          "pnl_per_share": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pnl Per Share"
+          },
+          "capital": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capital",
+            "description": "per share at risk; pnl_pct's denominator"
+          },
+          "pnl_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pnl Pct"
+          },
+          "legs": {
+            "items": {
+              "$ref": "#/components/schemas/ScoredLeg"
+            },
+            "type": "array",
+            "title": "Legs",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "ticker",
+          "report_date",
+          "structure",
+          "side"
+        ],
+        "title": "ScoredExample",
+        "description": "One real scored trade, for the \"how calls are tested\" page."
+      },
+      "ScoredLeg": {
+        "properties": {
+          "action": {
+            "type": "string",
+            "title": "Action",
+            "description": "\"buy\" | \"sell\""
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "description": "\"call\" | \"put\""
+          },
+          "strike": {
+            "type": "number",
+            "title": "Strike"
+          },
+          "expiry": {
+            "type": "string",
+            "format": "date",
+            "title": "Expiry"
+          },
+          "entry": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entry",
+            "description": "per-share option price at entry"
+          },
+          "exit": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exit",
+            "description": "per-share option price at exit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "action",
+          "type",
+          "strike",
+          "expiry"
+        ],
+        "title": "ScoredLeg"
       },
       "SignalRow": {
         "properties": {

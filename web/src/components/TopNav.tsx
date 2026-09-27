@@ -30,6 +30,7 @@ const PRIMARY = [
 
 const MORE = [
   { href: "/track-record/", label: "Track record" },
+  { href: "/how-we-score/", label: "How calls are tested" },
   { href: "/simulator/", label: "Simulator" },
   { href: "/past-earnings/", label: "Past earnings" },
   { href: "/methodology/", label: "Methodology" },

@@ -499,3 +499,41 @@ class SiteIndex(BaseModel):
 
     generated_at: datetime
     tickers: list[TickerIndexEntry] = []
+
+
+class ScoredLeg(BaseModel):
+    action: str = Field(..., description='"buy" | "sell"')
+    type: str = Field(..., description='"call" | "put"')
+    strike: float
+    expiry: date
+    entry: float | None = Field(None, description="per-share option price at entry")
+    exit: float | None = Field(None, description="per-share option price at exit")
+
+
+class ScoredExample(BaseModel):
+    """One real scored trade, for the "how calls are tested" page."""
+
+    ticker: str
+    report_date: date
+    report_session: str | None = None
+    verdict: str | None = None
+    implied_move: float | None = None
+    hist_avg_move: float | None = None
+    realized_move: float | None = None
+    structure: str
+    side: str = Field(..., description='"sell" (collects premium) | "buy" (pays it)')
+    entry_date: date | None = None
+    exit_date: date | None = None
+    entry: float | None = Field(None, description="per share; negative = a credit collected")
+    exit: float | None = None
+    pnl_per_share: float | None = None
+    capital: float | None = Field(None, description="per share at risk; pnl_pct's denominator")
+    pnl_pct: float | None = None
+    legs: list[ScoredLeg] = []
+
+
+class HowWeScorePage(BaseModel):
+    """The most recent clean, priced trade of each kind, win or lose."""
+
+    sell: ScoredExample | None = None
+    buy: ScoredExample | None = None
