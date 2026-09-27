@@ -41,9 +41,9 @@ function summarize(record: TrackRecordData): string {
       return "Selling options when they looked expensive made money. Buying them when they looked cheap did not.";
     }
     if (sell > 0 && buy > 0) {
-      return "Both halves of this site's approach made money on the trades it suggested.";
+      return "Both kinds of call would have made money, traded the way we score them.";
     }
-    return "Neither half of this site's approach made money on the trades it suggested.";
+    return "Neither kind of call would have made money, traded the way we score them.";
   }
   if (sell !== null || buy !== null) {
     const only = sell ?? buy!;
@@ -99,15 +99,16 @@ export default async function TrackRecordPage() {
             <p className="text-[var(--color-body)]">
               When the options market looks like it&rsquo;s charging more than usual for a
               stock&rsquo;s expected move into earnings, this site calls that{" "}
-              <strong>RICH</strong> and suggests selling that premium (a defined-risk spread,
-              never a naked position) instead of buying it outright. When pricing looks
-              unusually low, that&rsquo;s <strong>CHEAP</strong>, and the suggestion flips to
-              buying.
+              <strong>RICH</strong>. To test whether that read is worth anything, every RICH
+              call is scored as if the premium had been sold through a defined-risk iron condor
+              (never a naked position). When pricing looks unusually low, that&rsquo;s{" "}
+              <strong>CHEAP</strong>, scored as if a straddle had been bought. These are tests
+              of the read, not trades we&rsquo;re telling anyone to place.
             </p>
             {record.structure_scored > 0 && (
               <p className="text-[var(--color-body)]">
-                Across {record.structure_scored} suggested trades priced at real option prices,
-                the two halves behaved very differently.{" "}
+                Across {record.structure_scored} scored trades priced at real option prices, the
+                two halves behaved very differently.{" "}
                 {sellAvg !== null && (
                   <>
                     Selling expensive options won{" "}
@@ -213,12 +214,12 @@ export default async function TrackRecordPage() {
           </dl>
         </Panel>
 
-        <Panel title="What the suggested trade actually returned">
+        <Panel title="What the scored trade would have returned">
           <dl className="grid grid-cols-2 gap-5 sm:grid-cols-4">
             <StatCard
               label="Selling: trades"
               value={String(record.structure_sell_scored)}
-              hint="Iron condors and credit spreads, suggested when options looked expensive."
+              hint="Iron condors (and, in older records, credit spreads): the structures scored on RICH calls."
             />
             <StatCard
               label="Selling: win rate"
@@ -238,12 +239,12 @@ export default async function TrackRecordPage() {
               label="Selling: worst case"
               value="Capped by design"
               tone="muted"
-              hint="Every suggested structure is defined-risk, so a loss is bounded by the width of the spread. No naked positions are ever recommended."
+              hint="Every scored structure is defined-risk, so a loss is bounded by the width of the spread. No naked positions are scored."
             />
             <StatCard
               label="Buying: trades"
               value={String(record.structure_buy_scored)}
-              hint="Straddles and debit spreads, suggested when options looked cheap."
+              hint="Straddles (and, in older records, debit spreads): the structures scored on CHEAP calls."
             />
             <StatCard
               label="Buying: win rate"
@@ -270,10 +271,9 @@ export default async function TrackRecordPage() {
           <p className="mt-5 border-t border-[var(--color-border-subtle)] pt-4 text-sm text-[var(--color-muted)]">
             Deliberately not combined into one number. The two sides point in opposite
             directions, so an average of them would describe neither. Only trades whose every
-            leg could be priced from real option bars are counted; a suggestion on a thinly
-            traded stock whose chain lacked the strikes the structure needs is recorded but left
-            out rather than guessed at, so this sample is smaller than the scored-event count
-            above.
+            leg could be priced from real option bars are counted; a call on a thinly traded
+            stock whose chain lacked the strikes the structure needs is recorded but left out
+            rather than guessed at, so this sample is smaller than the scored-event count above.
           </p>
         </Panel>
 
@@ -302,8 +302,7 @@ export default async function TrackRecordPage() {
               <>
                 {" "}
                 For reference, the unadjusted figure across every scored call (as if every call
-                had bought a straddle outright, which isn&apos;t what either verdict
-                recommends):{" "}
+                had bought a straddle outright, which isn&apos;t how either verdict is scored):{" "}
                 <span className="tnum font-medium text-[var(--color-heading)]">
                   {pct(record.avg_long_straddle_pnl)}
                 </span>

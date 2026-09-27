@@ -81,7 +81,7 @@ export function StrategyLegs({
   if (!plan.complete) {
     return (
       <Panel
-        title={`Suggested structure · ${suggestion.label}`}
+        title={`The structure we score · ${suggestion.label}`}
         empty={
           // Distinct from "no structure fits": one does, the chain just
           // doesn't list every strike it needs at this expiry.
@@ -95,7 +95,7 @@ export function StrategyLegs({
 
   return (
     <Panel
-      title={`Suggested structure · ${suggestion.label}`}
+      title={`The structure we score · ${suggestion.label}`}
       subtitle={`Built from the loaded chain at ${formatDateShort(expiry)}. One contract per leg: an illustration, not an order.`}
       bodyClassName="px-0 py-0"
     >
