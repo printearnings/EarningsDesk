@@ -39,9 +39,10 @@ body {
 
 /*
  * The editorial voice. Medium weight and tight tracking, per the system —
- * headings only, never data. Navy, not ink — this is the single biggest
- * lever for "the titles should have color": every page's H1 (TopBar) and
- * every AI-summary headline route through this class. Surfaces that sit on
+ * headings only, never data. Neutral title ink: in the terminal look the
+ * brand cyan marks what's interactive, so headings stay out of its way.
+ * Every page's H1 (TopBar) and every AI-summary headline route through
+ * this class. Surfaces that sit on
  * a dark band (the landing hero) override this with an explicit
  * !text-[var(--color-on-brand)], so this default never fights that case.
  */
@@ -49,7 +50,7 @@ body {
   font-family: var(--font-display);
   font-weight: 600;
   letter-spacing: -0.025em;
-  color: var(--color-brand);
+  color: var(--color-panel-title);
 }
 
 /*
@@ -210,4 +211,68 @@ body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/*
+ * ---- Landing page: the dark "terminal" scope ----
+ *
+ * The landing page (/) is always dark, independent of the app's light/dark
+ * setting: a near-black canvas, cool slate text and one cyan accent. Every
+ * value lives on `.landing` so none of it leaks into the (app) pages.
+ *
+ * The block also points the app's own tokens (--color-panel, --color-border,
+ * --color-heading...) at the dark palette, so shared components dropped into
+ * the landing page (TickerSearch, CompanyLogo) render dark with no
+ * landing-specific variant.
+ *
+ * The verdict hues keep the app's meaning: RICH is red and CHEAP is green,
+ * as elsewhere, and neither means good or bad. "Moved more than priced" is
+ * amber, a separate axis.
+ */
+.landing {
+  --l-base: #080b11;
+  --l-surface: #0b0e14;
+  --l-card: #111827;
+  --l-panel: #161f30;
+  --l-line: #1f293d;
+  --l-line-strong: #374151;
+  --l-accent: #00f2fe;
+  --l-accent-soft: #38bdf8;
+  --l-text: #f8fafc;
+  --l-muted: #94a3b8;
+  --l-subtle: #7b8aa1;
+
+  --l-rich: #fb7185;
+  --l-cheap: #34d399;
+  --l-fair: #94a3b8;
+  --l-outside: #fbbf24;
+
+  --color-page: var(--l-base);
+  --color-panel: var(--l-surface);
+  --color-panel-soft: var(--l-panel);
+  --color-border: var(--l-line);
+  --color-border-subtle: var(--l-line);
+  --color-heading: var(--l-text);
+  --color-body: #cbd5e1;
+  --color-muted: var(--l-muted);
+  --color-brand: var(--l-accent);
+
+  color-scheme: dark;
+  background: var(--l-base);
+  color: var(--color-body);
+}
+
+/* Overscroll and the strip under the cookie banner show <body>, which is
+   cream everywhere else. */
+body:has(.landing) {
+  background: #080b11;
+}
+
+/* Soft static glow behind the hero. A radial gradient, not a filter blur,
+   so it costs nothing to paint and doesn't move. */
+.landing-glow {
+  background:
+    radial-gradient(40rem 22rem at 50% -4rem, rgb(0 242 254 / 13%), transparent 70%),
+    radial-gradient(26rem 20rem at 78% 32rem, rgb(56 189 248 / 6%), transparent 70%),
+    radial-gradient(24rem 18rem at 20% 36rem, rgb(16 185 129 / 5%), transparent 70%);
 }

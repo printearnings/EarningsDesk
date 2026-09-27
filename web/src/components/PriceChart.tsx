@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import NumberFlow from "@number-flow/react";
 
 import type { EarningsHistoryRow, PricePoint } from "@/lib/api";
-import { compact, formatDate, formatDateShort, money } from "@/lib/format";
+import { compact, formatDate, formatDateShort, money, pctRange } from "@/lib/format";
 import type { MACDPoint } from "@/lib/useIndicators";
 import { useIndicators } from "@/lib/useIndicators";
 import { useIntradayChart } from "@/lib/useIntradayChart";
@@ -111,6 +111,29 @@ function axisLabel(range: Range, key: string): string {
   });
 }
 
+/** The move options are pricing for the next print, drawn as a band around
+ * the current price: spot x (1 +/- implied). Where the market expects the
+ * stock could plausibly land after the report, one standard move either way;
+ * it is a pricing fact, not a price target. */
+export interface ExpectedMove {
+  implied: number;
+  spot: number;
+}
+
+interface Band {
+  upper: number;
+  lower: number;
+  implied: number;
+}
+
+function bandEdges(band: Band) {
+  const pctText = `${(band.implied * 100).toFixed(1)}%`;
+  return [
+    { v: band.upper, label: `Upper ${money(band.upper)} (+${pctText})`, dy: -6 },
+    { v: band.lower, label: `Lower ${money(band.lower)} (-${pctText})`, dy: 13 },
+  ];
+}
+
 interface Point {
   key: string;
   label: string;
@@ -125,11 +148,23 @@ export function PriceChart({
   prices,
   events,
   ticker,
+  expectedMove = null,
 }: {
   prices: PricePoint[];
   events: EarningsHistoryRow[];
   ticker: string;
+  /** When given, a toggleable band (on by default) marks the implied move. */
+  expectedMove?: ExpectedMove | null;
 }) {
+  const [showBand, setShowBand] = useState(true);
+  const band: Band | null =
+    expectedMove && showBand
+      ? {
+          upper: expectedMove.spot * (1 + expectedMove.implied),
+          lower: expectedMove.spot * (1 - expectedMove.implied),
+          implied: expectedMove.implied,
+        }
+      : null;
   const [range, setRange] = useState<Range>("1d");
   const [chartType, setChartType] = useState<ChartType>("line");
   const [live, setLive] = useState(false);
@@ -240,7 +275,7 @@ export function PriceChart({
       {/* flex-wrap: the right-hand group (live indicator, line/candle toggle,
           settings) doesn't fit next to the range toggle below ~400px wide —
           without wrap it doesn't shrink to fit, it overflows the card. */}
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-y-2">
+      <div className="mb-3 flex flex-wrap items-center gap-y-2">
         <div className="inline-flex shrink-0 rounded-[var(--radius-sm)] border border-[var(--color-border)] p-0.5">
           {RANGES.map((r) => (
             <button
@@ -258,6 +293,27 @@ export function PriceChart({
             </button>
           ))}
         </div>
+
+        {expectedMove && (
+          <button
+            type="button"
+            onClick={() => setShowBand((v) => !v)}
+            aria-pressed={showBand}
+            className={`pressable ml-2 inline-flex shrink-0 items-center gap-1.5 rounded-[var(--radius-sm)] border px-2.5 py-1 text-sm transition-colors ${
+              showBand
+                ? "border-[var(--color-viz-band)] text-[var(--color-viz-band)]"
+                : "border-[var(--color-border)] text-[var(--color-muted)] hover:bg-[var(--color-panel-soft)]"
+            }`}
+            title="Band around the current price, sized by the move options are pricing for the next report"
+          >
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${showBand ? "bg-[var(--color-viz-band)]" : "bg-[var(--color-border)]"}`}
+              aria-hidden
+            />
+            Expected move {pctRange(expectedMove.implied)}
+          </button>
+        )}
+        <span className="flex-1" />
 
         <div className="flex shrink-0 flex-wrap items-center gap-3">
           {range === "1d" && points.length > 0 && (
@@ -391,6 +447,7 @@ export function PriceChart({
           rsi14={indicators?.rsi14}
           macd={indicators?.macd}
           partialSessionFraction={partialSessionFraction}
+          band={band}
         />
       )}
     </figure>
@@ -499,6 +556,7 @@ function ChartBody({
   rsi14,
   macd,
   partialSessionFraction,
+  band = null,
 }: {
   points: Point[];
   markerDates: Set<string>;
@@ -516,6 +574,9 @@ function ChartBody({
    * stretching a partial session to fill the full chart. `null` to use the
    * full width, same as before this existed. */
   partialSessionFraction?: number | null;
+  /** Expected-move band; its edges are folded into the y-domain so the
+   * band is always fully on screen. */
+  band?: Band | null;
 }) {
   const [hover, setHover] = useState<number | null>(null);
   // An earnings badge the reader clicked, by its point key. Separate from
@@ -578,8 +639,8 @@ function ChartBody({
     // toggling chart type.
     const highs = visible.map((p) => p.high ?? p.close);
     const lows = visible.map((p) => p.low ?? p.close);
-    const min = Math.min(...lows);
-    const max = Math.max(...highs);
+    const min = Math.min(...lows, ...(band ? [band.lower] : []));
+    const max = Math.max(...highs, ...(band ? [band.upper] : []));
     // A flat series would divide by zero; pad so it renders as a centered
     // horizontal line rather than vanishing.
     const span = max - min || Math.max(max * 0.02, 0.01);
@@ -694,6 +755,7 @@ function ChartBody({
     enabledIndicators,
     zoom,
     partialSessionFraction,
+    band,
   ]);
 
   // Volume/RSI/MACD sub-panels — each its own tiny chart, sharing `chart.x`
@@ -1044,6 +1106,31 @@ function ChartBody({
             </text>
           ))}
 
+          {band && (
+            <g>
+              <rect
+                x={PAD.left}
+                y={chart.y(band.upper)}
+                width={W - PAD.left - PAD.right}
+                height={Math.max(0, chart.y(band.lower) - chart.y(band.upper))}
+                fill="var(--color-viz-band)"
+                fillOpacity={0.05}
+              />
+              {bandEdges(band).map((edge) => (
+                <line
+                  key={edge.label}
+                  x1={PAD.left}
+                  x2={W - PAD.right}
+                  y1={chart.y(edge.v)}
+                  y2={chart.y(edge.v)}
+                  stroke="var(--color-viz-band)"
+                  strokeWidth={1.25}
+                  strokeDasharray="5 4"
+                />
+              ))}
+            </g>
+          )}
+
           {/* SMA/EMA overlays render under the price line so the primary
               series stays the most prominent mark on the chart. */}
           {chart.smaLine && (
@@ -1166,6 +1253,27 @@ function ChartBody({
             </g>
           ))}
 
+          {/* Band labels after the series, with a surface-colored halo, so
+              the price line never strikes through them. */}
+          {band &&
+            bandEdges(band).map((edge) => (
+              <text
+                key={edge.label}
+                x={W - PAD.right - 4}
+                y={chart.y(edge.v) + edge.dy}
+                textAnchor="end"
+                fontSize={10}
+                fontWeight={600}
+                className="tnum pointer-events-none text-[20px] sm:text-[10px]"
+                fill="var(--color-viz-band)"
+                stroke="var(--color-panel)"
+                strokeWidth={4}
+                paintOrder="stroke"
+              >
+                {edge.label}
+              </text>
+            ))}
+
           {/* Not gated on `!pan` — a mouse only sets `pan` while actually
               dragging, but touch sets it on every finger-down (panning is a
               no-op unless zoomed), so gating on it hid the crosshair for
@@ -1223,7 +1331,7 @@ function ChartBody({
               </div>
             )}
             {onMarker && (
-              <div className="mt-1 tracking-[0.06em] text-[var(--color-viz-realized)] text-[var(--text-2xs)] uppercase">
+              <div className="mt-1 text-[length:var(--text-2xs)] tracking-[0.06em] text-[var(--color-viz-realized)] uppercase">
                 Earnings
               </div>
             )}
@@ -1242,7 +1350,7 @@ function ChartBody({
             }}
           >
             <div className="mb-1 flex items-center gap-2 border-b border-[var(--color-border-subtle)] pb-1">
-              <span className="tracking-[0.06em] text-[var(--color-viz-realized)] text-[var(--text-2xs)] uppercase">
+              <span className="text-[length:var(--text-2xs)] tracking-[0.06em] text-[var(--color-viz-realized)] uppercase">
                 Earnings
               </span>
               <button

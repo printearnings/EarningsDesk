@@ -24,6 +24,7 @@ export function Panel({
   empty,
   children,
   bodyClassName = "px-5 py-5",
+  className = "",
 }: {
   /**
    * Optional: a panel living inside a tab whose tab label already names it
@@ -44,10 +45,13 @@ export function Panel({
   empty?: ReactNode;
   children?: ReactNode;
   bodyClassName?: string;
+  /** Extra classes on the card itself, e.g. `h-full flex flex-col` so a row
+   * of panels can share one height (pair with a `flex-1` bodyClassName). */
+  className?: string;
 }) {
   return (
     <section
-      className="rounded-[var(--radius-panel)]"
+      className={`rounded-[var(--radius-panel)] border border-[var(--color-panel-edge)] ${className}`}
       style={{ background: "var(--gradient-tile)", boxShadow: "var(--shadow-card)" }}
     >
       {(title || subtitle || action) && (
@@ -122,7 +126,7 @@ export function Stat({
 export function StatCard(props: Parameters<typeof Stat>[0]) {
   return (
     <div
-      className="rounded-[var(--radius-panel)] px-5 py-4"
+      className="rounded-[var(--radius-panel)] border border-[var(--color-panel-edge)] px-5 py-4"
       style={{ background: "var(--gradient-tile)", boxShadow: "var(--shadow-card)" }}
     >
       <Stat {...props} />

@@ -348,6 +348,11 @@ class CalendarEntry(BaseModel):
     hist_avg_move: float | None = None
     edge_score: float | None = None
     spot: float | None = Field(None, description="current price, not point-in-time at report_date")
+    atm_open_interest: int | None = Field(
+        None,
+        description="contracts at the at-the-money strike, latest snapshot; low = wide spreads, "
+        "hard to fill",
+    )
 
 
 class CalendarPage(BaseModel):
@@ -394,6 +399,9 @@ class SignalRow(BaseModel):
     verdict: str | None = None
     direction: str | None = None
     implied_move: float | None = None
+    hist_avg_move: float | None = Field(
+        None, description="typical move when the signal was taken; implied / this = priced multiple"
+    )
     edge_score: float | None = None
     confidence: float | None = None
     spot: float | None = Field(None, description="current price, not the price at run_date")
@@ -458,6 +466,21 @@ class TrackRecordPage(BaseModel):
     structure_buy_scored: int = 0
     structure_buy_win_rate: float | None = None
     structure_buy_avg_pnl_pct: float | None = None
+    # The restatement: rich/cheap figures above count only calls whose implied
+    # move was measured on an expiry right after the print. These say what
+    # was left out, and what the headline was before.
+    excluded_far_expiry: int = Field(
+        0, description="rich/cheap calls excluded: implied move measured off a far expiry"
+    )
+    unverified: int = Field(0, description="rich/cheap calls with no expiry on file")
+    all_directional: int = Field(0, description="every scored rich/cheap call, pre-restatement")
+    all_correct: int = 0
+    all_accuracy: float | None = None
+    direction_earned: bool = Field(
+        False,
+        description="true once the directional lean clears the engine's gate (100+ scored reads "
+        "at 55%+); until then the site hides it",
+    )
 
 
 class TickerIndexEntry(BaseModel):

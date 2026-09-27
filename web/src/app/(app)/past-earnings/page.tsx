@@ -1,7 +1,7 @@
 import { PastEarningsTable } from "@/components/PastEarningsTable";
 import { Panel } from "@/components/Panel";
 import { TopBar } from "@/components/TopBar";
-import { getIndex, getPastEarnings } from "@/lib/api";
+import { getIndex, getPastEarnings, getTrackRecord } from "@/lib/api";
 
 export const metadata = { title: "Past earnings | PrintEarnings" };
 
@@ -13,7 +13,11 @@ export const metadata = { title: "Past earnings | PrintEarnings" };
  * rather than one endless scroll.
  */
 export default async function PastEarningsPage() {
-  const [index, data] = await Promise.all([getIndex(), getPastEarnings()]);
+  const [index, data, record] = await Promise.all([
+    getIndex(),
+    getPastEarnings(),
+    getTrackRecord(),
+  ]);
 
   return (
     <>
@@ -25,7 +29,7 @@ export default async function PastEarningsPage() {
           bodyClassName="px-0 py-0"
           empty={data.rows.length === 0 ? "No earnings history recorded yet." : undefined}
         >
-          <PastEarningsTable rows={data.rows} />
+          <PastEarningsTable rows={data.rows} showDirection={record.direction_earned} />
         </Panel>
       </div>
     </>

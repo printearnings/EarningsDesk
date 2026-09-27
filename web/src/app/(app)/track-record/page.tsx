@@ -1,7 +1,10 @@
+import { CheapStoryCallout } from "@/components/CheapStory";
+import { RestatementNote } from "@/components/RestatementNote";
 import { Panel, StatCard } from "@/components/Panel";
 import { TopBar } from "@/components/TopBar";
 import { getIndex, getTrackRecord } from "@/lib/api";
 import { pct } from "@/lib/format";
+import { directionNote } from "@/lib/insights";
 import type { TrackRecordPage as TrackRecordData } from "@/lib/types";
 
 export const metadata = { title: "Track record | PrintEarnings" };
@@ -87,6 +90,9 @@ export default async function TrackRecordPage() {
       <TopBar title="Track record" eyebrow="Scored against reality" tickers={index.tickers} />
 
       <div className="space-y-6 px-6 py-6">
+        <RestatementNote record={record} />
+        <CheapStoryCallout record={record} showLink={false} />
+
         <Panel title="The bottom line">
           <div className="space-y-3">
             <p className="display text-xl">{summarize(record)}</p>
@@ -320,6 +326,13 @@ export default async function TrackRecordPage() {
               hint="Withheld below four scored calls. 50% is a coin flip."
             />
           </dl>
+          {directionNote(record) && (
+            <p className="mt-5 border-t border-[var(--color-border-subtle)] pt-4 text-sm text-[var(--color-muted)]">
+              {directionNote(record)} Until then it stays off ticker pages and signal lists, and
+              Discord posts it as experimental with no named contract. It keeps being scored
+              here every day, so it can earn its way back.
+            </p>
+          )}
         </Panel>
 
         <p className="max-w-3xl text-sm text-[var(--color-muted)]">

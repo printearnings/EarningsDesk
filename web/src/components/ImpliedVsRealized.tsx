@@ -208,7 +208,7 @@ export function ImpliedVsRealized({ rows }: { rows: EarningsHistoryRow[] }) {
               </span>
             </div>
             <div
-              className={`mt-1 border-t border-[var(--color-border-subtle)] pt-1 tracking-[0.06em] text-[var(--text-2xs)] uppercase ${
+              className={`mt-1 border-t border-[var(--color-border-subtle)] pt-1 text-[length:var(--text-2xs)] tracking-[0.06em] uppercase ${
                 point.beatImplied
                   ? "text-[var(--color-verdict-cheap)]"
                   : "text-[var(--color-verdict-rich)]"

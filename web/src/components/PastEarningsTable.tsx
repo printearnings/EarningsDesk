@@ -41,7 +41,15 @@ type SortDir = "asc" | "desc";
  * — 281+ rows is a lot to scan for one name, and the global search box
  * navigates away rather than narrowing this table.
  */
-export function PastEarningsTable({ rows }: { rows: PastEarningsRow[] }) {
+export function PastEarningsTable({
+  rows,
+  showDirection = true,
+}: {
+  rows: PastEarningsRow[];
+  /** False while the directional lean hasn't earned its place (the
+   * track record's `direction_earned`): hides the direction filter/chips. */
+  showDirection?: boolean;
+}) {
   const [verdicts, setVerdicts] = useState<Set<string>>(() => new Set());
   const [directions, setDirections] = useState<Set<string>>(() => new Set());
   const [tickerQuery, setTickerQuery] = useState("");
@@ -103,14 +111,18 @@ export function PastEarningsTable({ rows }: { rows: PastEarningsRow[] }) {
           onToggle={(v) => toggleInSet(verdicts, setVerdicts, v)}
         />
         <FilterDivider />
-        <FilterGroup
-          label="Direction"
-          options={DIRECTIONS}
-          active={directions}
-          dotClass={DIRECTION_DOT}
-          onToggle={(v) => toggleInSet(directions, setDirections, v)}
-        />
-        <FilterDivider />
+        {showDirection && (
+          <>
+            <FilterGroup
+              label="Direction"
+              options={DIRECTIONS}
+              active={directions}
+              dotClass={DIRECTION_DOT}
+              onToggle={(v) => toggleInSet(directions, setDirections, v)}
+            />
+            <FilterDivider />
+          </>
+        )}
         <div className="flex items-center gap-1.5">
           <span className="eyebrow text-[var(--color-muted)]">Ticker</span>
           <input
@@ -209,7 +221,7 @@ export function PastEarningsTable({ rows }: { rows: PastEarningsRow[] }) {
                   <td className="px-4 py-2.5">
                     {pctSigned(r.gap_open_pct)}
                     {r.gap_filled === true && (
-                      <span className="ml-1.5 tracking-[0.06em] text-[var(--color-muted)] text-[var(--text-2xs)] uppercase">
+                      <span className="ml-1.5 text-[length:var(--text-2xs)] tracking-[0.06em] text-[var(--color-muted)] uppercase">
                         filled
                       </span>
                     )}
@@ -218,7 +230,7 @@ export function PastEarningsTable({ rows }: { rows: PastEarningsRow[] }) {
                   <td className="px-4 py-2.5">
                     <span className="flex gap-1.5">
                       <VerdictChip verdict={r.verdict} />
-                      <DirectionChip direction={r.direction} />
+                      {showDirection && <DirectionChip direction={r.direction} />}
                     </span>
                   </td>
                 </tr>

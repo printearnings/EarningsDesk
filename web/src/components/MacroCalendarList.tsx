@@ -25,7 +25,7 @@ const TYPE_DOT: Record<string, string> = {
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 /** Calendar-local weekday, same UTC-shift-avoidance rationale as
- * MonthCalendar's `iso()` — parsing via `new Date(iso)` directly would read
+ * the calendar's `isoOf()` (components/calendar/shared) — parsing via `new Date(iso)` directly would read
  * a date near midnight UTC as the wrong local day. */
 function weekday(iso: string): string {
   const [y, m, d] = iso.slice(0, 10).split("-").map(Number);
@@ -36,7 +36,7 @@ function weekday(iso: string): string {
  * Upcoming FOMC decisions and CPI releases — the two macro dates that move
  * every ticker at once, not just the one reporting earnings that week.
  * Client-filtered over one small static list (see lib/macroEvents.ts) the
- * same way MonthCalendar filters its one-payload window — twenty events a
+ * same way the earnings calendar filters its one-payload window — twenty events a
  * year doesn't need pagination or a network round trip per filter change.
  */
 export function MacroCalendarList({ events }: { events: MacroEvent[] }) {

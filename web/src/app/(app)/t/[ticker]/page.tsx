@@ -1,15 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 
 import { DirectionChip, VerdictChip } from "@/components/Chip";
 import { CompanyLogo } from "@/components/CompanyLogo";
 import { Eyebrow, Panel } from "@/components/Panel";
 import { TickerTabs } from "@/components/TickerTabs";
-import { TopBar } from "@/components/TopBar";
+import { Card, pricedMultiple } from "@/components/TickerOverview";
 import { getIndex, getTicker, getTrackRecord } from "@/lib/api";
 import type { TickerPage as TickerData, TrackRecordPage } from "@/lib/api";
-import { EMPTY, formatAge, formatDateShort, money, pct } from "@/lib/format";
+import { formatAge, formatDateShort, money, pct } from "@/lib/format";
 
 // Wider than the engine's own DIRECTION_LOOKAHEAD_DAYS (3) on purpose: a
 // reader within this window but before the read exists should see "not yet"
@@ -29,23 +28,18 @@ export async function generateMetadata({ params }: { params: Promise<{ ticker: s
 
 export default async function TickerPage({ params }: { params: Promise<{ ticker: string }> }) {
   const { ticker } = await params;
-  const [index, data, record] = await Promise.all([
-    getIndex(),
-    getTicker(ticker),
-    getTrackRecord(),
-  ]);
+  const [data, record] = await Promise.all([getTicker(ticker), getTrackRecord()]);
   if (!data) notFound();
 
   return (
     <>
-      <TopBar
-        title={data.ticker}
-        eyebrow={data.is_tracked ? "Tracked" : "Cold lookup"}
-        tickers={index.tickers}
-      />
+      <h1 className="sr-only">
+        {data.ticker}
+        {data.company_name ? `, ${data.company_name}` : ""} earnings
+      </h1>
 
       <div className="space-y-6 px-6 py-6">
-        <SubHeader data={data} record={record} />
+        <TickerHeader data={data} record={record} />
 
         {data.is_stale && (
           <p className="rounded-[var(--radius-sm)] border border-[var(--color-warning)]/30 bg-[var(--color-warning-bg)] px-4 py-3 text-sm text-[var(--color-warning)]">
@@ -60,146 +54,183 @@ export default async function TickerPage({ params }: { params: Promise<{ ticker:
             the Overview tab; peers moved to their own tab. */}
         {data.ai_summary && <AiPanel data={data} />}
 
-        {/* useSearchParams (for the tab-in-URL persistence) requires a
-            Suspense boundary during static prerendering. */}
-        <Suspense fallback={<p className="text-sm text-[var(--color-muted)]">Loading…</p>}>
-          <TickerTabs data={data} />
-        </Suspense>
+        {/* No Suspense boundary: TickerTabs reads ?tab= without
+            useSearchParams, so the Overview is in the static HTML. */}
+        <TickerTabs data={data} showDirection={record.direction_earned} />
       </div>
     </>
   );
 }
 
-function SubHeader({ data, record }: { data: TickerData; record: TrackRecordPage }) {
-  const showVerdictRecord = Boolean(data.options?.verdict);
-  const showDirectionRecord = Boolean(data.direction);
+/**
+ * The identity strip at the top of the page: who this is and what options are
+ * pricing, on one card. The ticker is in mono brand color, the price sits
+ * beside the verdict, and the site-wide record for each kind of call sits
+ * right under the claim, so the claim is never shown without its record.
+ */
+function TickerHeader({ data, record }: { data: TickerData; record: TrackRecordPage }) {
+  const verdict = data.options?.verdict ?? null;
+  const multiple = pricedMultiple(data);
+  const verdictAccuracy = typeof record.accuracy === "number" ? record.accuracy : null;
 
   return (
-    <header className="flex flex-wrap items-start justify-between gap-4">
-      <div>
+    <Card className="flex flex-wrap items-center justify-between gap-x-8 gap-y-5 px-5 py-5">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-5 gap-y-3">
+        <div className="flex items-center gap-3">
+          <CompanyLogo ticker={data.ticker} domain={data.company_domain} size={28} />
+          <span className="font-mono text-3xl font-bold tracking-tight text-[var(--color-brand)]">
+            {data.ticker}
+          </span>
+        </div>
         {data.company_name && (
-          <div className="mb-1 flex items-center gap-1.5">
-            <CompanyLogo ticker={data.ticker} domain={data.company_domain} size={16} />
-            <span className="text-sm text-[var(--color-muted)]">{data.company_name}</span>
-          </div>
+          <span className="max-w-56 text-sm leading-snug font-semibold text-[var(--color-heading)]">
+            {data.company_name}
+          </span>
         )}
+        <span className="hidden h-8 w-px bg-[var(--color-border)] sm:block" aria-hidden />
+        <div className="flex flex-wrap items-center gap-2">
+          <HeaderChip>{data.is_tracked ? "Tracked" : "Cold lookup"}</HeaderChip>
+          {data.as_of && (
+            <HeaderChip tone={data.is_stale ? "warning" : "muted"}>
+              Updated {formatAge(data.snapshot_age_hours)}
+            </HeaderChip>
+          )}
+        </div>
+      </div>
 
-        <div className="flex items-baseline gap-3">
-          <span className="text-2xl font-semibold text-[var(--color-heading)]">
+      <div className="flex flex-col items-start gap-2.5 sm:items-end">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <span className="tnum font-mono text-3xl font-bold text-[var(--color-heading)]">
             {money(data.spot)}
           </span>
-          {data.options?.verdict && <VerdictChip verdict={data.options.verdict} />}
-          {data.direction && <DirectionChip direction={data.direction} />}
+          <VerdictChip verdict={verdict} />
+          {data.direction && record.direction_earned && (
+            <DirectionChip direction={data.direction} />
+          )}
+          {multiple !== null && verdict && (
+            <span
+              className="hidden items-center gap-1.5 rounded-[var(--radius-sm)] border border-[var(--color-border)] px-2.5 py-1 font-mono text-xs text-[var(--color-body)] md:inline-flex"
+              title="Implied move divided by this stock's typical post-earnings move"
+            >
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${
+                  verdict === "RICH"
+                    ? "bg-[var(--color-verdict-rich)]"
+                    : verdict === "CHEAP"
+                      ? "bg-[var(--color-verdict-cheap)]"
+                      : "bg-[var(--color-verdict-fair)]"
+                }`}
+                aria-hidden
+              />
+              Priced {multiple.toFixed(1)}× its typical move
+            </span>
+          )}
         </div>
 
-        {/* These were two dot-separated prose lines in muted small text —
-            four distinct numbers a reader has to parse a sentence to find.
-            As labelled micro-tiles each value is scannable on its own, and
-            the label carries the meaning the prose was spending words on. */}
-        {(data.direction || showVerdictRecord || showDirectionRecord) && (
-          <div className="mt-3 flex flex-wrap items-stretch gap-2">
-            {data.direction && typeof data.direction_confidence === "number" && (
-              <MicroStat
-                label="Confidence"
-                value={pct(data.direction_confidence, 0)}
-                hint="How strongly the options flow and sentiment agree on this direction."
-              />
+        {verdict && (
+          <Link
+            href="/track-record/"
+            className="flex items-center gap-2.5 rounded-[var(--radius-sm)] border border-[var(--color-border)] px-2.5 py-1.5 font-mono text-[11px] text-[var(--color-muted)] transition-colors hover:text-[var(--color-heading)]"
+            title="How often a rich/cheap call has been right, site-wide. Misses included."
+          >
+            <span className="tracking-[0.06em] uppercase">Rich/cheap calls</span>
+            {verdictAccuracy === null ? (
+              <span>not enough history</span>
+            ) : (
+              <>
+                <span className="font-semibold text-[var(--color-heading)]">
+                  {pct(verdictAccuracy, 0)}
+                </span>
+                <span>
+                  ({record.correct}/{record.directional})
+                </span>
+                <span className="h-1 w-16 overflow-hidden rounded-full bg-[var(--color-panel-soft)]">
+                  <span
+                    className="block h-full rounded-full bg-[var(--color-brand)]"
+                    style={{ width: `${verdictAccuracy * 100}%` }}
+                  />
+                </span>
+              </>
             )}
-            {data.direction && data.direction_as_of && (
-              <MicroStat
-                label="Read as of"
-                value={formatDateShort(data.direction_as_of)}
-                hint="When the directional read was last refreshed."
-              />
-            )}
-            {showVerdictRecord && (
-              <MicroStat
-                label="Verdict calls"
-                value={record.accuracy === null ? EMPTY : pct(record.accuracy, 0)}
-                sub={
-                  record.accuracy === null
-                    ? "not enough history"
-                    : `${record.correct}/${record.scored} right`
-                }
-                hint="How often a rich/cheap call has been right, site-wide."
-              />
-            )}
-            {showDirectionRecord && (
-              <MicroStat
-                label="Direction calls"
-                value={record.dir_accuracy === null ? EMPTY : pct(record.dir_accuracy, 0)}
-                sub={
-                  record.dir_accuracy === null
-                    ? "not enough history"
-                    : `${record.dir_correct}/${record.dir_scored} right`
-                }
-                hint="How often a bullish/bearish call has been right, site-wide."
-              />
-            )}
-          </div>
-        )}
-
-        {data.direction ? (
-          <p className="mt-2 text-sm text-[var(--color-muted)]">
-            Options flow + sentiment, not a recommendation ·{" "}
-            <Link href="/track-record/" className="underline underline-offset-2">
-              Track record
-            </Link>
-          </p>
-        ) : (
-          typeof data.days_until_report === "number" &&
-          data.days_until_report >= 0 &&
-          data.days_until_report <= DIRECTION_HEADS_UP_DAYS && (
-            <p className="mt-2 text-sm text-[var(--color-muted)]">
-              Directional read not available yet. It starts a few days before the report.
-            </p>
-          )
+            <span aria-hidden>→</span>
+          </Link>
         )}
       </div>
 
-      <div className="text-right">
-        {/* Cached pricing always carries its age. A number without a timestamp
-            invites someone to trade on it as if it were live. */}
-        <Eyebrow>{data.as_of ? "Last updated" : "No snapshot"}</Eyebrow>
-        <p className="mt-1 text-sm text-[var(--color-body)]">
-          {data.as_of ? formatAge(data.snapshot_age_hours) : EMPTY}
-        </p>
-        {!data.is_tracked && (
-          <p className="mt-1 text-sm text-[var(--color-warning)]">
-            Not one of our closely-tracked names, so no signal history
-          </p>
-        )}
-      </div>
-    </header>
+      <DirectionNote data={data} record={record} />
+    </Card>
   );
 }
 
 /**
- * A compact bordered tile for the sub-header's credibility numbers —
- * smaller than the KPI row's StatCard, which would overpower the price
- * and verdict chips it sits under. Same visual language (border, panel
- * fill, eyebrow label), one step down in scale.
+ * The directional lean is a separate, weaker claim than the pricing call. Its
+ * site-wide accuracy goes right next to it, including when that accuracy is
+ * below a coin flip.
  */
-function MicroStat({
-  label,
-  value,
-  sub,
-  hint,
+function DirectionNote({ data, record }: { data: TickerData; record: TrackRecordPage }) {
+  // Below the gate the lean isn't shown at all, so there's nothing to hedge
+  // here. The track record page says why and keeps scoring it.
+  if (data.direction && !record.direction_earned) {
+    return null;
+  }
+  if (data.direction) {
+    return (
+      <p className="w-full border-t border-[var(--color-border-subtle)] pt-3 text-sm text-[var(--color-muted)]">
+        Leans{" "}
+        <span className="font-medium text-[var(--color-heading)]">
+          {data.direction.toLowerCase()}
+        </span>
+        {typeof data.direction_confidence === "number" &&
+          ` at ${pct(data.direction_confidence, 0)} confidence`}
+        {data.direction_as_of && ` (as of ${formatDateShort(data.direction_as_of)})`}. Options
+        flow and sentiment, not a recommendation.
+        {typeof record.dir_accuracy === "number" &&
+          ` The lean has been right ${pct(record.dir_accuracy, 0)} of the time site-wide (${record.dir_correct}/${record.dir_scored}).`}{" "}
+        <Link href="/track-record/" className="underline underline-offset-2">
+          Track record
+        </Link>
+      </p>
+    );
+  }
+  if (
+    record.direction_earned &&
+    typeof data.days_until_report === "number" &&
+    data.days_until_report >= 0 &&
+    data.days_until_report <= DIRECTION_HEADS_UP_DAYS
+  ) {
+    return (
+      <p className="w-full border-t border-[var(--color-border-subtle)] pt-3 text-sm text-[var(--color-muted)]">
+        Directional read not available yet. It starts a few days before the report.
+      </p>
+    );
+  }
+  if (!data.is_tracked) {
+    return (
+      <p className="w-full border-t border-[var(--color-border-subtle)] pt-3 text-sm text-[var(--color-warning)]">
+        Not one of our closely-tracked names, so no signal history.
+      </p>
+    );
+  }
+  return null;
+}
+
+function HeaderChip({
+  children,
+  tone = "muted",
 }: {
-  label: string;
-  value: string;
-  sub?: string;
-  hint?: string;
+  children: React.ReactNode;
+  tone?: "muted" | "warning";
 }) {
   return (
-    <div
-      className="rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-panel)] px-3 py-2"
-      title={hint}
+    <span
+      className={`rounded-[4px] border px-2 py-1 font-mono text-[10px] font-semibold tracking-[0.08em] uppercase ${
+        tone === "warning"
+          ? "border-[var(--color-warning)]/40 text-[var(--color-warning)]"
+          : "border-[var(--color-border)] text-[var(--color-muted)]"
+      }`}
     >
-      <p className="eyebrow text-[var(--color-muted)]">{label}</p>
-      <p className="tnum mt-0.5 text-sm font-semibold text-[var(--color-heading)]">{value}</p>
-      {sub && <p className="tnum text-2xs mt-0.5 text-[var(--color-muted)]">{sub}</p>}
-    </div>
+      {children}
+    </span>
   );
 }
 

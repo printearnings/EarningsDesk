@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 
 import { CookieBanner } from "@/components/CookieBanner";
@@ -13,11 +13,16 @@ import "./globals.css";
  * The chrome (sidebar, top bar) lives in the (app) route group instead, so the
  * landing page at / can render full-bleed without it.
  *
- * One typeface everywhere — Geist (a variable font, so every weight ships in
- * one file). next/font self-hosts it at build time, so the static export ships
+ * One typeface family — Geist (a variable font, so every weight ships in
+ * one file), with Geist Mono for tickers, figures and terminal-style labels. next/font self-hosts it at build time, so the static export ships
  * it as a file — no runtime request to Google.
  */
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist", display: "swap" });
+const geistMono = Geist_Mono({
+  subsets: ["latin"],
+  variable: "--font-geist-mono",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "PrintEarnings",
@@ -32,7 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="en"
-      className={geist.variable}
+      className={`${geist.variable} ${geistMono.variable}`}
       suppressHydrationWarning
     >
       <head>

@@ -605,6 +605,7 @@ def calendar_page(
                 hist_avg_move=snap.hist_avg_move if snap else None,
                 edge_score=snap.edge_score if snap else None,
                 spot=snap.spot if snap else None,
+                atm_open_interest=snap.atm_open_interest if snap else None,
             )
             continue
 
@@ -635,6 +636,8 @@ def signals_page(
                 verdict=r.verdict,
                 direction=r.direction,
                 implied_move=r.implied_move,
+                # getattr: tolerate an engine build from before the field existed.
+                hist_avg_move=getattr(r, "hist_avg_move", None),
                 edge_score=r.edge_score,
                 confidence=r.confidence,
                 spot=_resolve_spot(r.ticker, snapshots, latest_close),
@@ -670,4 +673,11 @@ def track_record_page(record: TrackRecord) -> TrackRecordPage:
         structure_buy_scored=record.structure_buy_scored,
         structure_buy_win_rate=record.structure_buy_win_rate,
         structure_buy_avg_pnl_pct=record.structure_buy_avg_pnl_pct,
+        # getattr: an engine build from before the gate existed reads as not earned.
+        direction_earned=getattr(record, "direction_earned", False),
+        excluded_far_expiry=getattr(record, "excluded_far_expiry", 0),
+        unverified=getattr(record, "unverified", 0),
+        all_directional=getattr(record, "all_directional", record.directional),
+        all_correct=getattr(record, "all_correct", record.correct),
+        all_accuracy=getattr(record, "all_accuracy", record.accuracy),
     )

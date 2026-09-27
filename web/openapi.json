@@ -492,6 +492,18 @@
             ],
             "title": "Spot",
             "description": "current price, not point-in-time at report_date"
+          },
+          "atm_open_interest": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Atm Open Interest",
+            "description": "contracts at the at-the-money strike, latest snapshot; low = wide spreads, hard to fill"
           }
         },
         "type": "object",
@@ -1982,6 +1994,18 @@
             ],
             "title": "Implied Move"
           },
+          "hist_avg_move": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hist Avg Move",
+            "description": "typical move when the signal was taken; implied / this = priced multiple"
+          },
           "edge_score": {
             "anyOf": [
               {
@@ -2663,6 +2687,46 @@
               }
             ],
             "title": "Structure Buy Avg Pnl Pct"
+          },
+          "excluded_far_expiry": {
+            "type": "integer",
+            "title": "Excluded Far Expiry",
+            "description": "rich/cheap calls excluded: implied move measured off a far expiry",
+            "default": 0
+          },
+          "unverified": {
+            "type": "integer",
+            "title": "Unverified",
+            "description": "rich/cheap calls with no expiry on file",
+            "default": 0
+          },
+          "all_directional": {
+            "type": "integer",
+            "title": "All Directional",
+            "description": "every scored rich/cheap call, pre-restatement",
+            "default": 0
+          },
+          "all_correct": {
+            "type": "integer",
+            "title": "All Correct",
+            "default": 0
+          },
+          "all_accuracy": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "All Accuracy"
+          },
+          "direction_earned": {
+            "type": "boolean",
+            "title": "Direction Earned",
+            "description": "true once the directional lean clears the engine's gate (100+ scored reads at 55%+); until then the site hides it",
+            "default": false
           }
         },
         "type": "object",

@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { motion } from "motion/react";
-import { useRouter, useSearchParams } from "next/navigation";
 
 import { AnalystRatings } from "@/components/AnalystRatings";
 import { DirectionChip, SessionChip, VerdictChip } from "@/components/Chip";
@@ -15,9 +14,10 @@ import { NewsThumbnail } from "@/components/NewsThumbnail";
 import { OpenInterestChart } from "@/components/OpenInterestChart";
 import { OptionsSimulator } from "@/components/OptionsSimulator";
 import { Pagination } from "@/components/Pagination";
-import { Panel, Stat, StatCard } from "@/components/Panel";
+import { Panel, Stat } from "@/components/Panel";
 import { PeersPanel } from "@/components/PeersPanel";
 import { PriceChart } from "@/components/PriceChart";
+import { Card, KpiCards, RecentPrints } from "@/components/TickerOverview";
 import type { PricePoint, TickerPage as TickerData } from "@/lib/api";
 import {
   EMPTY,
@@ -32,9 +32,7 @@ import {
   pctRaw,
   pctSigned,
   ratio,
-  relativeDays,
   sentimentLabel,
-  sessionLabel,
 } from "@/lib/format";
 
 type TabId =
@@ -50,10 +48,24 @@ type TabId =
  * chart's pan/zoom position — only the tabs actually opened this visit ever
  * render.
  */
-export function TickerTabs({ data }: { data: TickerData }) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+/** Re-read the URL on back/forward. Tab clicks don't need to notify: once a
+ * tab is picked, local state wins (see `picked` below). */
+function subscribeToUrl(onChange: () => void) {
+  window.addEventListener("popstate", onChange);
+  return () => window.removeEventListener("popstate", onChange);
+}
+const readTabParam = () => new URLSearchParams(window.location.search).get("tab");
+const noTabOnServer = () => null;
 
+export function TickerTabs({
+  data,
+  showDirection = true,
+}: {
+  data: TickerData;
+  /** False while the directional lean hasn't earned its place: the history
+   * table then shows the rich/cheap call without the lean chip. */
+  showDirection?: boolean;
+}) {
   // Peers is only a tab when there's actually peer data — the server drops the
   // list otherwise, and an empty tab is worse than no tab.
   const hasPeers = (data.peers?.length ?? 0) > 0;
@@ -71,20 +83,31 @@ export function TickerTabs({ data }: { data: TickerData }) {
   // The tab lives in the URL, not just component state, so a page refresh
   // (or a shared link) lands back on the tab you were reading instead of
   // always resetting to Overview.
-  const requestedTab = searchParams.get("tab");
+  //
+  // Read through useSyncExternalStore rather than next/navigation's
+  // useSearchParams. That hook forces everything under its Suspense boundary
+  // to render in the browser only, so the static HTML for every ticker page
+  // was just "Loading…": nothing for a search engine or a text reader.
+  // Here the server snapshot is null, so the build writes out the Overview
+  // (the KPIs, the price chart, the last eight prints) in full, and a
+  // ?tab=news link switches over right after hydration.
+  const requestedTab = useSyncExternalStore(subscribeToUrl, readTabParam, noTabOnServer);
   const initialTab: TabId = tabs.some((t) => t.id === requestedTab)
     ? (requestedTab as TabId)
     : "overview";
 
-  const [active, setActive] = useState<TabId>(initialTab);
-  const [visited, setVisited] = useState<Set<TabId>>(new Set([initialTab]));
+  const [picked, setPicked] = useState<TabId | null>(null);
+  const active = picked ?? initialTab;
+  const [visitedPicked, setVisitedPicked] = useState<Set<TabId>>(() => new Set());
+  const visited = new Set([...visitedPicked, active]);
 
   function selectTab(id: TabId) {
-    setActive(id);
-    if (!visited.has(id)) setVisited(new Set(visited).add(id));
-    const params = new URLSearchParams(searchParams.toString());
+    // Keep the tab being left mounted, so switching back is instant.
+    setVisitedPicked((prev) => new Set(prev).add(active).add(id));
+    setPicked(id);
+    const params = new URLSearchParams(window.location.search);
     params.set("tab", id);
-    router.replace(`?${params.toString()}`, { scroll: false });
+    window.history.replaceState(window.history.state, "", `?${params.toString()}`);
   }
 
   return (
@@ -94,11 +117,8 @@ export function TickerTabs({ data }: { data: TickerData }) {
           between them. Reads unambiguously as "a control that switches views"
           rather than a row of nav links, and the lift gives the active tab a
           clear, physical selected state. */}
-      <div className="overflow-x-auto">
-        <div
-          className="inline-flex gap-1 rounded-[var(--radius-md)] bg-[var(--color-panel-soft)] p-1"
-          role="tablist"
-        >
+      <div className="overflow-x-auto border-b border-[var(--color-border-subtle)] pb-2">
+        <div className="inline-flex gap-1" role="tablist">
           {tabs.map((t) => (
             <button
               key={t.id}
@@ -106,21 +126,28 @@ export function TickerTabs({ data }: { data: TickerData }) {
               role="tab"
               aria-selected={active === t.id}
               onClick={() => selectTab(t.id)}
-              className={`pressable relative shrink-0 rounded-[calc(var(--radius-md)-4px)] px-3.5 py-1.5 text-sm font-medium whitespace-nowrap transition-colors ${
+              className={`pressable relative shrink-0 rounded-[var(--radius-sm)] px-3.5 py-1.5 text-sm font-medium whitespace-nowrap transition-colors ${
                 active === t.id
-                  ? "text-[var(--color-heading)]"
-                  : "text-[var(--color-muted)] hover:text-[var(--color-body)]"
+                  ? "text-[var(--color-brand)]"
+                  : "text-[var(--color-muted)] hover:text-[var(--color-heading)]"
               }`}
             >
               {active === t.id && (
                 <motion.div
                   layoutId="ticker-tab-pill"
-                  className="absolute inset-0 rounded-[calc(var(--radius-md)-4px)] bg-[var(--color-panel)]"
-                  style={{ boxShadow: "var(--shadow-chip)" }}
+                  className="absolute inset-0 rounded-[var(--radius-sm)] border border-[var(--color-brand)]/50 bg-[var(--color-brand)]/10"
                   transition={{ type: "spring", stiffness: 500, damping: 40 }}
                 />
               )}
-              <span className="relative">{t.label}</span>
+              <span className="relative flex items-center gap-1.5">
+                {active === t.id && (
+                  <span
+                    className="h-1.5 w-1.5 rounded-full bg-[var(--color-brand)]"
+                    aria-hidden
+                  />
+                )}
+                {t.label}
+              </span>
             </button>
           ))}
         </div>
@@ -131,10 +158,20 @@ export function TickerTabs({ data }: { data: TickerData }) {
           <div hidden={active !== "overview"} className="space-y-6">
             {/* The earnings setup first (the reason to be here), then the
                 price chart, then the company snapshot. */}
-            <KpiRow data={data} />
-            <Panel>
-              <PriceChart prices={data.prices} events={data.history} ticker={data.ticker} />
-            </Panel>
+            <KpiCards data={data} />
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+              <Card className="min-w-0 px-4 py-4 sm:px-5 lg:col-span-8">
+                <PriceChart
+                  prices={data.prices}
+                  events={data.history}
+                  ticker={data.ticker}
+                  expectedMove={expectedMove(data)}
+                />
+              </Card>
+              <div className="min-w-0 lg:col-span-4">
+                <RecentPrints data={data} />
+              </div>
+            </div>
             {hasSnapshot(data.fundamentals) && (
               <CompanySnapshot
                 data={data.fundamentals}
@@ -170,7 +207,7 @@ export function TickerTabs({ data }: { data: TickerData }) {
             <Panel title="Implied vs realized">
               <ImpliedVsRealized rows={data.history} />
             </Panel>
-            <HistoryTable data={data} />
+            <HistoryTable data={data} showDirection={showDirection} />
           </div>
         )}
 
@@ -207,45 +244,15 @@ export function TickerTabs({ data }: { data: TickerData }) {
   );
 }
 
-/** The earnings setup: one metric per card. Two-up on mobile (a base column
- * count so it never collapses to a single stretched column), four across from
- * lg. */
-function KpiRow({ data }: { data: TickerData }) {
-  const o = data.options;
-  const session = sessionLabel(data.next_report_session);
-
-  return (
-    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-      <StatCard
-        label="Next report"
-        value={data.next_report_date ? formatDate(data.next_report_date) : EMPTY}
-        hint="The next scheduled earnings date."
-        delta={
-          <span className="text-[var(--color-muted)]">
-            {data.next_report_date
-              ? `${session ? `${session} · ` : ""}${relativeDays(data.days_until_report)}`
-              : "No confirmed earnings date"}
-          </span>
-        }
-      />
-      <StatCard
-        label="Implied move"
-        value={pctRange(o?.implied_move)}
-        tone={o?.verdict === "RICH" ? "rich" : o?.verdict === "CHEAP" ? "cheap" : "default"}
-        hint="At-the-money straddle price for this earnings date."
-      />
-      <StatCard
-        label="Typical move"
-        value={pctRange(o?.hist_avg_move)}
-        hint="Average absolute move, last eight earnings reports."
-      />
-      <StatCard
-        label="Put/call ratio"
-        value={num(o?.put_call_ratio)}
-        hint="Below 1: more call volume than put volume."
-      />
-    </div>
-  );
+/** The band the price chart draws: only for an upcoming report that has
+ * options pricing, since a band around a print that already happened would
+ * describe nothing. */
+function expectedMove(data: TickerData) {
+  const implied = data.options?.implied_move;
+  const upcoming = typeof data.days_until_report === "number" && data.days_until_report >= 0;
+  return upcoming && typeof implied === "number" && typeof data.spot === "number"
+    ? { implied, spot: data.spot }
+    : null;
 }
 
 function OptionsPanelCard({ data }: { data: TickerData }) {
@@ -298,10 +305,14 @@ function OptionsPanelCard({ data }: { data: TickerData }) {
       >
         <dl className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-3">
           <Stat
-            label="Edge score"
-            value={num(o.edge_score, 1)}
+            label="Priced vs typical"
+            value={
+              typeof o.implied_move === "number" && o.hist_avg_move
+                ? `${(o.implied_move / o.hist_avg_move).toFixed(1)}×`
+                : EMPTY
+            }
             tone={tone}
-            hint="0-10. Distance from the historical average."
+            hint="Implied move divided by this stock's typical post-earnings move. Above 1 means options are pricing a bigger move than usual."
           />
           <Stat
             label="ATM open interest"
@@ -535,7 +546,7 @@ function reportPriceWindow(
   };
 }
 
-function HistoryTable({ data }: { data: TickerData }) {
+function HistoryTable({ data, showDirection }: { data: TickerData; showDirection: boolean }) {
   const rows = data.history;
   const stats = data.stats;
   // Baked at build time. The site regenerates nightly, so at worst this is a
@@ -657,7 +668,7 @@ function HistoryTable({ data }: { data: TickerData }) {
                   <td className="px-3 py-2.5">
                     {pctSigned(r.gap_open_pct)}
                     {r.gap_filled === true && (
-                      <span className="ml-1.5 tracking-[0.06em] text-[var(--color-muted)] text-[var(--text-2xs)] uppercase">
+                      <span className="ml-1.5 text-[length:var(--text-2xs)] tracking-[0.06em] text-[var(--color-muted)] uppercase">
                         filled
                       </span>
                     )}
@@ -666,7 +677,7 @@ function HistoryTable({ data }: { data: TickerData }) {
                   <td className="px-3 py-2.5">
                     <span className="flex gap-1.5">
                       <VerdictChip verdict={r.verdict} />
-                      <DirectionChip direction={r.direction} />
+                      {showDirection && <DirectionChip direction={r.direction} />}
                     </span>
                   </td>
                 </tr>

@@ -1,86 +1,75 @@
 /*
- * DESIGN TOKENS — navy brand, warm cream canvas, colored titles/tables
+ * DESIGN TOKENS: the "terminal" look, in light and dark
  *
- * History: started as "Vertical" (cool gray, navy, no shadows), briefly
- * became a scoped Starbucks-inspired adaptation (warm cream, green brand,
- * soft shadows, pill CTAs). The navy brand color came back by request — the
- * warm cream canvas, soft-shadow cards, pill CTAs, and full-pill-on-primary-
- * actions-only rule all stayed, since none of those were the complaint.
+ * The same color language in both themes: cool slate surfaces, a cyan/teal
+ * brand, mono figures, and RICH (rose) / CHEAP (emerald) verdict hues. Light
+ * mode is the default; it deepens the accents just enough to clear contrast
+ * on white, and dark mode (below) is the near-black terminal the landing
+ * page uses.
  *
- * What changed most recently: cards were still reading "too white" even
- * with a shadow lifting them off the cream page, so color now also shows up
- * directly on two high-visibility surfaces — page/panel TITLES (navy, via
- * `.display` and Panel's `<h2>`) and TABLE header rows (a light navy wash,
- * --color-table-head) — rather than trying a third variation on background
- * washes or gradients.
+ * History: "Vertical" (cool gray, navy), then a Starbucks-inspired cream and
+ * navy pass, then this, by request, to match the Stitch terminal designs.
  *
  * Rules that define the look, in order of how easily they get broken:
- *   1. Warm cream canvas (--color-page), white cards. The cream is the
- *      signature — never drop back to a cool gray page.
- *   2. Depth comes from a whisper-soft layered shadow (--shadow-card) on
- *      panels, not a border-only flatness and not a gradient. NO gradients
- *      anywhere. --color-band is the one deliberately dark, saturated
- *      surface (marketing/feature bands), used full-bleed, never as a panel
- *      or chip fill.
- *   3. ONE radius for cards/controls (--radius-panel, 12px) and a SEPARATE
+ *   1. Cards are white (light) or near-black panel (dark) with a hairline
+ *      outline (--color-panel-edge) and a soft shadow. Depth comes from
+ *      the outline and shadow, not heavy fills.
+ *   2. The brand color marks what is interactive or current: the active tab,
+ *      links, the selected range, headline figures. It is not a fill for
+ *      large areas.
+ *   3. ONE radius for cards/controls (--radius-panel) and a SEPARATE
  *      full-pill radius (--radius-pill) reserved for primary CTA buttons
- *      only — "Simulate a trade," landing-page hero actions. Dense UI
- *      controls (toggles, pagination, filter chips, table buttons) keep the
- *      smaller --radius-sm/--radius-md scale; pilling every control in a
- *      data-dense trading UI reads as noisy, not confident.
- *   4. Titles are navy (--color-brand), not ink — page H1s (`.display`) and
- *      every Panel's section title. Table header rows get a light navy
- *      wash (--color-table-head). Everything else — body text, stat
- *      values, table data rows — stays on the neutral ink/muted scale.
- *      Verdict, direction, and positive/negative are untouched by any of
- *      this and keep their own validated hues, independent of brand navy.
+ *      only. Dense controls keep the smaller --radius-sm/--radius-md scale.
+ *   4. Verdict, direction, and positive/negative keep their own hues,
+ *      independent of the brand. RICH is not "sell" and CHEAP is not "buy".
  *   5. 16px minimum for body copy. Smaller sizes are for true micro-elements
  *      (eyebrows, table micro-labels) only.
  *
  * Typography roles:
- *   One family, Geist, for everything — the role is carried by weight, size,
- *   case and tracking, never by switching typeface:
- *     body/UI      regular, tight -0.01em tracking applied globally.
+ *   Geist for prose and UI; Geist Mono for tickers, figures, and the
+ *   uppercase micro-labels on terminal-style cards.
  *     labels       (`.eyebrow`, chips, filter tabs) medium, UPPERCASE, wide
- *                  tracking — technical and sparse.
- *     headings     (`.display`) semibold, tighter tracking, navy — the
- *                  color signal.
+ *                  tracking, technical and sparse.
+ *     headings     (`.display`) semibold, tighter tracking.
  *     numbers      `.tnum` tabular figures, so updating columns don't jitter.
+ *
+ * Contrast (WCAG, on white): brand 5.4, muted 5.3, rich 6.3, cheap 5.5,
+ * fair 5.4. The chart hues all clear 3:1 as marks.
  *
  * Everything else in the app references these variables and never a literal.
  */
 
 @theme {
   /* ---- Surfaces ---- */
-  --color-page: #f2f0eb;
+  --color-page: #f3f5f8;
   --color-panel: #ffffff;
-  --color-panel-soft: #f9f9f9;
+  --color-panel-soft: #f1f5f9;
 
   /* ---- Brand & text ---- */
-  --color-brand: #1e3a6e;
-  --color-brand-hover: #14294f;
+  --color-brand: #0e7490;
+  --color-brand-hover: #155e75;
   /* A softer, lighter navy for secondary text that still wants brand
      color — Panel subtitles, in particular. 8.09:1 on white; deliberately
      solid (not gradient) since subtitles run full sentences and a gradient
      reads worse the longer the string. */
-  --color-brand-muted: #35507d;
+  --color-brand-muted: #0e7490;
   /* Panel/card titles — navy in light, a brighter blue in dark so they stay
      legible on the dark panel (plain --color-brand read too dim there). */
-  --color-panel-title: #1e3a6e;
+  --color-panel-title: #0f172a;
   /* Full-bleed dark feature band — the landing hero, and anywhere else a
      deliberately saturated marketing surface is warranted. Never a panel,
      button, or chip fill; always full-bleed. */
-  --color-band: #14294f;
+  --color-band: #0b1422;
   /* Back by request, scoped narrowly: primary CTA buttons ("Simulate a
      trade," the landing hero CTA), the sidebar's active-page highlight, and
      Panel/StatCard title text (via bg-clip-text). NOT used on dense/small
      controls (range toggles, tab pills, filter chips) — a gradient at that
      size reads muddy rather than rich. */
-  --gradient-brand: linear-gradient(135deg, #142a4e 0%, #2f5aa8 100%);
+  --gradient-brand: linear-gradient(135deg, #0e7490 0%, #0891b2 100%);
   /* A light navy wash for table header rows — the same brand hue as
      --color-brand, blended ~10% into the panel white rather than used at
      full saturation, so a header row reads as "tinted," not "colored in." */
-  --color-table-head: #e9ebf1;
+  --color-table-head: #eef3f7;
   /* Same idea as --color-table-head, as a diagonal wash instead of a flat
      tint: Panel headers ("Next to report," "Track record," ...) get this
      behind the title/subtitle so cards read as colored, not just
@@ -89,20 +78,24 @@
      data (tables keep the flat --color-table-head instead). */
   --gradient-panel-header: linear-gradient(
     135deg,
-    rgb(30 58 110 / 16%) 0%,
-    rgb(47 90 168 / 6%) 100%
+    rgb(8 145 178 / 7%) 0%,
+    rgb(56 189 248 / 2%) 100%
   );
-  --color-heading: rgb(0 0 0 / 87%);
-  --color-body: rgb(0 0 0 / 87%);
-  --color-muted: rgb(0 0 0 / 58%);
+  --color-heading: #0f172a;
+  --color-body: #1e293b;
+  --color-muted: #5b6b80;
 
   /* ---- Borders ---- */
-  --color-border: #e0dcd3;
-  --color-border-subtle: #ece9e2;
+  --color-border: #e2e8f0;
+  --color-border-subtle: #eef2f6;
+  /* Card outline. Transparent in light, where the soft shadow carries the
+     depth; dark mode gives it a hairline, since a shadow can't read on a
+     near-black page. */
+  --color-panel-edge: #e2e8f0;
 
   /* ---- On-brand (text sitting on --color-brand or --color-band) ---- */
-  --color-on-brand: #fafafa;
-  --color-on-brand-muted: rgb(255 255 255 / 70%);
+  --color-on-brand: #ffffff;
+  --color-on-brand-muted: rgb(255 255 255 / 75%);
 
   /*
    * ---- Verdict axis: is the option premium rich or cheap? ----
@@ -114,19 +107,19 @@
    *
    * All clear 4.5:1 on white (RICH 6.57:1, CHEAP 5.69:1, FAIR 7.73:1).
    */
-  --color-verdict-rich: #b42318;
-  --color-verdict-cheap: #067647;
-  --color-verdict-fair: #52525b;
+  --color-verdict-rich: #be123c;
+  --color-verdict-cheap: #047857;
+  --color-verdict-fair: #5b6b80;
 
   /* Chip fills: a hairline tint, never a pastel block. */
-  --color-verdict-rich-bg: #fef3f2;
-  --color-verdict-cheap-bg: #f0fdf4;
-  --color-verdict-fair-bg: #f9f9f9;
+  --color-verdict-rich-bg: #fff1f2;
+  --color-verdict-cheap-bg: #ecfdf5;
+  --color-verdict-fair-bg: #f1f5f9;
 
   /* ---- Direction axis: which way does the flow lean? ---- */
-  --color-direction-bullish: #067647;
-  --color-direction-bearish: #b42318;
-  --color-direction-neutral: #52525b;
+  --color-direction-bullish: #047857;
+  --color-direction-bearish: #be123c;
+  --color-direction-neutral: #5b6b80;
 
   /*
    * ---- Data visualisation ----
@@ -146,11 +139,14 @@
    *   normal vision   ΔE 25.1 ✓        contrast all >= 3:1 ✓
    * Re-run before changing either value.
    */
-  --color-viz-implied: #454598;
-  --color-viz-realized: #8f6316;
-  --color-viz-price: #1e3a6e;
-  --color-viz-grid: #ddd9d0;
-  --color-viz-axis: #7a7367;
+  --color-viz-implied: #4f46e5;
+  --color-viz-realized: #b45309;
+  --color-viz-price: #0891b2;
+  --color-viz-grid: #e5e9f0;
+  --color-viz-axis: #64748b;
+  /* Expected-move band on the price chart: violet, clear of the navy price
+     line, the amber earnings markers and the red/green candles. */
+  --color-viz-band: #7c3aed;
 
   /*
    * SMA/EMA overlay pair, validated alongside --color-viz-realized (the
@@ -161,19 +157,19 @@
    *   normal vision   ΔE 16.3 ✓        contrast all >= 3:1 ✓
    * Re-run before changing either value.
    */
-  --color-viz-sma: #2a78d6;
-  --color-viz-ema: #4a3aa7;
+  --color-viz-sma: #2563eb;
+  --color-viz-ema: #c026d3;
 
   /* ---- State ---- */
-  --color-positive: #067647;
-  --color-negative: #b42318;
-  --color-warning: #b54708;
-  --color-warning-bg: #fffaeb;
+  --color-positive: #047857;
+  --color-negative: #be123c;
+  --color-warning: #b45309;
+  --color-warning-bg: #fffbeb;
 
   /* ---- Typography ----
    * Families are wired to next/font in layout.tsx; these are the fallbacks. */
   --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: ui-monospace, "Cascadia Mono", monospace;
+  --font-mono: var(--font-geist-mono), ui-monospace, "Cascadia Mono", monospace;
   --font-display: var(--font-sans);
 
   /* Micro sizes, for eyebrows and table labels only — never body copy. */
@@ -194,7 +190,7 @@
    * A soft, lifted elevation — a tight contact shadow plus a wide, offset
    * ambient one, so cards read as raised off the page rather than outlined.
    * This is the ONE elevation: cards carry this shadow and no border. */
-  --shadow-card: 0 1px 2px rgb(0 0 0 / 5%), 0 14px 30px -16px rgb(0 0 0 / 16%);
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 4%), 0 10px 24px -16px rgb(15 23 42 / 14%);
   /* A lighter lift for small raised controls (the segmented-tab chip) — a
      card's shadow is too heavy on a 28px pill. */
   --shadow-chip: 0 1px 1px rgb(0 0 0 / 5%), 0 2px 6px -2px rgb(0 0 0 / 12%);
@@ -239,18 +235,17 @@
 /*
  * ---- Dark mode ----
  *
- * From-scratch dark instance (warm-tinted neutrals rather than cool black,
- * the navy brand, no gradients) with its own validated steps for the chart
- * pairs, not an automatic flip of the light values.
+ * The "terminal" palette (matching the landing page): near-black cool
+ * slate surfaces, slate text, a cyan brand accent, and chart/verdict hues
+ * lifted for a dark ground. Not an automatic flip of the light values.
+ * RICH stays red and CHEAP green, the same meaning as light mode.
  *
- * The chart-pair hexes below (implied/realized, SMA/EMA, verdict/direction)
- * carried forward unchanged from the Starbucks pass. Re-ran
- * scripts/validate_palette.js against this surface (#1f1c18): CVD
- * separation still passes on every pair; the implied color and the neutral
- * gray sit outside the lightness/contrast bands, which is a pre-existing
- * gap (present before either redesign touched this file), not something
- * introduced here. Re-deriving the dark chart palette from scratch is out
- * of scope for a brand-color/title/table pass.
+ * Contrast, WCAG against the panel (#0e131c): every text, verdict and
+ * chart hue clears 4.5:1 (muted 7.3, axis 5.3, implied 6.2, realized 8.7,
+ * band 6.8, rich 6.9, cheap 9.7). Gridlines and borders are deliberately
+ * recessive (~1.2-1.3:1). Implied/realized is indigo/amber, a pairing that
+ * separates under the common color-vision deficiencies. Re-check before
+ * changing a value.
  *
  * Three states, not two: a system-dark visitor who hasn't chosen gets the
  * @media block; an explicit choice (the toggle, persisted to localStorage)
@@ -258,116 +253,122 @@
  */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --color-page: #14120f;
-    --color-panel: #1f1c18;
-    --color-panel-soft: #26221d;
+    --color-page: #080b11;
+    --color-panel: #0e131c;
+    --color-panel-soft: #161f30;
 
-    --color-brand: #3d64ad;
-    --color-brand-hover: #4a76c9;
-    --color-brand-muted: #9fb3d9;
-    --color-panel-title: #7ea6e6;
-    --color-band: #16294f;
-    --gradient-brand: linear-gradient(135deg, #5a89d6 0%, #8fb4ec 100%);
-    --color-table-head: #23262d;
+    --color-brand: #22d3ee;
+    --color-brand-hover: #67e8f9;
+    --color-brand-muted: #7dd3fc;
+    --color-panel-title: #f1f5f9;
+    --color-band: #0b1422;
+    --gradient-brand: linear-gradient(135deg, #00f2fe 0%, #38bdf8 100%);
+    --color-table-head: #111a28;
     --gradient-panel-header: linear-gradient(
       135deg,
-      rgb(61 100 173 / 22%) 0%,
-      rgb(90 137 214 / 6%) 100%
+      rgb(34 211 238 / 9%) 0%,
+      rgb(56 189 248 / 2%) 100%
     );
-    --color-heading: rgb(245 242 236 / 95%);
-    --color-body: rgb(245 242 236 / 87%);
-    --color-muted: rgb(245 242 236 / 58%);
+    --color-heading: #f8fafc;
+    --color-body: #cbd5e1;
+    --color-muted: #94a3b8;
 
-    --color-border: #332e27;
-    --color-border-subtle: #241f1a;
+    --color-border: #1f293d;
+    --color-border-subtle: #172030;
+    --color-panel-edge: #1f293d;
 
-    --color-on-brand: #fafafa;
-    --color-on-brand-muted: rgb(199 213 239 / 80%);
+    /* The brand is a light cyan here, so text sitting on it goes dark. */
+    --color-on-brand: #04121a;
+    --color-on-brand-muted: rgb(4 18 26 / 72%);
 
-    --color-verdict-rich: #e05a5c;
-    --color-verdict-cheap: #3d9468;
-    --color-verdict-fair: #a1a1aa;
+    --color-verdict-rich: #fb7185;
+    --color-verdict-cheap: #34d399;
+    --color-verdict-fair: #94a3b8;
 
-    --color-verdict-rich-bg: #2a1618;
-    --color-verdict-cheap-bg: #12261d;
-    --color-verdict-fair-bg: #26221d;
+    --color-verdict-rich-bg: #2a1520;
+    --color-verdict-cheap-bg: #0f2a22;
+    --color-verdict-fair-bg: #1a2233;
 
-    --color-direction-bullish: #3d9468;
-    --color-direction-bearish: #e05a5c;
-    --color-direction-neutral: #a1a1aa;
+    --color-direction-bullish: #34d399;
+    --color-direction-bearish: #fb7185;
+    --color-direction-neutral: #94a3b8;
 
-    --color-viz-implied: #6478c4;
-    --color-viz-realized: #b07f28;
-    --color-viz-price: #5aa9f0;
-    --color-viz-grid: #3a352d;
-    --color-viz-axis: #a89f8f;
+    --color-viz-implied: #818cf8;
+    --color-viz-realized: #f59e0b;
+    --color-viz-price: #22d3ee;
+    --color-viz-grid: #1c2535;
+    --color-viz-axis: #7b8aa1;
+    --color-viz-band: #a78bfa;
 
-    --color-viz-sma: #519adb;
-    --color-viz-ema: #8354b8;
+    --color-viz-sma: #60a5fa;
+    --color-viz-ema: #e879f9;
 
-    --color-positive: #3d9468;
-    --color-negative: #e05a5c;
-    --color-warning: #f0a94e;
-    --color-warning-bg: #2a2013;
+    --color-positive: #34d399;
+    --color-negative: #fb7185;
+    --color-warning: #fbbf24;
+    --color-warning-bg: #2a200b;
 
-    --shadow-card: 0 1px 2px rgb(0 0 0 / 40%), 0 16px 34px -18px rgb(0 0 0 / 62%);
-    --shadow-chip: 0 1px 1px rgb(0 0 0 / 40%), 0 2px 8px -2px rgb(0 0 0 / 55%);
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 50%), 0 16px 34px -18px rgb(0 0 0 / 70%);
+    --shadow-chip: 0 1px 1px rgb(0 0 0 / 50%), 0 2px 8px -2px rgb(0 0 0 / 60%);
   }
 }
 
 :root[data-theme="dark"] {
-  --color-page: #14120f;
-  --color-panel: #1f1c18;
-  --color-panel-soft: #26221d;
+  --color-page: #080b11;
+  --color-panel: #0e131c;
+  --color-panel-soft: #161f30;
 
-  --color-brand: #3d64ad;
-  --color-brand-hover: #4a76c9;
-  --color-brand-muted: #9fb3d9;
-  --color-panel-title: #7ea6e6;
-  --color-band: #16294f;
-  --gradient-brand: linear-gradient(135deg, #5a89d6 0%, #8fb4ec 100%);
-  --color-table-head: #23262d;
+  --color-brand: #22d3ee;
+  --color-brand-hover: #67e8f9;
+  --color-brand-muted: #7dd3fc;
+  --color-panel-title: #f1f5f9;
+  --color-band: #0b1422;
+  --gradient-brand: linear-gradient(135deg, #00f2fe 0%, #38bdf8 100%);
+  --color-table-head: #111a28;
   --gradient-panel-header: linear-gradient(
     135deg,
-    rgb(61 100 173 / 22%) 0%,
-    rgb(90 137 214 / 6%) 100%
+    rgb(34 211 238 / 9%) 0%,
+    rgb(56 189 248 / 2%) 100%
   );
-  --color-heading: rgb(245 242 236 / 95%);
-  --color-body: rgb(245 242 236 / 87%);
-  --color-muted: rgb(245 242 236 / 58%);
+  --color-heading: #f8fafc;
+  --color-body: #cbd5e1;
+  --color-muted: #94a3b8;
 
-  --color-border: #332e27;
-  --color-border-subtle: #241f1a;
+  --color-border: #1f293d;
+  --color-border-subtle: #172030;
+  --color-panel-edge: #1f293d;
 
-  --color-on-brand: #fafafa;
-  --color-on-brand-muted: rgb(199 213 239 / 80%);
+  /* The brand is a light cyan here, so text sitting on it goes dark. */
+  --color-on-brand: #04121a;
+  --color-on-brand-muted: rgb(4 18 26 / 72%);
 
-  --color-verdict-rich: #e05a5c;
-  --color-verdict-cheap: #3d9468;
-  --color-verdict-fair: #a1a1aa;
+  --color-verdict-rich: #fb7185;
+  --color-verdict-cheap: #34d399;
+  --color-verdict-fair: #94a3b8;
 
-  --color-verdict-rich-bg: #2a1618;
-  --color-verdict-cheap-bg: #12261d;
-  --color-verdict-fair-bg: #26221d;
+  --color-verdict-rich-bg: #2a1520;
+  --color-verdict-cheap-bg: #0f2a22;
+  --color-verdict-fair-bg: #1a2233;
 
-  --color-direction-bullish: #3d9468;
-  --color-direction-bearish: #e05a5c;
-  --color-direction-neutral: #a1a1aa;
+  --color-direction-bullish: #34d399;
+  --color-direction-bearish: #fb7185;
+  --color-direction-neutral: #94a3b8;
 
-  --color-viz-implied: #6478c4;
-  --color-viz-realized: #b07f28;
-  --color-viz-price: #5aa9f0;
-  --color-viz-grid: #3a352d;
-  --color-viz-axis: #a89f8f;
+  --color-viz-implied: #818cf8;
+  --color-viz-realized: #f59e0b;
+  --color-viz-price: #22d3ee;
+  --color-viz-grid: #1c2535;
+  --color-viz-axis: #7b8aa1;
+  --color-viz-band: #a78bfa;
 
-  --color-viz-sma: #519adb;
-  --color-viz-ema: #8354b8;
+  --color-viz-sma: #60a5fa;
+  --color-viz-ema: #e879f9;
 
-  --color-positive: #3d9468;
-  --color-negative: #e05a5c;
-  --color-warning: #f0a94e;
-  --color-warning-bg: #2a2013;
+  --color-positive: #34d399;
+  --color-negative: #fb7185;
+  --color-warning: #fbbf24;
+  --color-warning-bg: #2a200b;
 
-  --shadow-card: 0 1px 2px rgb(0 0 0 / 40%), 0 16px 34px -18px rgb(0 0 0 / 62%);
-  --shadow-chip: 0 1px 1px rgb(0 0 0 / 40%), 0 2px 8px -2px rgb(0 0 0 / 55%);
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 50%), 0 16px 34px -18px rgb(0 0 0 / 70%);
+  --shadow-chip: 0 1px 1px rgb(0 0 0 / 50%), 0 2px 8px -2px rgb(0 0 0 / 60%);
 }

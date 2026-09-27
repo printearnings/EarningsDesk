@@ -12,7 +12,7 @@ import { useCalendarEntries } from "@/lib/useCalendarEntries";
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-/** Same hand-parsed-y/m/d approach as MonthCalendar's own `iso()` helper —
+/** Same hand-parsed-y/m/d approach as the calendar's `isoOf()` helper (components/calendar/shared) —
  * `new Date("2026-08-26")` reads as UTC midnight and can print the wrong
  * weekday west of Greenwich; building the Date from local parts avoids it. */
 function weekdayName(dateIso: string): string {
