@@ -1,5 +1,4 @@
 import { CheapStoryCallout } from "@/components/CheapStory";
-import { RestatementNote } from "@/components/RestatementNote";
 import { Panel, StatCard } from "@/components/Panel";
 import { TopBar } from "@/components/TopBar";
 import { getIndex, getTrackRecord } from "@/lib/api";
@@ -90,7 +89,6 @@ export default async function TrackRecordPage() {
       <TopBar title="Track record" eyebrow="Scored against reality" tickers={index.tickers} />
 
       <div className="space-y-6 px-6 py-6">
-        <RestatementNote record={record} />
         <CheapStoryCallout record={record} showLink={false} />
 
         <Panel title="The bottom line">
@@ -212,6 +210,15 @@ export default async function TrackRecordPage() {
               hint="Withheld below four scored calls. A single correct verdict reads as 100%."
             />
           </dl>
+          {(record.excluded_far_expiry ?? 0) > 0 && (
+            <p className="mt-5 border-t border-[var(--color-border-subtle)] pt-4 text-sm text-[var(--color-muted)]">
+              Counts only calls whose implied move was measured on an option expiring within a
+              week of the report. {record.excluded_far_expiry} earlier calls priced off a later
+              monthly expiry are left out: that price includes weeks of ordinary volatility, so
+              RICH read right almost by construction. Counting them, the figure was{" "}
+              {pct(record.all_accuracy, 0)} on {record.all_directional}.
+            </p>
+          )}
         </Panel>
 
         <Panel title="What the scored trade would have returned">

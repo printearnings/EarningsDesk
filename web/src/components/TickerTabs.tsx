@@ -166,6 +166,7 @@ export function TickerTabs({
                   events={data.history}
                   ticker={data.ticker}
                   expectedMove={expectedMove(data)}
+                  expectedMoveUnavailable={expectedMoveUnavailable(data)}
                 />
               </Card>
               <div className="min-w-0 lg:col-span-4">
@@ -247,6 +248,33 @@ export function TickerTabs({
 /** The band the price chart draws: only for an upcoming report that has
  * options pricing, since a band around a print that already happened would
  * describe nothing. */
+/** Why there's no band, when there isn't one. The common case since the
+ * print-window rule: a stock with no weekly options has no expiry close
+ * enough to the report to isolate the earnings move. */
+function expectedMoveUnavailable(data: TickerData): { label: string; reason: string } | null {
+  if (expectedMove(data)) return null;
+  const upcoming = typeof data.days_until_report === "number" && data.days_until_report >= 0;
+  if (!upcoming) {
+    return {
+      label: "No upcoming report",
+      reason:
+        "The expected-move band marks what options price for the next report, and none is scheduled.",
+    };
+  }
+  if (!data.options) {
+    return {
+      label: "No options priced",
+      reason:
+        "No listed options chain was captured for this stock, so there's no implied move to draw.",
+    };
+  }
+  return {
+    label: "Expected move not priced yet",
+    reason:
+      "No option expires within a week of the report, so the earnings move can't be separated from ordinary volatility. It appears once a near expiry lists.",
+  };
+}
+
 function expectedMove(data: TickerData) {
   const implied = data.options?.implied_move;
   const upcoming = typeof data.days_until_report === "number" && data.days_until_report >= 0;

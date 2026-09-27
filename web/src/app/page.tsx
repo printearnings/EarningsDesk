@@ -548,15 +548,6 @@ function TrackRecordCard({ record }: { record: TrackRecordPage }) {
           </div>
         </div>
       </div>
-      {(record.excluded_far_expiry ?? 0) > 0 && (
-        <p className="mt-2 text-[10px] leading-relaxed text-[var(--l-muted)]">
-          Restated Sep 2026: {record.excluded_far_expiry} calls measured off a far expiry no
-          longer count.{" "}
-          <Link href="/track-record/" className="text-[var(--l-accent)] hover:underline">
-            Why →
-          </Link>
-        </p>
-      )}
       {sell !== null && buy !== null && (
         <div className="mt-3 border-t border-[var(--l-line)] pt-2.5">
           <p className="text-[11px] font-semibold text-[var(--l-text)]">

@@ -11,8 +11,8 @@ import { useIntradayChart } from "@/lib/useIntradayChart";
 
 /**
  * Price chart with range tabs: 1D, 5D (intraday, via the Worker's
- * `/api/chart` proxy to Massive) and 1Y (the static daily series already
- * baked into the page). A Line/Candle toggle switches the mark, and an SMA
+ * `/api/chart` proxy to Massive), and 1M / 3M / 1Y (cut from the static
+ * daily series already baked into the page). A Line/Candle toggle switches the mark, and an SMA
  * 20 / EMA 50 overlay is available on every range — both modes and every
  * range share the same x/y scale, hover crosshair, and zoom.
  *
@@ -33,13 +33,19 @@ import { useIntradayChart } from "@/lib/useIntradayChart";
  * interactions, and the component stays smaller than the library import.
  */
 
-type Range = "1d" | "5d" | "1y";
+type Range = "1d" | "5d" | "1m" | "3m" | "1y";
+
+/** Daily ranges, cut from the one-year daily series already on the page:
+ * how many calendar days back from the latest close each one reaches. */
+const DAILY_WINDOW_DAYS: Partial<Record<Range, number>> = { "1m": 31, "3m": 92 };
 type ChartType = "line" | "candle";
 type IndicatorKey = "sma20" | "ema50" | "rsi14" | "macd" | "volume";
 
 const RANGES: { key: Range; label: string }[] = [
   { key: "1d", label: "1D" },
   { key: "5d", label: "5D" },
+  { key: "1m", label: "1M" },
+  { key: "3m", label: "3M" },
   { key: "1y", label: "1Y" },
 ];
 
@@ -149,12 +155,16 @@ export function PriceChart({
   events,
   ticker,
   expectedMove = null,
+  expectedMoveUnavailable = null,
 }: {
   prices: PricePoint[];
   events: EarningsHistoryRow[];
   ticker: string;
   /** When given, a toggleable band (on by default) marks the implied move. */
   expectedMove?: ExpectedMove | null;
+  /** When there's no band, why: shown as a muted chip in its place so a
+   * missing band reads as a fact about the data, not a missing feature. */
+  expectedMoveUnavailable?: { label: string; reason: string } | null;
 }) {
   const [showBand, setShowBand] = useState(true);
   const band: Band | null =
@@ -194,19 +204,31 @@ export function PriceChart({
   const intraday = useIntradayChart(ticker, range === "5d" ? "5d" : "1d", {
     live: live && range === "1d",
   });
-  const indicators = useIndicators(ticker, range);
+  const daily = range === "1m" || range === "3m" || range === "1y";
+  // 1M/3M reuse the daily indicator series; overlays match points by date.
+  const indicators = useIndicators(ticker, daily ? "1y" : (range as "1d" | "5d"));
 
   const points: Point[] = useMemo(() => {
-    if (range === "1y") {
-      return prices.map((p) => ({
-        key: p.date,
-        label: formatDate(p.date),
-        close: p.close,
-        open: p.open ?? undefined,
-        high: p.high ?? undefined,
-        low: p.low ?? undefined,
-        volume: p.volume ?? undefined,
-      }));
+    if (daily) {
+      const back = DAILY_WINDOW_DAYS[range];
+      const lastDate = prices.length ? prices[prices.length - 1].date : null;
+      let from = "";
+      if (back && lastDate) {
+        const [y, m, d] = lastDate.slice(0, 10).split("-").map(Number);
+        const cut = new Date(y, m - 1, d - back);
+        from = `${cut.getFullYear()}-${String(cut.getMonth() + 1).padStart(2, "0")}-${String(cut.getDate()).padStart(2, "0")}`;
+      }
+      return prices
+        .filter((p) => p.date >= from)
+        .map((p) => ({
+          key: p.date,
+          label: formatDate(p.date),
+          close: p.close,
+          open: p.open ?? undefined,
+          high: p.high ?? undefined,
+          low: p.low ?? undefined,
+          volume: p.volume ?? undefined,
+        }));
     }
     if (!intraday.data) return [];
     return intraday.data.points.map((p) => ({
@@ -230,7 +252,7 @@ export function PriceChart({
       low: p.low,
       volume: p.volume,
     }));
-  }, [range, prices, intraday.data]);
+  }, [range, daily, prices, intraday.data]);
 
   // A regular NYSE session is 6.5h of 1m bars (390). Early in the trading
   // day the 1D series only has however many of those have actually printed
@@ -312,6 +334,16 @@ export function PriceChart({
             />
             Expected move {pctRange(expectedMove.implied)}
           </button>
+        )}
+        {!expectedMove && expectedMoveUnavailable && (
+          <span
+            className="ml-2 inline-flex shrink-0 cursor-help items-center gap-1.5 rounded-[var(--radius-sm)] border border-dashed border-[var(--color-border)] px-2.5 py-1 text-sm text-[var(--color-muted)]"
+            title={expectedMoveUnavailable.reason}
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-border)]" aria-hidden />
+            {expectedMoveUnavailable.label}
+            <span className="sr-only">: {expectedMoveUnavailable.reason}</span>
+          </span>
         )}
         <span className="flex-1" />
 
@@ -420,13 +452,13 @@ export function PriceChart({
         </div>
       </div>
 
-      {range !== "1y" && intraday.loading ? (
+      {!daily && intraday.loading ? (
         <p className="py-10 text-center text-sm text-[var(--color-muted)]">Loading…</p>
-      ) : range !== "1y" && intraday.error ? (
+      ) : !daily && intraday.error ? (
         <p className="py-10 text-center text-sm text-[var(--color-muted)]">
           {intraday.error} Try the 1Y view instead.
         </p>
-      ) : range !== "1y" && points.length === 0 ? (
+      ) : !daily && points.length === 0 ? (
         // Distinct from `intraday.error`: the fetch succeeded, there is just
         // nothing to plot yet — the normal state for 1D outside market hours,
         // not a broken chart. Same fallback pointer as the error case above.
@@ -437,7 +469,7 @@ export function PriceChart({
         <ChartBody
           points={points}
           markerDates={markerDates}
-          intraday={range !== "1y"}
+          intraday={!daily}
           range={range}
           chartType={chartType}
           zoomResetKey={range}
