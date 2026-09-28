@@ -48,13 +48,13 @@
   /* ---- Brand & text ---- */
   --color-brand: #0e7490;
   --color-brand-hover: #155e75;
-  /* A softer, lighter navy for secondary text that still wants brand
-     color — Panel subtitles, in particular. 8.09:1 on white; deliberately
-     solid (not gradient) since subtitles run full sentences and a gradient
-     reads worse the longer the string. */
-  --color-brand-muted: #0e7490;
-  /* Panel/card titles — navy in light, a brighter blue in dark so they stay
-     legible on the dark panel (plain --color-brand read too dim there). */
+  /* Secondary text that still wants brand color — Panel subtitles, in
+     particular. A softer, slightly bluer cyan than --color-brand (hue ~230,
+     lower chroma), the light twin of dark mode's sky-300. 6.0:1 on white;
+     deliberately solid (not gradient) since subtitles run full sentences. */
+  --color-brand-muted: #2b6a86;
+  /* Panel/card titles — neutral slate ink in both themes; the brand cyan
+     marks what's interactive, so titles stay out of its way. */
   --color-panel-title: #0f172a;
   /* Full-bleed dark feature band — the landing hero, and anywhere else a
      deliberately saturated marketing surface is warranted. Never a panel,
@@ -65,7 +65,9 @@
      Panel/StatCard title text (via bg-clip-text). NOT used on dense/small
      controls (range toggles, tab pills, filter chips) — a gradient at that
      size reads muddy rather than rich. */
-  --gradient-brand: linear-gradient(135deg, #0e7490 0%, #0891b2 100%);
+  /* Brand cyan into sky, the same direction as dark mode. Both ends hold
+     white on-brand text at AA (5.4 / 5.9:1); the old cyan-600 end was 3.7. */
+  --gradient-brand: linear-gradient(135deg, #0e7490 0%, #0369a1 100%);
   /* A light navy wash for table header rows — the same brand hue as
      --color-brand, blended ~10% into the panel white rather than used at
      full saturation, so a header row reads as "tinted," not "colored in." */
@@ -88,9 +90,8 @@
   /* ---- Borders ---- */
   --color-border: #e2e8f0;
   --color-border-subtle: #eef2f6;
-  /* Card outline. Transparent in light, where the soft shadow carries the
-     depth; dark mode gives it a hairline, since a shadow can't read on a
-     near-black page. */
+  /* Card outline: a hairline in both themes. In light the soft shadow does
+     most of the lifting; on the near-black dark page the hairline does. */
   --color-panel-edge: #e2e8f0;
 
   /* ---- On-brand (text sitting on --color-brand or --color-band) ---- */
@@ -189,25 +190,28 @@
   /* ---- Depth ----
    * A soft, lifted elevation — a tight contact shadow plus a wide, offset
    * ambient one, so cards read as raised off the page rather than outlined.
-   * This is the ONE elevation: cards carry this shadow and no border. */
+   * This is the ONE elevation, paired with the --color-panel-edge hairline. */
   --shadow-card: 0 1px 2px rgb(15 23 42 / 4%), 0 10px 24px -16px rgb(15 23 42 / 14%);
   /* A lighter lift for small raised controls (the segmented-tab chip) — a
      card's shadow is too heavy on a 28px pill. */
   --shadow-chip: 0 1px 1px rgb(0 0 0 / 5%), 0 2px 6px -2px rgb(0 0 0 / 12%);
 
   /* ---- Tile ground ----
-   * A soft accent-to-panel gradient shared by every card, so tiles read as a
-   * lifted, tinted surface rather than flat white. References the theme's own
-   * accent + panel vars, so it re-resolves per theme with no dark override.
+   * A soft brand-to-panel gradient shared by every card, so tiles read as a
+   * lifted, tinted surface rather than flat white. Tinted with the brand cyan
+   * (it was the SMA blue, which put a second, off-brand hue on every card).
+   * References the theme's own brand + panel vars, so it re-resolves per
+   * theme with no dark override. Text at the tinted corner still clears AA
+   * (light muted 4.7, dark muted 6.0).
    * `-strong` is the more pronounced version for the chart hero. */
   --gradient-tile: linear-gradient(
     155deg,
-    color-mix(in srgb, var(--color-viz-sma) 11%, var(--color-panel)) 0%,
+    color-mix(in srgb, var(--color-brand) 11%, var(--color-panel)) 0%,
     var(--color-panel) 58%
   );
   --gradient-tile-strong: linear-gradient(
     155deg,
-    color-mix(in srgb, var(--color-viz-sma) 12%, var(--color-panel)) 0%,
+    color-mix(in srgb, var(--color-brand) 12%, var(--color-panel)) 0%,
     var(--color-panel) 58%
   );
 
@@ -237,8 +241,11 @@
  *
  * The "terminal" palette (matching the landing page): near-black cool
  * slate surfaces, slate text, a cyan brand accent, and chart/verdict hues
- * lifted for a dark ground. Not an automatic flip of the light values.
- * RICH stays red and CHEAP green, the same meaning as light mode.
+ * lifted for a dark ground. Not an automatic flip of the light values, but
+ * every token keeps its light twin's hue (OKLCH hue within ~10°, amber ~20°,
+ * matching Tailwind's own scale), so the two themes read as one palette.
+ * The brand gradient runs cyan -> sky in both. Warning equals the realized
+ * amber in both. RICH stays red and CHEAP green, as in light mode.
  *
  * Contrast, WCAG against the panel (#0e131c): every text, verdict and
  * chart hue clears 4.5:1 (muted 7.3, axis 5.3, implied 6.2, realized 8.7,
@@ -262,7 +269,7 @@
     --color-brand-muted: #7dd3fc;
     --color-panel-title: #f1f5f9;
     --color-band: #0b1422;
-    --gradient-brand: linear-gradient(135deg, #00f2fe 0%, #38bdf8 100%);
+    --gradient-brand: linear-gradient(135deg, #22d3ee 0%, #38bdf8 100%);
     --color-table-head: #111a28;
     --gradient-panel-header: linear-gradient(
       135deg,
@@ -305,7 +312,7 @@
 
     --color-positive: #34d399;
     --color-negative: #fb7185;
-    --color-warning: #fbbf24;
+    --color-warning: #f59e0b;
     --color-warning-bg: #2a200b;
 
     --shadow-card: 0 1px 2px rgb(0 0 0 / 50%), 0 16px 34px -18px rgb(0 0 0 / 70%);
@@ -323,7 +330,7 @@
   --color-brand-muted: #7dd3fc;
   --color-panel-title: #f1f5f9;
   --color-band: #0b1422;
-  --gradient-brand: linear-gradient(135deg, #00f2fe 0%, #38bdf8 100%);
+  --gradient-brand: linear-gradient(135deg, #22d3ee 0%, #38bdf8 100%);
   --color-table-head: #111a28;
   --gradient-panel-header: linear-gradient(
     135deg,
@@ -366,7 +373,7 @@
 
   --color-positive: #34d399;
   --color-negative: #fb7185;
-  --color-warning: #fbbf24;
+  --color-warning: #f59e0b;
   --color-warning-bg: #2a200b;
 
   --shadow-card: 0 1px 2px rgb(0 0 0 / 50%), 0 16px 34px -18px rgb(0 0 0 / 70%);
