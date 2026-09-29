@@ -503,12 +503,17 @@ def ticker_page(
     page.company_name = snap.company_name
     page.company_domain = snap.company_domain
     page.spot = snap.spot if snap.spot is not None else page.spot
-    page.next_report_date = snap.next_report_date
-    page.next_report_session = snap.next_report_session
+    # A snapshot whose "next" print has already happened describes that past
+    # print: its priced move and verdict are history, not a read on what's
+    # coming. Drop them rather than show them as current (a frozen PANW page
+    # said "reports Sep 1" with a live-looking verdict 27 days later); the
+    # stale banner already says the page is behind.
+    today_et = now.astimezone(_EASTERN).date()
+    print_passed = snap.next_report_date is not None and snap.next_report_date < today_et
+    page.next_report_date = None if print_passed else snap.next_report_date
+    page.next_report_session = None if print_passed else snap.next_report_session
     page.days_until_report = (
-        (snap.next_report_date - now.astimezone(_EASTERN).date()).days
-        if snap.next_report_date
-        else None
+        (page.next_report_date - today_et).days if page.next_report_date else None
     )
     # Only surface the read when it's actually about the *next* report —
     # latest_direction_signal returns whichever Workflow-B row is newest
@@ -525,7 +530,7 @@ def ticker_page(
     # from the session when not injected (dev server / single-page callers).
     index = peer_index if peer_index is not None else build_peer_index(session)
     page.peers = peers_mod.resolve_peers(ticker, index)
-    page.options = options_panel(snap)
+    page.options = None if print_passed else options_panel(snap)
     page.news = _news(snap)
     page.news_sentiment = snap.news_sentiment
     page.analyst_score = snap.analyst_score

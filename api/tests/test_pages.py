@@ -286,6 +286,26 @@ def test_ticker_page_reports_snapshot_age(s):
     assert page.is_stale is False
 
 
+def test_a_passed_print_is_not_shown_as_upcoming(s):
+    """PANW, Sep 2026: its snapshot froze before the Sep 1 print and the page
+    kept showing that print's priced move and verdict as current."""
+    _snap(
+        s,
+        as_of=NOW - timedelta(days=20),
+        next_report_date=NOW.date() - timedelta(days=3),
+        next_report_session="AMC",
+        implied_move=0.08,
+        hist_avg_move=0.06,
+        verdict="RICH",
+    )
+    page = pages.ticker_page(s, "NVDA", now=NOW)
+    assert page.next_report_date is None
+    assert page.next_report_session is None
+    assert page.days_until_report is None
+    assert page.options is None
+    assert page.is_stale is True
+
+
 def test_stale_snapshot_is_flagged(s):
     """One missed nightly run is tolerated; two is not, and the reader must be
     told rather than shown old numbers as current."""
