@@ -223,8 +223,8 @@ export default async function TrackRecordPage() {
           <p className="mt-3 text-sm text-[var(--color-muted)]">
             Since Sep 28, 2026 a call also counts only once Nasdaq&rsquo;s calendar confirms the
             company reported on that date and the stock&rsquo;s closing prices are on file. That
-            removed calls scored against estimated report dates that never happened, or scored
-            without a price. Before that check the figure was 66% on 98.
+            removed calls scored against estimated report dates that never happened, scored
+            without a price, or counted twice. Before that check the figure was 66% on 98.
           </p>
         </Panel>
 
