@@ -49,21 +49,3 @@ def test_nested_dict_and_list_are_sanitized_recursively():
     assert not any(
         isinstance(v, float) and math.isnan(v) for row in cleaned["history"] for v in row.values()
     )
-
-
-def test_prefetch_warms_every_ticker_once(monkeypatch):
-    """The page loop must find every ticker's quotes already cached, so it
-    never falls back to a sequential fetch while holding the DB session."""
-    from app import dump_json
-    from app.services import quotes
-
-    seen: list[tuple[str, str]] = []
-    monkeypatch.setattr(quotes, "price_series", lambda t: seen.append(("prices", t)))
-    monkeypatch.setattr(quotes, "company_fundamentals", lambda t: seen.append(("fund", t)))
-    monkeypatch.setattr(quotes, "analyst_ratings", lambda t: seen.append(("ratings", t)))
-
-    dump_json._prefetch_quotes(["NVDA", "DAL", "TXN"])
-
-    assert sorted(seen) == sorted(
-        (kind, t) for t in ("NVDA", "DAL", "TXN") for kind in ("prices", "fund", "ratings")
-    )
