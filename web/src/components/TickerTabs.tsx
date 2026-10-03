@@ -26,7 +26,6 @@ import {
   formatDate,
   formatDateShort,
   money,
-  num,
   pct,
   pctRange,
   pctRaw,
@@ -486,12 +485,6 @@ function NewsPanel({ data }: { data: TickerData }) {
             onPageChange={setPage}
           />
         </div>
-      )}
-
-      {typeof data.analyst_rating_raw === "number" && (
-        <p className="mt-5 border-t border-[var(--color-border-subtle)] pt-4 text-sm text-[var(--color-muted)]">
-          Analyst rating {num(data.analyst_rating_raw, 1)} / 5
-        </p>
       )}
     </Panel>
   );

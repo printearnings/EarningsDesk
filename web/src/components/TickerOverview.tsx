@@ -175,7 +175,7 @@ export function KpiCards({ data }: { data: TickerData }) {
         value={data.next_report_date ? formatDate(data.next_report_date) : "Not scheduled"}
         sub={
           data.next_report_date
-            ? [session, weekday(data.next_report_date)].filter(Boolean).join(" · ")
+            ? [session ?? "time TBA", weekday(data.next_report_date)].join(" · ")
             : "No confirmed earnings date"
         }
         footLabel="Consensus EPS"

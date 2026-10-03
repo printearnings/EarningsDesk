@@ -467,20 +467,18 @@ def test_snapshot_with_a_null_spot_still_falls_back_to_price_series(s):
 
 
 def test_read_path_makes_no_metered_calls(s, monkeypatch):
-    """A page view must cost zero Massive and zero RapidAPI calls. If this ever
+    """A page view must cost zero Massive calls. If this ever
     fails, public traffic starts spending real money per visitor.
 
     Mirrors the discipline the engine's tests/test_static_gen.py enforces on
     the old Jinja site.
     """
     import earnings.data.massive as massive
-    import earnings.data.seeking_alpha as seeking_alpha
 
     def boom(*a, **kw):
         raise AssertionError("read path made a metered API call")
 
     monkeypatch.setattr(massive, "MassiveClient", boom)
-    monkeypatch.setattr(seeking_alpha, "SeekingAlphaClient", boom)
 
     _snap(s, implied_move=0.08, hist_avg_move=0.06, verdict="RICH")
     page = pages.ticker_page(s, "NVDA", now=NOW)

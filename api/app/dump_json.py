@@ -17,6 +17,7 @@ import argparse
 import json
 import logging
 import math
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from app import bootstrap  # noqa: I001,F401  — must precede any `earnings` import
@@ -63,6 +64,28 @@ def _sanitize_nan(value):
     if isinstance(value, list):
         return [_sanitize_nan(v) for v in value]
     return value
+
+
+# Concurrent yfinance fetches for the ticker pages. Sequentially, ~900 pages
+# at ~0.7s each (price history, fundamentals, analyst ratings) were 11 of the
+# Deploy run's 13 minutes. Measured Oct 2026 on 120 tickers: 8 workers ran at
+# 0.10s/ticker against 0.48s sequential, with no empty responses (the burst
+# failure mode Yahoo has); 6 leaves headroom.
+PREFETCH_WORKERS = 6
+
+
+def _prefetch_quotes(tickers: list[str]) -> None:
+    """Warm quotes' per-process caches for every page, in parallel, so the
+    page loop below (which holds the one DB session) only reads from memory.
+    Each fetch already degrades to empty/None on its own failure."""
+
+    def one(ticker: str) -> None:
+        quotes.price_series(ticker)
+        quotes.company_fundamentals(ticker)
+        quotes.analyst_ratings(ticker)
+
+    with ThreadPoolExecutor(max_workers=PREFETCH_WORKERS) as pool:
+        list(pool.map(one, tickers))
 
 
 def _write(path: Path, model: BaseModel) -> int:
@@ -116,6 +139,9 @@ def dump(out_dir: Path, *, with_prices: bool = True) -> dict[str, int]:
         # tickers' snapshots, so re-deriving this per page would re-scan the
         # whole snapshot table ~N times for identical data.
         peer_index = pages.build_peer_index(session)
+
+        if with_prices:
+            _prefetch_quotes([e.ticker for e in index.tickers])
 
         for entry in index.tickers:
             ticker = entry.ticker

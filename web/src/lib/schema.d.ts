@@ -1007,16 +1007,6 @@ export interface components {
              */
             news_sentiment?: number | null;
             /**
-             * Analyst Score
-             * @description -1..1
-             */
-            analyst_score?: number | null;
-            /**
-             * Analyst Rating Raw
-             * @description Seeking Alpha 1-5
-             */
-            analyst_rating_raw?: number | null;
-            /**
              * Past Moves
              * @description Realized move per past print, oldest first. Empty until the nightly build populates it — a normal not-yet state, not an error.
              * @default []

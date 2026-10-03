@@ -67,7 +67,7 @@ export function NextToReportList({
                       third stacked line leaving dead space in the row. */}
                   <span className="flex items-center gap-1.5">
                     <span className="text-sm text-[var(--color-muted)]">{when}</span>
-                    <SessionChip session={entry.session} />
+                    <SessionChip session={entry.session} tba />
                   </span>
                 </span>
               </Link>

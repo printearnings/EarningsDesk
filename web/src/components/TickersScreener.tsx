@@ -240,7 +240,7 @@ export function TickersScreener({ tickers }: { tickers: TickerIndexEntry[] }) {
                     <td className="px-4 py-2.5 whitespace-nowrap">
                       {t.next_report_date ? (
                         <span className="flex items-center gap-1.5">
-                          <SessionChip session={t.next_report_session} />
+                          <SessionChip session={t.next_report_session} tba />
                           <span className="text-[var(--color-body)]">{relativeDays(days)}</span>
                         </span>
                       ) : (

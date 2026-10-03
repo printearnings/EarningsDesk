@@ -146,13 +146,24 @@ export function ResultChip({
 }
 
 /**
- * Before/after the bell. Rendered only when known — an absent session is
- * genuinely unknown (Yahoo supplies a midday placeholder for "time not
- * supplied"), and guessing would tell someone to hold a position through the
- * wrong side of a print.
+ * Before/after the bell. An absent session is genuinely unknown: the engine
+ * stores BMO/AMC only once the company has confirmed its date and time, and
+ * guessing would tell someone to hold a position through the wrong side of a
+ * print. For an upcoming print, `tba` says so ("TBA") instead of rendering
+ * nothing, so a blank isn't mistaken for missing data.
  */
-export function SessionChip({ session }: { session?: string | null }) {
-  if (session !== "BMO" && session !== "AMC") return null;
+export function SessionChip({ session, tba = false }: { session?: string | null; tba?: boolean }) {
+  if (session !== "BMO" && session !== "AMC") {
+    if (!tba) return null;
+    return (
+      <span
+        className={`${BASE} border-dashed border-[var(--color-border)] text-[var(--color-muted)]`}
+        title="Time not announced yet: could be before the open or after the close"
+      >
+        TBA
+      </span>
+    );
+  }
   return (
     <span
       className={`${BASE} border-[var(--color-border)] bg-[var(--color-panel-soft)] text-[var(--color-muted)]`}

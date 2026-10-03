@@ -73,7 +73,6 @@ def create_app() -> FastAPI:
         payload["engine"] = {
             "db": settings.has_db,
             "massive": settings.has_massive,
-            "rapidapi": settings.has_rapidapi,
             "llm": settings.has_llm,
         }
         return payload

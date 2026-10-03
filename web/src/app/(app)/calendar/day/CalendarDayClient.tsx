@@ -119,7 +119,7 @@ export function CalendarDayClient() {
                       </Link>
                     </td>
                     <td className="px-4 py-2.5">
-                      <SessionChip session={e.session} />
+                      <SessionChip session={e.session} tba={e.days_until >= 0} />
                     </td>
                     <td className="px-4 py-2.5 text-[var(--color-body)]">
                       {e.verdict ?? EMPTY}

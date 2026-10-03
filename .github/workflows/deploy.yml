@@ -98,7 +98,7 @@ jobs:
         working-directory: EarningsDesk/web
         run: npm ci
 
-      # Read-only against Postgres — no Massive/RapidAPI/LLM calls, so this
+      # Read-only against Postgres — no Massive/LLM calls, so this
       # step needs only DATABASE_URL, not the full metered-API secret set
       # build_dashboard.yml uses.
       - name: Generate static data from the latest snapshots

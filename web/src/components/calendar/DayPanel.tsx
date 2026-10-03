@@ -173,7 +173,7 @@ export function DayPanel({
                           <span className="font-mono text-base font-bold text-[var(--color-heading)]">
                             {e.ticker}
                           </span>
-                          <SessionChip session={e.session} />
+                          <SessionChip session={e.session} tba={e.days_until >= 0} />
                           <VerdictChip verdict={e.verdict} />
                           {showDirection && <DirectionChip direction={e.direction} />}
                         </div>

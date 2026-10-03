@@ -307,8 +307,6 @@ class TickerPage(BaseModel):
         None, description="null = fetch failed; [] = genuinely no news"
     )
     news_sentiment: float | None = Field(None, description="-1..1")
-    analyst_score: float | None = Field(None, description="-1..1")
-    analyst_rating_raw: float | None = Field(None, description="Seeking Alpha 1-5")
 
     past_moves: list[PastMove] = Field(
         [],

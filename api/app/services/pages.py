@@ -5,7 +5,7 @@ one exception (`ticker_page`, which takes a Session to read Postgres). No
 network calls live in this module — that keeps the mapping testable against
 fabricated rows and makes it obvious that rendering a page costs nothing.
 
-The read path deliberately never touches Massive or RapidAPI. That's the whole
+The read path deliberately never touches Massive. That's the whole
 point of dashboard_snapshots: a visitor is served from Postgres, and metered
 data is only refetched by the nightly cron or by an explicit user click.
 """
@@ -533,8 +533,6 @@ def ticker_page(
     page.options = None if print_passed else options_panel(snap)
     page.news = _news(snap)
     page.news_sentiment = snap.news_sentiment
-    page.analyst_score = snap.analyst_score
-    page.analyst_rating_raw = snap.analyst_rating_raw
     page.ai_summary = _ai_summary(snap)
 
     return page

@@ -138,7 +138,7 @@ export function CalendarList({
                   <span className="mt-0.5 block truncate text-xs text-[var(--color-muted)]">
                     {formatDateShort(e.report_date)} ·{" "}
                     {relativeDays(daysFrom(today, e.report_date))}
-                    {e.session ? ` · ${e.session}` : ""}
+                    {e.session ? ` · ${e.session}` : e.days_until >= 0 ? " · TBA" : ""}
                     {names[e.ticker]?.name ? ` · ${names[e.ticker]?.name}` : ""}
                   </span>
                 </span>
@@ -218,7 +218,7 @@ export function CalendarList({
                     </span>
                   </td>
                   <td className="px-3 py-2.5">
-                    <SessionChip session={e.session} />
+                    <SessionChip session={e.session} tba={e.days_until >= 0} />
                   </td>
                   <td
                     className={`px-3 py-2.5 text-right text-base font-bold ${impliedClass(e.verdict)}`}

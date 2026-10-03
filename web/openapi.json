@@ -2713,30 +2713,6 @@
             "title": "News Sentiment",
             "description": "-1..1"
           },
-          "analyst_score": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Analyst Score",
-            "description": "-1..1"
-          },
-          "analyst_rating_raw": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Analyst Rating Raw",
-            "description": "Seeking Alpha 1-5"
-          },
           "past_moves": {
             "items": {
               "$ref": "#/components/schemas/PastMove"

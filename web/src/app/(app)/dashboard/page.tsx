@@ -311,7 +311,7 @@ export default async function DashboardPage() {
                     </span>
                     <span className="mt-0.5 flex items-center gap-1.5 font-mono text-xs text-[var(--color-muted)]">
                       {relativeDays(e.days_until)}
-                      <SessionChip session={e.session} />
+                      <SessionChip session={e.session} tba />
                     </span>
                   </span>
                   <span className="shrink-0 text-right font-mono">
@@ -356,7 +356,7 @@ export default async function DashboardPage() {
                       {relativeDays(e.days_until)}
                     </td>
                     <td className="px-3 py-2.5">
-                      <SessionChip session={e.session} />
+                      <SessionChip session={e.session} tba />
                     </td>
                     <td className="px-3 py-2.5 text-right font-semibold text-[var(--color-brand)]">
                       {pctRange(e.implied_move)}
