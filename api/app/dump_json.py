@@ -68,10 +68,12 @@ def _sanitize_nan(value):
 
 # Concurrent yfinance fetches for the ticker pages. Sequentially, ~900 pages
 # at ~0.7s each (price history, fundamentals, analyst ratings) were 11 of the
-# Deploy run's 13 minutes. Measured Oct 2026 on 120 tickers: 8 workers ran at
-# 0.10s/ticker against 0.48s sequential, with no empty responses (the burst
-# failure mode Yahoo has); 6 leaves headroom.
-PREFETCH_WORKERS = 6
+# Deploy run's 13 minutes. 6 workers ran cleanly from a home connection
+# (0.10s/ticker on 120 tickers), but from a GitHub runner's shared IP Yahoo
+# answered "Too Many Requests" after ~90 seconds and 418 of 919 pages
+# shipped without prices (Oct 3, 2026). Back to one at a time until a
+# rate-limit-aware approach is proven on a runner.
+PREFETCH_WORKERS = 1
 
 
 def _prefetch_quotes(tickers: list[str]) -> None:
