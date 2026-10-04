@@ -17,7 +17,10 @@ import argparse
 import json
 import logging
 import math
+import time
 from pathlib import Path
+
+import httpx
 
 from app import bootstrap  # noqa: I001,F401  — must precede any `earnings` import
 
@@ -34,6 +37,7 @@ from app.routers import (
     _past_earnings,
     _signals,
 )
+from app.schemas import TickerPage
 from app.services import pages, quotes
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
@@ -117,18 +121,24 @@ def dump(out_dir: Path, *, with_prices: bool = True) -> dict[str, int]:
         # whole snapshot table ~N times for identical data.
         peer_index = pages.build_peer_index(session)
 
-        for entry in index.tickers:
-            ticker = entry.ticker
+        def render(ticker: str, fallback: TickerPage | None = None) -> int:
+            """Write one ticker page; returns its price-point count."""
             series = quotes.price_series(ticker) if with_prices else []
             # Gated on the same flag as prices: all three are yfinance calls,
             # so --no-prices stays a genuine "skip the slow network work"
             # switch for schema checks rather than skipping only some of it.
+            fundamentals = quotes.company_fundamentals(ticker) if with_prices else None
+            ratings = quotes.analyst_ratings(ticker) if with_prices else []
+            if fallback is not None:
+                series = series or fallback.prices
+                fundamentals = fundamentals or fallback.fundamentals
+                ratings = ratings or fallback.analyst_ratings
             page = pages.ticker_page(
                 session,
                 ticker,
                 prices=series,
-                fundamentals=quotes.company_fundamentals(ticker) if with_prices else None,
-                analyst_ratings=quotes.analyst_ratings(ticker) if with_prices else [],
+                fundamentals=fundamentals,
+                analyst_ratings=ratings,
                 peer_index=peer_index,
             )
             # News costs nothing to fetch fresh (unlike options), so a
@@ -141,8 +151,56 @@ def dump(out_dir: Path, *, with_prices: bool = True) -> dict[str, int]:
             name = f"ticker/{ticker}.json"
             written[name] = _write(out_dir / "ticker" / f"{ticker}.json", page)
             log.info("%s: %d bytes (%d price points)", ticker, written[name], len(series))
+            return len(series)
+
+        missing = [e.ticker for e in index.tickers if render(e.ticker) == 0 and with_prices]
+        if missing:
+            _recover(missing, render)
 
     return written
+
+
+# Yahoo rate-limits GitHub's shared runner IPs on and off ("Too Many
+# Requests"): in Oct 2026, 159-418 of ~920 ticker pages per deploy shipped
+# with no price chart, fundamentals or ratings, whatever the fetch pattern.
+# A page Yahoo refused is retried once after a pause; if it still fails, it
+# keeps the data from the copy already published, so a bad night degrades
+# to yesterday's chart rather than an empty one.
+RETRY_PAUSE_SECONDS = 90
+PUBLISHED_URL = "https://printearnings.com/data/ticker/{ticker}.json"
+
+
+def _recover(missing: list[str], render) -> None:
+    log.warning("%d pages came back without prices; retrying after a pause", len(missing))
+    time.sleep(RETRY_PAUSE_SECONDS)
+    still = []
+    for ticker in missing:
+        quotes.forget(ticker)
+        if render(ticker) == 0:
+            still.append(ticker)
+    reused = 0
+    with httpx.Client(timeout=15, follow_redirects=True) as http:
+        for ticker in still:
+            published = _published_page(http, ticker)
+            if published is not None and published.prices:
+                render(ticker, fallback=published)
+                reused += 1
+    log.warning(
+        "price recovery: %d refetched, %d reused from the published site, %d left without",
+        len(missing) - len(still),
+        reused,
+        len(still) - reused,
+    )
+
+
+def _published_page(http: httpx.Client, ticker: str) -> TickerPage | None:
+    try:
+        resp = http.get(PUBLISHED_URL.format(ticker=ticker))
+        resp.raise_for_status()
+        return TickerPage.model_validate(resp.json())
+    except Exception as exc:
+        log.info("%s: no published copy to reuse (%s)", ticker, exc)
+        return None
 
 
 def main() -> None:

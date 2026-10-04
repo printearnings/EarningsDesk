@@ -153,6 +153,15 @@ def analyst_ratings(ticker: str, *, limit: int = ANALYST_RATINGS_LIMIT) -> list[
     return result
 
 
+def forget(ticker: str) -> None:
+    """Drop one ticker's cached lookups so a retry really refetches. A failed
+    fundamentals/ratings lookup is cached as None/[] like a real answer."""
+    for key in [k for k in _cache if k[0] == ticker]:
+        del _cache[key]
+    _fundamentals_cache.pop(ticker, None)
+    _ratings_cache.pop(ticker, None)
+
+
 def clear_cache() -> None:
     """Used by tests, and by the static generator between runs."""
     _cache.clear()
