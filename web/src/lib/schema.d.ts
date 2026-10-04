@@ -934,6 +934,12 @@ export interface components {
             spot?: number | null;
             /** Implied Move */
             implied_move?: number | null;
+            /**
+             * Indexable
+             * @description see TickerPage.indexable; drives the sitemap
+             * @default false
+             */
+            indexable: boolean;
         };
         /** TickerPage */
         TickerPage: {
@@ -969,6 +975,17 @@ export interface components {
             next_report_session?: string | null;
             /** Days Until Report */
             days_until_report?: number | null;
+            /**
+             * Expected Report Date
+             * @description Between reporting seasons only (next_report_date is null): the next date on file, usually an estimate. Shown as 'expected', never with a BMO/AMC.
+             */
+            expected_report_date?: string | null;
+            /**
+             * Indexable
+             * @description Whether the page carries enough substance for search engines: a current implied move, or at least MIN_MOVES_TO_INDEX past earnings moves.
+             * @default false
+             */
+            indexable: boolean;
             /**
              * Direction
              * @description BULLISH | BEARISH | NEUTRAL — the validated options-flow + sentiment lean for the *next* report, refined daily starting a few days out. Absent (not NEUTRAL) until that window opens; describes what the market's flow suggests, not a recommendation.

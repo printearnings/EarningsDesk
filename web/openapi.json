@@ -2497,6 +2497,12 @@
               }
             ],
             "title": "Implied Move"
+          },
+          "indexable": {
+            "type": "boolean",
+            "title": "Indexable",
+            "description": "see TickerPage.indexable; drives the sitemap",
+            "default": false
           }
         },
         "type": "object",
@@ -2612,6 +2618,25 @@
               }
             ],
             "title": "Days Until Report"
+          },
+          "expected_report_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Report Date",
+            "description": "Between reporting seasons only (next_report_date is null): the next date on file, usually an estimate. Shown as 'expected', never with a BMO/AMC."
+          },
+          "indexable": {
+            "type": "boolean",
+            "title": "Indexable",
+            "description": "Whether the page carries enough substance for search engines: a current implied move, or at least MIN_MOVES_TO_INDEX past earnings moves.",
+            "default": false
           },
           "direction": {
             "anyOf": [

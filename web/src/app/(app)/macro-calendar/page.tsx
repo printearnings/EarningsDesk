@@ -4,8 +4,13 @@ import { Panel } from "@/components/Panel";
 import { TopBar } from "@/components/TopBar";
 import { getIndex } from "@/lib/api";
 import { MACRO_EVENTS } from "@/lib/macroEvents";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata = { title: "Macro calendar | PrintEarnings" };
+export const metadata = pageMeta(
+  "Macro calendar",
+  "/macro-calendar/",
+  "Upcoming macro dates that move the whole market around earnings: CPI, PPI, jobs reports and FOMC decisions.",
+);
 
 export default async function MacroCalendarPage() {
   const index = await getIndex();

@@ -11,6 +11,7 @@ export const metadata = {
   title: "How calls are tested | PrintEarnings",
   description:
     "Every RICH or CHEAP call is scored as if one defined-risk options structure had been traded around the report. Two real examples, step by step.",
+  alternates: { canonical: "/how-we-score/" },
 };
 
 /**

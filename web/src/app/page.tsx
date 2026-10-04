@@ -9,6 +9,9 @@ import { countOutside, type PreviewTicker } from "@/lib/landing";
 
 export const metadata = {
   title: "PrintEarnings | Know what's priced in before the print",
+  description:
+    "What the options market is pricing into an earnings report, next to how far the stock actually moved its last eight quarters. Market data and analysis, not advice.",
+  alternates: { canonical: "/" },
 };
 
 /**

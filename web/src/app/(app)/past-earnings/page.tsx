@@ -2,8 +2,13 @@ import { PastEarningsTable } from "@/components/PastEarningsTable";
 import { Panel } from "@/components/Panel";
 import { TopBar } from "@/components/TopBar";
 import { getIndex, getPastEarnings, getTrackRecord } from "@/lib/api";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata = { title: "Past earnings | PrintEarnings" };
+export const metadata = pageMeta(
+  "Past earnings",
+  "/past-earnings/",
+  "Recent earnings reports: EPS against estimates, the move options priced, and how far the stock actually moved.",
+);
 
 /**
  * Every past earnings report across the whole tracked universe, newest first

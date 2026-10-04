@@ -4,6 +4,7 @@ import Script from "next/script";
 
 import { CookieBanner } from "@/components/CookieBanner";
 import { ADS_CONSENT_INLINE_SCRIPT } from "@/lib/consent";
+import { SITE_URL } from "@/lib/seo";
 
 import "./globals.css";
 
@@ -25,6 +26,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  // Lets every page give a relative canonical URL ("/faq/"); see lib/seo.ts.
+  metadataBase: new URL(SITE_URL),
   title: "PrintEarnings",
   description:
     "What the options market is pricing into an earnings print, and what actually happened the last eight quarters.",

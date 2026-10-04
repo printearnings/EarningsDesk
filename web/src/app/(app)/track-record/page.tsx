@@ -6,8 +6,13 @@ import { getIndex, getTrackRecord } from "@/lib/api";
 import { pct } from "@/lib/format";
 import { directionNote } from "@/lib/insights";
 import type { TrackRecordPage as TrackRecordData } from "@/lib/types";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata = { title: "Track record | PrintEarnings" };
+export const metadata = pageMeta(
+  "Track record",
+  "/track-record/",
+  "Every rich/cheap call PrintEarnings has made, scored against what the stock actually did. Misses included.",
+);
 
 /**
  * Turns the raw scored counts into one sentence a first-time visitor can

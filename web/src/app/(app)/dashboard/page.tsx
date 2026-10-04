@@ -24,8 +24,13 @@ import {
   relativeDaysFromDate,
 } from "@/lib/format";
 import { MACRO_EVENTS } from "@/lib/macroEvents";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata = { title: "Dashboard | PrintEarnings" };
+export const metadata = pageMeta(
+  "Dashboard",
+  "/dashboard/",
+  "This week's earnings at a glance: who reports, what options price in, and which setups price a bigger move than the stock usually makes.",
+);
 
 const PANEL_ACTION_CLASS =
   "pressable inline-flex shrink-0 items-center gap-1 rounded-[var(--radius-sm)] px-2 py-1 text-xs font-medium text-[var(--color-brand)] transition-colors hover:bg-[var(--color-panel-soft)]";

@@ -895,3 +895,43 @@ def test_track_record_page_carries_every_field_through():
     assert page.structure_buy_scored == 23
     assert page.structure_buy_win_rate == 0.56
     assert page.structure_buy_avg_pnl_pct == 0.28
+
+
+# ---- search-engine indexability (AdSense "low value content", Oct 2026) ------
+
+
+def _moves(n: int) -> str:
+    return json.dumps([{"report_date": f"2025-0{i + 1}-15", "move": 0.03} for i in range(n)])
+
+
+def test_a_page_with_a_live_implied_move_is_indexable(s):
+    _snap(s, implied_move=0.08)
+    assert pages.ticker_page(s, "NVDA", now=NOW).indexable is True
+
+
+def test_a_page_with_enough_past_moves_is_indexable_between_seasons(s):
+    _snap(s, implied_move=None, past_moves_json=_moves(pages.MIN_MOVES_TO_INDEX))
+    assert pages.ticker_page(s, "NVDA", now=NOW).indexable is True
+
+
+def test_a_mostly_empty_page_is_not_indexable(s):
+    _snap(s, implied_move=None, past_moves_json=_moves(pages.MIN_MOVES_TO_INDEX - 1))
+    assert pages.ticker_page(s, "NVDA", now=NOW).indexable is False
+    assert pages.ticker_page(s, "MSFT", now=NOW).indexable is False  # no snapshot
+
+
+def test_between_seasons_the_next_date_on_file_is_offered_as_expected(s):
+    """NVDA, Oct 2026: its snapshot still said Aug 26, a print already passed,
+    so the page showed 'Not scheduled' with Nov 18 sitting in the events table."""
+    _snap(s, next_report_date=date(2026, 8, 5))  # already passed at NOW
+    repo.upsert_earnings_event(s, "NVDA", date(2026, 11, 18))
+    page = pages.ticker_page(s, "NVDA", now=NOW)
+    assert page.next_report_date is None
+    assert page.expected_report_date == date(2026, 11, 18)
+
+
+def test_a_stale_snapshot_shows_the_fresh_close_not_its_old_spot(s):
+    _snap(s, as_of=NOW - timedelta(days=37), spot=180.0)
+    page = pages.ticker_page(s, "NVDA", prices=_prices(205.0, 210.43), now=NOW)
+    assert page.is_stale is True
+    assert page.spot == 210.43

@@ -4,8 +4,13 @@ import { getIndex } from "@/lib/api";
 import { TopBar } from "@/components/TopBar";
 
 import { CalendarDayClient } from "./CalendarDayClient";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata = { title: "Day view | PrintEarnings" };
+export const metadata = pageMeta(
+  "Day view",
+  "/calendar/day/",
+  "Every company reporting earnings on one day, with the move options are pricing for each.", { noindex: true },
+);
 
 /**
  * The month grid caps each cell at a few tickers before folding the rest

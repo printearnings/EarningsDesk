@@ -277,6 +277,20 @@ def history_stats(ctx: TickerContext | None) -> HistoryStats | None:
     )
 
 
+# A ticker page is worth a search engine's time once it has either a live
+# implied move or this many past earnings moves to show. Below that it is a
+# template with blanks, which Google treats as thin content and which got the
+# site an AdSense "low value content" rejection (Oct 2026): those pages are
+# marked noindex and left out of the sitemap.
+MIN_MOVES_TO_INDEX = 4
+
+
+def worth_indexing(snap: DashboardSnapshot | None) -> bool:
+    if snap is None:
+        return False
+    return snap.implied_move is not None or len(_past_moves(snap)) >= MIN_MOVES_TO_INDEX
+
+
 def _past_moves(snap: DashboardSnapshot) -> list[PastMove]:
     """Parse the stored per-event moves, tolerating a malformed or absent
     blob. Empty is the normal state for any snapshot written before the
@@ -491,7 +505,9 @@ def ticker_page(
     page.fundamentals = fundamentals
     page.analyst_ratings = analyst_ratings or []
 
+    today_et = now.astimezone(_EASTERN).date()
     if snap is None:
+        page.expected_report_date = _expected_report_date(page.history, today_et)
         return page
 
     age_hours = (now - _aware(snap.as_of)).total_seconds() / 3600 if snap.as_of else None
@@ -502,19 +518,24 @@ def ticker_page(
     page.is_stale = bool(age_hours is not None and age_hours > stale_threshold)
     page.company_name = snap.company_name
     page.company_domain = snap.company_domain
-    page.spot = snap.spot if snap.spot is not None else page.spot
+    # A stale snapshot's spot is days or weeks old; the price series is
+    # fetched fresh on every build, so its last close is the better number.
+    if snap.spot is not None and not (page.is_stale and page.spot is not None):
+        page.spot = snap.spot
     # A snapshot whose "next" print has already happened describes that past
     # print: its priced move and verdict are history, not a read on what's
     # coming. Drop them rather than show them as current (a frozen PANW page
     # said "reports Sep 1" with a live-looking verdict 27 days later); the
     # stale banner already says the page is behind.
-    today_et = now.astimezone(_EASTERN).date()
     print_passed = snap.next_report_date is not None and snap.next_report_date < today_et
     page.next_report_date = None if print_passed else snap.next_report_date
     page.next_report_session = None if print_passed else snap.next_report_session
     page.days_until_report = (
         (page.next_report_date - today_et).days if page.next_report_date else None
     )
+    if page.next_report_date is None:
+        page.expected_report_date = _expected_report_date(page.history, today_et)
+    page.indexable = worth_indexing(snap)
     # Only surface the read when it's actually about the *next* report —
     # latest_direction_signal returns whichever Workflow-B row is newest
     # regardless of which print it was for, so a ticker that hasn't entered
@@ -536,6 +557,13 @@ def ticker_page(
     page.ai_summary = _ai_summary(snap)
 
     return page
+
+
+def _expected_report_date(history: list[EarningsHistoryRow], today: date) -> date | None:
+    """The soonest event on file that hasn't happened yet, for a page between
+    reporting seasons. Usually a Yahoo estimate, so the UI labels it as one."""
+    upcoming = [h.report_date for h in history if h.report_date >= today]
+    return min(upcoming) if upcoming else None
 
 
 def _latest_close(prices: list[PricePoint]) -> float | None:

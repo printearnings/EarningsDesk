@@ -1,8 +1,13 @@
 import { Panel } from "@/components/Panel";
 import { TopBar } from "@/components/TopBar";
 import { getIndex } from "@/lib/api";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata = { title: "Privacy | PrintEarnings" };
+export const metadata = pageMeta(
+  "Privacy",
+  "/privacy/",
+  "What PrintEarnings collects, the cookies it uses, and how ads are served.",
+);
 
 export default async function PrivacyPage() {
   const index = await getIndex();

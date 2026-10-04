@@ -1,8 +1,13 @@
 import { Panel } from "@/components/Panel";
 import { TopBar } from "@/components/TopBar";
 import { getIndex } from "@/lib/api";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata = { title: "Terms of Service | PrintEarnings" };
+export const metadata = pageMeta(
+  "Terms of Service",
+  "/terms/",
+  "The terms for using PrintEarnings.",
+);
 
 /**
  * Scoped to what this site actually is: no accounts, no trade execution, no

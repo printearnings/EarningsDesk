@@ -1,8 +1,13 @@
 import { Panel } from "@/components/Panel";
 import { TopBar } from "@/components/TopBar";
 import { getIndex } from "@/lib/api";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata = { title: "Methodology | PrintEarnings" };
+export const metadata = pageMeta(
+  "Methodology",
+  "/methodology/",
+  "How PrintEarnings measures implied moves, compares them with a stock's typical earnings move, and scores its own calls.",
+);
 
 export default async function MethodologyPage() {
   const index = await getIndex();

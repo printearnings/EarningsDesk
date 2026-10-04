@@ -4,8 +4,13 @@ import { SignalsTable } from "@/components/SignalsTable";
 import { TopBar } from "@/components/TopBar";
 import { getIndex, getSignals, getTrackRecord } from "@/lib/api";
 import { directionNote } from "@/lib/insights";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata = { title: "Signals | PrintEarnings" };
+export const metadata = pageMeta(
+  "Signals",
+  "/signals/",
+  "The latest rich/cheap reads across upcoming earnings, each with its scored outcome once the report is out.",
+);
 
 /**
  * Every signal the engine has posted, newest run first — the receipts behind

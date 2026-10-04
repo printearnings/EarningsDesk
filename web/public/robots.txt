@@ -17,3 +17,6 @@ Content-Signal: search=yes, ai-input=yes, ai-train=no
 # ai-train: use content to train or fine-tune a model. Disallowed — the
 #           computed verdicts and track record are this site's actual
 #           differentiated content, not just public price data.
+
+# The pages worth indexing (thin ticker pages are excluded and marked noindex).
+Sitemap: https://printearnings.com/sitemap.xml

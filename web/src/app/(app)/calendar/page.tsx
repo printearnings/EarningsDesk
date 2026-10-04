@@ -2,8 +2,13 @@ import { EarningsCalendar } from "@/components/calendar/EarningsCalendar";
 import type { Names } from "@/components/calendar/shared";
 import { TopBar } from "@/components/TopBar";
 import { getCalendarFull, getIndex, getTrackRecord } from "@/lib/api";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata = { title: "Earnings calendar | PrintEarnings" };
+export const metadata = pageMeta(
+  "Earnings calendar",
+  "/calendar/",
+  "Upcoming earnings for the next 30 days: report dates, before-the-open or after-the-close timing, and the move options are pricing.",
+);
 
 export default async function CalendarPage() {
   const [index, calendar, record] = await Promise.all([

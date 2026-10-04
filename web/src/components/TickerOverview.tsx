@@ -150,7 +150,75 @@ export function pricedMultiple(data: TickerData): number | null {
     : null;
 }
 
+/**
+ * No options pricing and no confirmed next report: the company is between
+ * reporting seasons (NVDA after its August print). The page then describes
+ * the last report and the next expected one instead of showing live-pricing
+ * cards full of blanks.
+ */
+export function isBetweenReports(data: TickerData): boolean {
+  return !data.options && !data.next_report_date;
+}
+
+function BetweenReportsCards({ data }: { data: TickerData }) {
+  const moves = pastMoves(data);
+  // "Today" for a static page is its latest price bar. History is newest
+  // first, so the first row on or before it is the last report, whether or
+  // not its EPS has landed yet (NVDA's August print had none on file).
+  const asOf = data.prices.length ? data.prices[data.prices.length - 1].date : null;
+  const last =
+    (asOf ? data.history.find((h) => h.report_date <= asOf) : data.history[0]) ?? null;
+  const lastDate = last?.report_date ?? moves[0]?.date ?? null;
+  const lastMove =
+    (lastDate && moves.find((m) => m.date === lastDate)?.move) ??
+    (typeof last?.realized_move === "number" ? last.realized_move : null);
+  const avg = moves.length ? moves.reduce((t, m) => t + Math.abs(m.move), 0) / moves.length : null;
+  const largest = moves.length
+    ? moves.reduce((a, b) => (Math.abs(b.move) > Math.abs(a.move) ? b : a))
+    : null;
+  const expected = data.expected_report_date ?? null;
+
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <KpiCard
+        label="Last report"
+        value={lastDate ? formatDate(lastDate) : "Not on file"}
+        sub={
+          typeof last?.eps_actual !== "number"
+            ? "Reported results not on file yet"
+            : typeof last.eps_estimate === "number"
+              ? `EPS ${eps(last.eps_actual)} vs ${eps(last.eps_estimate)} expected`
+              : `EPS ${eps(last.eps_actual)}`
+        }
+        footLabel={typeof lastMove === "number" ? "Stock moved" : undefined}
+        footValue={typeof lastMove === "number" ? pctSigned(lastMove) : undefined}
+        hint="The most recent earnings report and how the stock reacted."
+      />
+      <KpiCard
+        label="Next report"
+        badge={expected ? <Badge tone="muted">Estimate</Badge> : undefined}
+        value={expected ? formatDate(expected) : "Not announced"}
+        sub={
+          expected
+            ? "Expected, not yet confirmed by the company. Options pricing for it appears here about a month out."
+            : "The company hasn't announced its next date yet."
+        }
+        hint="Between reporting seasons the next date is usually an estimate."
+      />
+      <KpiCard
+        label="Typical move"
+        value={avg !== null ? pctRange(avg) : "Not enough history"}
+        sub={moves.length ? `Average after its last ${moves.length} reports` : undefined}
+        footLabel={largest ? "Largest move" : undefined}
+        footValue={largest ? `${pctSigned(largest.move)} (${shortQuarter(largest.date)})` : undefined}
+        hint="Average absolute move after recent earnings reports."
+      />
+    </div>
+  );
+}
+
 export function KpiCards({ data }: { data: TickerData }) {
+  if (isBetweenReports(data)) return <BetweenReportsCards data={data} />;
   const o = data.options;
   const implied = o?.implied_move ?? null;
   const spot = data.spot ?? null;

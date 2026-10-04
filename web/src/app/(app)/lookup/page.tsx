@@ -4,8 +4,13 @@ import { getIndex } from "@/lib/api";
 import { TopBar } from "@/components/TopBar";
 
 import { LookupClient } from "./LookupClient";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata = { title: "Look up a ticker | PrintEarnings" };
+export const metadata = pageMeta(
+  "Look up a ticker",
+  "/lookup/",
+  "Look up any ticker for its price history, fundamentals and past earnings moves.", { noindex: true },
+);
 
 /**
  * Cold-ticker lookup: server shell + client-fetched body.

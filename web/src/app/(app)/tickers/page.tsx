@@ -2,8 +2,13 @@ import { Panel } from "@/components/Panel";
 import { TickersScreener } from "@/components/TickersScreener";
 import { TopBar } from "@/components/TopBar";
 import { getIndex } from "@/lib/api";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata = { title: "Tickers | PrintEarnings" };
+export const metadata = pageMeta(
+  "Tickers",
+  "/tickers/",
+  "Every ticker PrintEarnings tracks, with its next report date and what options price in.",
+);
 
 /**
  * The screener: every tracked ticker, sorted by how soon it reports —

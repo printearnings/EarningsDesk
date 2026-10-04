@@ -89,6 +89,14 @@ const MIN_ZOOM_POINTS = 10;
 /** An intraday point's ISO timestamp -> its "YYYY-MM-DD" calendar date in
  * the exchange's own timezone — matches an earnings event's report_date
  * (a market-calendar date) regardless of the reader's own timezone. */
+/** "Over the past year NVDA closed between $164.27 and $237.87; last close $210.43 on Oct 2." */
+function yearSummary(ticker: string, prices: PricePoint[]): string | null {
+  if (prices.length < 2) return null;
+  const closes = prices.map((p) => p.close);
+  const last = prices[prices.length - 1];
+  return `Loading today's chart. Over the past year ${ticker} closed between ${money(Math.min(...closes))} and ${money(Math.max(...closes))}; last close ${money(last.close)} on ${formatDateShort(last.date)}.`;
+}
+
 function etDateString(iso: string): string {
   return new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/New_York" });
 }
@@ -453,7 +461,12 @@ export function PriceChart({
       </div>
 
       {!daily && intraday.loading ? (
-        <p className="py-10 text-center text-sm text-[var(--color-muted)]">Loading…</p>
+        // The intraday view loads in the browser, so this is also what a
+        // crawler or a no-JS reader sees: a sentence about the year's prices
+        // rather than a bare "Loading…".
+        <p className="py-10 text-center text-sm text-[var(--color-muted)]">
+          {yearSummary(ticker, prices) ?? "Loading today's chart…"}
+        </p>
       ) : !daily && intraday.error ? (
         <p className="py-10 text-center text-sm text-[var(--color-muted)]">
           {intraday.error} Try the 1Y view instead.

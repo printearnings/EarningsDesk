@@ -2,8 +2,13 @@ import { getIndex } from "@/lib/api";
 import { TopBar } from "@/components/TopBar";
 
 import { SimulatorLandingClient } from "./SimulatorLandingClient";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata = { title: "Options P&L simulator | PrintEarnings" };
+export const metadata = pageMeta(
+  "Options P&L simulator",
+  "/simulator/",
+  "Model how a straddle or other options position around an earnings report could pay out across different moves.",
+);
 
 /**
  * The nav-level entry point for the simulator: pick any tracked ticker here

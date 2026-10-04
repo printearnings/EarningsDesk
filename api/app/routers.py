@@ -190,6 +190,7 @@ def _index(session: Session) -> SiteIndex:
             verdict=snapshots[t].verdict if t in snapshots else None,
             spot=snapshots[t].spot if t in snapshots else None,
             implied_move=snapshots[t].implied_move if t in snapshots else None,
+            indexable=pages.worth_indexing(snapshots.get(t)),
         )
         for t in repo.known_tickers(session)
     ]

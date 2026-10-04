@@ -1,4 +1,4 @@
-import { DisclaimerGate } from "@/components/DisclaimerGate";
+import { DisclaimerNotice } from "@/components/DisclaimerNotice";
 import { Footer } from "@/components/Footer";
 import { TopNav } from "@/components/TopNav";
 import { getIndex } from "@/lib/api";
@@ -16,7 +16,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex min-h-screen flex-col">
-      <DisclaimerGate />
+      <DisclaimerNotice />
       <TopNav tickers={index.tickers} />
       {/* Cap the content width: with the sidebar gone, an uncapped column let
           full-width SVG charts (which scale their own fonts by width) blow up

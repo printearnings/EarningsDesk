@@ -284,6 +284,20 @@ class TickerPage(BaseModel):
     next_report_date: date | None = None
     next_report_session: str | None = None
     days_until_report: int | None = None
+    expected_report_date: date | None = Field(
+        None,
+        description=(
+            "Between reporting seasons only (next_report_date is null): the next date on "
+            "file, usually an estimate. Shown as 'expected', never with a BMO/AMC."
+        ),
+    )
+    indexable: bool = Field(
+        False,
+        description=(
+            "Whether the page carries enough substance for search engines: a current "
+            "implied move, or at least MIN_MOVES_TO_INDEX past earnings moves."
+        ),
+    )
 
     direction: str | None = Field(
         None,
@@ -490,6 +504,7 @@ class TickerIndexEntry(BaseModel):
     verdict: str | None = None
     spot: float | None = None
     implied_move: float | None = None
+    indexable: bool = Field(False, description="see TickerPage.indexable; drives the sitemap")
 
 
 class SiteIndex(BaseModel):

@@ -3,8 +3,13 @@ import type { ReactNode } from "react";
 import { Panel } from "@/components/Panel";
 import { TopBar } from "@/components/TopBar";
 import { getIndex } from "@/lib/api";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata = { title: "FAQ | PrintEarnings" };
+export const metadata = pageMeta(
+  "FAQ",
+  "/faq/",
+  "Answers on implied moves, rich and cheap verdicts, data sources, update times and how the track record is scored.",
+);
 
 const QA: { question: string; answer: ReactNode }[] = [
   {

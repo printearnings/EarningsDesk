@@ -1,8 +1,8 @@
 import Link from "next/link";
 
 /**
- * Persistent footer for every (app) page — the disclaimer modal only shows
- * once, so this is the always-reachable place to re-read it (or find the
+ * Persistent footer for every (app) page — the disclaimer notice only shows
+ * until dismissed, so this is the always-reachable place to re-read it (or find the
  * privacy page) without digging through browser storage to reset the flag.
  * The copyright year comes from the build machine's clock — this is a
  * static export, so it's fixed at whatever the last deploy's build time
@@ -30,6 +30,10 @@ export function Footer() {
         {" · "}
         <Link href="/faq/" className="underline underline-offset-2">
           FAQ
+        </Link>
+        {" · "}
+        <Link href="/about/" className="underline underline-offset-2">
+          About
         </Link>
       </p>
     </footer>

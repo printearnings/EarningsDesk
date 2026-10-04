@@ -35,6 +35,7 @@ const MORE = [
   { href: "/past-earnings/", label: "Past earnings" },
   { href: "/methodology/", label: "Methodology" },
   { href: "/faq/", label: "FAQ" },
+  { href: "/about/", label: "About" },
   { href: "/support/", label: "Support" },
 ];
 

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -5,7 +6,7 @@ import { DirectionChip, VerdictChip } from "@/components/Chip";
 import { CompanyLogo } from "@/components/CompanyLogo";
 import { Eyebrow, Panel } from "@/components/Panel";
 import { TickerTabs } from "@/components/TickerTabs";
-import { Card, pricedMultiple } from "@/components/TickerOverview";
+import { Card, isBetweenReports, pricedMultiple } from "@/components/TickerOverview";
 import { getIndex, getTicker, getTrackRecord } from "@/lib/api";
 import type { TickerPage as TickerData, TrackRecordPage } from "@/lib/api";
 import { formatAge, formatDateShort, money, pct } from "@/lib/format";
@@ -21,9 +22,31 @@ export async function generateStaticParams() {
   return index.tickers.map((t) => ({ ticker: t.ticker }));
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ ticker: string }> }) {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ ticker: string }>;
+}): Promise<Metadata> {
   const { ticker } = await params;
-  return { title: `${ticker.toUpperCase()} earnings | PrintEarnings` };
+  const data = await getTicker(ticker);
+  const t = ticker.toUpperCase();
+  const name = data?.company_name ? `${data.company_name} (${t})` : t;
+  return {
+    title: `${t} earnings | PrintEarnings`,
+    description: tickerDescription(name, data),
+    alternates: { canonical: `/t/${t}/` },
+    // A page with neither a live implied move nor enough past moves is a
+    // template with blanks: kept out of search results (and the sitemap).
+    ...(data?.indexable ? {} : { robots: { index: false, follow: true } }),
+  };
+}
+
+function tickerDescription(name: string, data: TickerData | null): string {
+  const implied = data?.options?.implied_move;
+  if (data?.next_report_date && typeof implied === "number") {
+    return `${name} reports ${formatDateShort(data.next_report_date)}. Options price a move of about ±${(implied * 100).toFixed(1)}%; see how that compares with its last eight earnings moves.`;
+  }
+  return `${name} earnings: past report dates, how far the stock moved after each, and what options price in once the next report nears.`;
 }
 
 export default async function TickerPage({ params }: { params: Promise<{ ticker: string }> }) {
@@ -41,7 +64,9 @@ export default async function TickerPage({ params }: { params: Promise<{ ticker:
       <div className="space-y-6 px-6 py-6">
         <TickerHeader data={data} record={record} />
 
-        {data.is_stale && (
+        {/* The banner is about live options numbers going stale. Between
+            reporting seasons the page shows none, so it would only alarm. */}
+        {data.is_stale && !isBetweenReports(data) && (
           <p className="rounded-[var(--radius-sm)] border border-[var(--color-warning)]/30 bg-[var(--color-warning-bg)] px-4 py-3 text-sm text-[var(--color-warning)]">
             Last updated {formatAge(data.snapshot_age_hours)}, longer than usual for this page.
             Treat the numbers below with extra caution.
@@ -90,11 +115,13 @@ function TickerHeader({ data, record }: { data: TickerData; record: TrackRecordP
         <span className="hidden h-8 w-px bg-[var(--color-border)] sm:block" aria-hidden />
         <div className="flex flex-wrap items-center gap-2">
           <HeaderChip>{data.is_tracked ? "Tracked" : "Cold lookup"}</HeaderChip>
-          {data.as_of && (
-            <HeaderChip tone={data.is_stale ? "warning" : "muted"}>
-              Updated {formatAge(data.snapshot_age_hours)}
-            </HeaderChip>
-          )}
+          {isBetweenReports(data)
+            ? data.is_tracked && <HeaderChip>Between reports</HeaderChip>
+            : data.as_of && (
+                <HeaderChip tone={data.is_stale ? "warning" : "muted"}>
+                  Updated {formatAge(data.snapshot_age_hours)}
+                </HeaderChip>
+              )}
         </div>
       </div>
 

@@ -2,8 +2,13 @@ import { Panel } from "@/components/Panel";
 import { TopBar } from "@/components/TopBar";
 import { getIndex } from "@/lib/api";
 import { DISCLAIMER_PARAGRAPHS } from "@/lib/legal";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata = { title: "Disclaimer | PrintEarnings" };
+export const metadata = pageMeta(
+  "Disclaimer",
+  "/disclaimer/",
+  "PrintEarnings is informational and educational only, not financial advice. What the numbers are, and what they are not.",
+);
 
 export default async function DisclaimerPage() {
   const index = await getIndex();

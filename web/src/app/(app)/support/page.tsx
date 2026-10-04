@@ -2,8 +2,13 @@ import { Panel } from "@/components/Panel";
 import { SupportForm } from "@/components/SupportForm";
 import { TopBar } from "@/components/TopBar";
 import { getIndex } from "@/lib/api";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata = { title: "Support | PrintEarnings" };
+export const metadata = pageMeta(
+  "Support",
+  "/support/",
+  "Contact PrintEarnings with a question, a data issue or feedback.",
+);
 
 export default async function SupportPage() {
   const index = await getIndex();
