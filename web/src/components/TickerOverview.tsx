@@ -135,6 +135,10 @@ function pastMoves(data: TickerData): { date: string; move: number }[] {
     .slice(0, 8);
 }
 
+function avgMove(moves: { move: number }[]): number | null {
+  return moves.length ? moves.reduce((t, m) => t + Math.abs(m.move), 0) / moves.length : null;
+}
+
 function median(xs: number[]): number | null {
   if (xs.length === 0) return null;
   const s = [...xs].sort((a, b) => a - b);
@@ -152,15 +156,26 @@ export function pricedMultiple(data: TickerData): number | null {
 
 /**
  * No options pricing and no confirmed next report: the company is between
- * reporting seasons (NVDA after its August print). The page then describes
- * the last report and the next expected one instead of showing live-pricing
- * cards full of blanks.
+ * reporting seasons (NVDA after its August print).
  */
 export function isBetweenReports(data: TickerData): boolean {
   return !data.options && !data.next_report_date;
 }
 
-function BetweenReportsCards({ data }: { data: TickerData }) {
+/**
+ * No options pricing on the page at all: between reporting seasons, or a
+ * confirmed report that hasn't been priced yet (the morning build only
+ * prices the coming week's reporters, so FHB, reporting in 13 days, sat on
+ * an 11-day-old snapshot with nothing priced). Either way the page describes
+ * the last report, the next one and the typical move instead of showing
+ * live-pricing cards full of blanks — five "No data" cards on half the
+ * season's ticker pages read as thin content to Google.
+ */
+export function isUnpriced(data: TickerData): boolean {
+  return !data.options;
+}
+
+function UnpricedCards({ data }: { data: TickerData }) {
   const moves = pastMoves(data);
   // "Today" for a static page is its latest price bar. History is newest
   // first, so the first row on or before it is the last report, whether or
@@ -172,11 +187,14 @@ function BetweenReportsCards({ data }: { data: TickerData }) {
   const lastMove =
     (lastDate && moves.find((m) => m.date === lastDate)?.move) ??
     (typeof last?.realized_move === "number" ? last.realized_move : null);
-  const avg = moves.length ? moves.reduce((t, m) => t + Math.abs(m.move), 0) / moves.length : null;
+  const avg = avgMove(moves);
   const largest = moves.length
     ? moves.reduce((a, b) => (Math.abs(b.move) > Math.abs(a.move) ? b : a))
     : null;
+  const confirmed = data.next_report_date ?? null;
   const expected = data.expected_report_date ?? null;
+  const upcoming = confirmed ? data.history.find((h) => h.report_date === confirmed) : null;
+  const session = sessionLabel(data.next_report_session);
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -194,23 +212,43 @@ function BetweenReportsCards({ data }: { data: TickerData }) {
         footValue={typeof lastMove === "number" ? pctSigned(lastMove) : undefined}
         hint="The most recent earnings report and how the stock reacted."
       />
-      <KpiCard
-        label="Next report"
-        badge={expected ? <Badge tone="muted">Estimate</Badge> : undefined}
-        value={expected ? formatDate(expected) : "Not announced"}
-        sub={
-          expected
-            ? "Expected, not yet confirmed by the company. Options pricing for it appears here about a month out."
-            : "The company hasn't announced its next date yet."
-        }
-        hint="Between reporting seasons the next date is usually an estimate."
-      />
+      {confirmed ? (
+        <KpiCard
+          label="Next report"
+          badge={
+            typeof data.days_until_report === "number" ? (
+              <Badge>{relativeDays(data.days_until_report)}</Badge>
+            ) : undefined
+          }
+          value={formatDate(confirmed)}
+          sub={`${[session ?? "time TBA", weekday(confirmed)].join(" · ")}. Options pricing for it appears here in the week before the report.`}
+          footLabel={upcoming?.eps_estimate != null ? "Consensus EPS" : undefined}
+          footValue={
+            upcoming?.eps_estimate != null ? `${eps(upcoming.eps_estimate)} est.` : undefined
+          }
+          hint="The next scheduled earnings date."
+        />
+      ) : (
+        <KpiCard
+          label="Next report"
+          badge={expected ? <Badge tone="muted">Estimate</Badge> : undefined}
+          value={expected ? formatDate(expected) : "Not announced"}
+          sub={
+            expected
+              ? "Expected, not yet confirmed by the company. Options pricing for it appears here about a month out."
+              : "The company hasn't announced its next date yet."
+          }
+          hint="Between reporting seasons the next date is usually an estimate."
+        />
+      )}
       <KpiCard
         label="Typical move"
         value={avg !== null ? pctRange(avg) : "Not enough history"}
         sub={moves.length ? `Average after its last ${moves.length} reports` : undefined}
         footLabel={largest ? "Largest move" : undefined}
-        footValue={largest ? `${pctSigned(largest.move)} (${shortQuarter(largest.date)})` : undefined}
+        footValue={
+          largest ? `${pctSigned(largest.move)} (${shortQuarter(largest.date)})` : undefined
+        }
         hint="Average absolute move after recent earnings reports."
       />
     </div>
@@ -218,7 +256,7 @@ function BetweenReportsCards({ data }: { data: TickerData }) {
 }
 
 export function KpiCards({ data }: { data: TickerData }) {
-  if (isBetweenReports(data)) return <BetweenReportsCards data={data} />;
+  if (isUnpriced(data)) return <UnpricedCards data={data} />;
   const o = data.options;
   const implied = o?.implied_move ?? null;
   const spot = data.spot ?? null;
@@ -277,7 +315,7 @@ export function KpiCards({ data }: { data: TickerData }) {
             <Badge tone="muted">Priced {multiple.toFixed(1)}×</Badge>
           ) : undefined
         }
-        value={pctRange(o?.hist_avg_move)}
+        value={pctRange(o?.hist_avg_move ?? avgMove(moves))}
         sub={moves.length ? `Average of last ${moves.length} prints` : "Not enough past prints"}
         footLabel="Largest move"
         footValue={

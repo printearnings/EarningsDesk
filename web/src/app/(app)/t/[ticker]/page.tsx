@@ -6,7 +6,12 @@ import { DirectionChip, VerdictChip } from "@/components/Chip";
 import { CompanyLogo } from "@/components/CompanyLogo";
 import { Eyebrow, Panel } from "@/components/Panel";
 import { TickerTabs } from "@/components/TickerTabs";
-import { Card, isBetweenReports, pricedMultiple } from "@/components/TickerOverview";
+import {
+  Card,
+  isBetweenReports,
+  isUnpriced,
+  pricedMultiple,
+} from "@/components/TickerOverview";
 import { getIndex, getTicker, getTrackRecord } from "@/lib/api";
 import type { TickerPage as TickerData, TrackRecordPage } from "@/lib/api";
 import { formatAge, formatDateShort, money, pct } from "@/lib/format";
@@ -64,9 +69,9 @@ export default async function TickerPage({ params }: { params: Promise<{ ticker:
       <div className="space-y-6 px-6 py-6">
         <TickerHeader data={data} record={record} />
 
-        {/* The banner is about live options numbers going stale. Between
-            reporting seasons the page shows none, so it would only alarm. */}
-        {data.is_stale && !isBetweenReports(data) && (
+        {/* The banner is about live options numbers going stale. A page with
+            no options pricing shows none, so it would only alarm. */}
+        {data.is_stale && !isUnpriced(data) && (
           <p className="rounded-[var(--radius-sm)] border border-[var(--color-warning)]/30 bg-[var(--color-warning-bg)] px-4 py-3 text-sm text-[var(--color-warning)]">
             Last updated {formatAge(data.snapshot_age_hours)}, longer than usual for this page.
             Treat the numbers below with extra caution.
@@ -115,8 +120,12 @@ function TickerHeader({ data, record }: { data: TickerData; record: TrackRecordP
         <span className="hidden h-8 w-px bg-[var(--color-border)] sm:block" aria-hidden />
         <div className="flex flex-wrap items-center gap-2">
           <HeaderChip>{data.is_tracked ? "Tracked" : "Cold lookup"}</HeaderChip>
-          {isBetweenReports(data)
-            ? data.is_tracked && <HeaderChip>Between reports</HeaderChip>
+          {isUnpriced(data)
+            ? data.is_tracked && (
+                <HeaderChip>
+                  {isBetweenReports(data) ? "Between reports" : "Not priced yet"}
+                </HeaderChip>
+              )
             : data.as_of && (
                 <HeaderChip tone={data.is_stale ? "warning" : "muted"}>
                   Updated {formatAge(data.snapshot_age_hours)}

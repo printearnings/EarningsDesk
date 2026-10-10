@@ -262,9 +262,9 @@ function expectedMoveUnavailable(data: TickerData): { label: string; reason: str
   }
   if (!data.options) {
     return {
-      label: "No options priced",
+      label: "Not priced yet",
       reason:
-        "No listed options chain was captured for this stock, so there's no implied move to draw.",
+        "Options pricing for this report is captured in the week before it, when the stock has listed options. The band appears then.",
     };
   }
   return {
@@ -298,9 +298,11 @@ function OptionsPanelCard({ data }: { data: TickerData }) {
           // `as_of` only gets set once a snapshot exists — a symbol that's
           // never been captured hasn't been checked for a chain at all,
           // which reads very differently from "checked, found none."
-          data.as_of
-            ? "No listed options chain for this symbol. No implied move to report."
-            : "Options data not yet captured for this symbol."
+          data.next_report_date
+            ? `Options for the ${formatDateShort(data.next_report_date)} report are priced in the week before it, when the stock has listed options.`
+            : data.as_of
+              ? "No listed options chain for this symbol. No implied move to report."
+              : "Options data not yet captured for this symbol."
         }
       />
     );
