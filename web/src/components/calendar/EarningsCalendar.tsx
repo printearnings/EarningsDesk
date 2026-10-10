@@ -178,6 +178,9 @@ export function EarningsCalendar({
 
   const now = parts(today);
   const onTodayMonth = month.year === now.y && month.month === now.m;
+  // The payload starts at the 1st of the current month (past reports live on
+  // Past Earnings), so there's nothing to page back to.
+  const atFirstMonth = month.year * 12 + month.month <= now.y * 12 + now.m;
 
   return (
     <div className="space-y-6">
@@ -208,7 +211,11 @@ export function EarningsCalendar({
             />
             {view === "month" && (
               <div className="hidden items-center gap-1 sm:flex">
-                <IconButton label="Previous month" onClick={() => shiftMonth(-1)}>
+                <IconButton
+                  label="Previous month"
+                  onClick={() => shiftMonth(-1)}
+                  disabled={atFirstMonth}
+                >
                   ‹
                 </IconButton>
                 <h2 className="min-w-[9.5rem] text-center text-lg font-semibold text-[var(--color-heading)]">
@@ -383,18 +390,21 @@ function Segmented<T extends string | number>({
 function IconButton({
   label,
   onClick,
+  disabled = false,
   children,
 }: {
   label: string;
   onClick: () => void;
+  disabled?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       aria-label={label}
-      className="pressable flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] text-lg text-[var(--color-body)] hover:bg-[var(--color-panel-soft)]"
+      className="pressable flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] text-lg text-[var(--color-body)] hover:bg-[var(--color-panel-soft)] disabled:pointer-events-none disabled:opacity-30"
     >
       {children}
     </button>

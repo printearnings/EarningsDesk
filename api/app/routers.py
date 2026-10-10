@@ -8,7 +8,7 @@ exercised by tests.
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date
 
 from earnings.core.clock import market_today
 from earnings.store import repo
@@ -38,10 +38,16 @@ SIGNAL_FEED_LIMIT = 500
 PAST_EARNINGS_LIMIT = 300
 
 # The month-grid calendar navigates client-side over one payload rather than
-# fetching per month — the tracked universe is small enough (tens of events)
-# that shipping ~1.5 years up front is cheaper than a request per navigation.
-FULL_CALENDAR_PAST_DAYS = 180
+# fetching per month. It covers the current month (from the 1st, so the grid's
+# earlier days this month aren't blank) through a year out — past reports
+# live on Past Earnings, not here.
 FULL_CALENDAR_FUTURE_DAYS = 365
+
+# Row caps on the calendar queries are only a runaway guard, never a page
+# size: rows come back earliest-first, so a cap the window outgrows silently
+# drops its *latest* dates. With ~500 reports a month, a 500/2000 cap ended
+# the 30-day window early and the full payload weeks before today.
+CALENDAR_ROW_CAP = 100_000
 
 
 @router.get("/calendar", response_model=CalendarPage, tags=["calendar"])
@@ -54,7 +60,7 @@ def get_calendar(
 
 def _calendar(session: Session, *, days: int, as_of: date | None = None) -> CalendarPage:
     as_of = as_of or market_today()
-    events = repo.upcoming_events(session, start_date=as_of, days=days, limit=500)
+    events = repo.upcoming_events(session, start_date=as_of, days=days, limit=CALENDAR_ROW_CAP)
     snapshots = {s.ticker: s for s in repo.latest_dashboard_snapshots(session)}
     return pages.calendar_page(events, snapshots, as_of=as_of, window_days=days)
 
@@ -99,17 +105,20 @@ def get_calendar_full(session: Session = Depends(get_session)) -> CalendarPage:
 
 
 def _calendar_full(session: Session) -> CalendarPage:
-    """Everything from FULL_CALENDAR_PAST_DAYS ago through FULL_CALENDAR_FUTURE_DAYS
-    out, as one payload, for the month-grid calendar to page through client-side.
+    """Everything from the 1st of the current month through
+    FULL_CALENDAR_FUTURE_DAYS out, as one payload, for the month-grid calendar
+    to page through client-side.
 
     `as_of` (for CalendarEntry.days_until) stays anchored to *today*, not the
-    query's start date — a past event should read "12 days ago", not "-192
-    days ago" measured from the window's edge.
+    query's start date — an event earlier this month should read "3 days ago",
+    not count from the window's edge.
     """
     today = market_today()
-    start = today - timedelta(days=FULL_CALENDAR_PAST_DAYS)
-    total_days = FULL_CALENDAR_PAST_DAYS + FULL_CALENDAR_FUTURE_DAYS
-    events = repo.upcoming_events(session, start_date=start, days=total_days, limit=2000)
+    start = today.replace(day=1)
+    total_days = (today - start).days + FULL_CALENDAR_FUTURE_DAYS
+    events = repo.upcoming_events(
+        session, start_date=start, days=total_days, limit=CALENDAR_ROW_CAP
+    )
     snapshots = {s.ticker: s for s in repo.latest_dashboard_snapshots(session)}
     return pages.calendar_page(events, snapshots, as_of=today, window_days=total_days)
 
