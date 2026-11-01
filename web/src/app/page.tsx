@@ -1,18 +1,29 @@
 import Link from "next/link";
 
 import { LandingPreview, VerdictChip } from "@/components/LandingPreview";
+import { JsonLd } from "@/components/JsonLd";
 import { TickerSearch } from "@/components/TickerSearch";
 import { getCalendar, getIndex, getTicker, getTrackRecord } from "@/lib/api";
 import type { CalendarEntry, TickerPage, TrackRecordPage } from "@/lib/api";
 import { formatDate, pct, pctRange, pctSigned } from "@/lib/format";
 import { countOutside, type PreviewTicker } from "@/lib/landing";
+import { SITE_NAME, SITE_URL, socialMeta } from "@/lib/seo";
+
+const TITLE = "PrintEarnings | Know what's priced in before the print";
+const DESCRIPTION =
+  "What the options market is pricing into an earnings report, next to how far the stock actually moved its last eight quarters. Market data and analysis, not advice.";
 
 export const metadata = {
-  title: "PrintEarnings | Know what's priced in before the print",
-  description:
-    "What the options market is pricing into an earnings report, next to how far the stock actually moved its last eight quarters. Market data and analysis, not advice.",
+  title: TITLE,
+  description: DESCRIPTION,
   alternates: { canonical: "/" },
+  ...socialMeta(TITLE, DESCRIPTION, "/"),
 };
+
+const SITE_JSON_LD = [
+  { "@context": "https://schema.org", "@type": "Organization", name: SITE_NAME, url: SITE_URL },
+  { "@context": "https://schema.org", "@type": "WebSite", name: SITE_NAME, url: SITE_URL, description: DESCRIPTION },
+];
 
 /**
  * Landing page, in the dark "terminal" look (scoped by `.landing` in
@@ -62,6 +73,7 @@ export default async function LandingPage() {
 
   return (
     <div className="landing min-h-screen">
+      <JsonLd data={SITE_JSON_LD} />
       <LandingNav />
 
       <main className="pt-16">

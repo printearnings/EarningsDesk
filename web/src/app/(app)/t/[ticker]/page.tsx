@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { DirectionChip, VerdictChip } from "@/components/Chip";
 import { CompanyLogo } from "@/components/CompanyLogo";
+import { JsonLd } from "@/components/JsonLd";
 import { Eyebrow, Panel } from "@/components/Panel";
 import { TickerTabs } from "@/components/TickerTabs";
 import {
@@ -15,6 +16,7 @@ import {
 import { getIndex, getTicker, getTrackRecord } from "@/lib/api";
 import type { TickerPage as TickerData, TrackRecordPage } from "@/lib/api";
 import { formatAge, formatDateShort, money, pct } from "@/lib/format";
+import { SITE_URL, socialMeta } from "@/lib/seo";
 
 // Wider than the engine's own DIRECTION_LOOKAHEAD_DAYS (3) on purpose: a
 // reader within this window but before the read exists should see "not yet"
@@ -36,20 +38,73 @@ export async function generateMetadata({
   const data = await getTicker(ticker);
   const t = ticker.toUpperCase();
   const name = data?.company_name ? `${data.company_name} (${t})` : t;
+  const title = `${tickerTitle(t, data)} | PrintEarnings`;
+  const description = tickerDescription(name, data);
   return {
-    title: `${t} earnings | PrintEarnings`,
-    description: tickerDescription(name, data),
+    title,
+    description,
     alternates: { canonical: `/t/${t}/` },
+    ...socialMeta(title, description, `/t/${t}/`),
     // A page with neither a live implied move nor enough past moves is a
     // template with blanks: kept out of search results (and the sitemap).
     ...(data?.indexable ? {} : { robots: { index: false, follow: true } }),
   };
 }
 
-function tickerDescription(name: string, data: TickerData | null): string {
+/**
+ * "Expected move" is the phrase people search for ("NVDA expected move
+ * earnings"); the page itself calls the same number the implied move.
+ */
+function tickerTitle(t: string, data: TickerData | null): string {
+  const upcoming = upcomingPricing(data);
+  if (upcoming) {
+    return `${t} earnings ${formatDateShort(upcoming.date)}: expected move ±${(upcoming.implied * 100).toFixed(1)}%`;
+  }
+  return `${t} earnings: expected move and past stock moves`;
+}
+
+/** Breadcrumb and "this page is about this company" structured data. */
+function tickerJsonLd(data: TickerData): object[] {
+  const url = `${SITE_URL}/t/${data.ticker}/`;
+  const company = data.company_name ?? data.ticker;
+  return [
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      name: `${company} (${data.ticker}) earnings`,
+      url,
+      about: { "@type": "Corporation", name: company, tickerSymbol: data.ticker },
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Tickers", item: `${SITE_URL}/tickers/` },
+        { "@type": "ListItem", position: 2, name: data.ticker, item: url },
+      ],
+    },
+  ];
+}
+
+/**
+ * The next report and its implied move, only while both are current: fresh
+ * pricing for a report that hasn't happened yet as of the page's latest price
+ * bar. A stale snapshot can still carry a past report's numbers, and a title
+ * or search snippet advertising them would be wrong.
+ */
+function upcomingPricing(data: TickerData | null): { date: string; implied: number } | null {
   const implied = data?.options?.implied_move;
-  if (data?.next_report_date && typeof implied === "number") {
-    return `${name} reports ${formatDateShort(data.next_report_date)}. Options price a move of about ±${(implied * 100).toFixed(1)}%; see how that compares with its last eight earnings moves.`;
+  const date = data?.next_report_date;
+  if (!data || !date || typeof implied !== "number" || data.is_stale) return null;
+  const asOf = data.prices.length ? data.prices[data.prices.length - 1].date : null;
+  if (asOf && date < asOf) return null;
+  return { date, implied };
+}
+
+function tickerDescription(name: string, data: TickerData | null): string {
+  const upcoming = upcomingPricing(data);
+  if (upcoming) {
+    return `${name} reports ${formatDateShort(upcoming.date)}. Options price a move of about ±${(upcoming.implied * 100).toFixed(1)}%; see how that compares with its last eight earnings moves.`;
   }
   return `${name} earnings: past report dates, how far the stock moved after each, and what options price in once the next report nears.`;
 }
@@ -61,9 +116,10 @@ export default async function TickerPage({ params }: { params: Promise<{ ticker:
 
   return (
     <>
+      <JsonLd data={tickerJsonLd(data)} />
       <h1 className="sr-only">
         {data.ticker}
-        {data.company_name ? `, ${data.company_name}` : ""} earnings
+        {data.company_name ? `, ${data.company_name}` : ""} earnings and expected move
       </h1>
 
       <div className="space-y-6 px-6 py-6">

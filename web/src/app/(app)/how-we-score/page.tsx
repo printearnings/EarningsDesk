@@ -6,12 +6,17 @@ import { TopBar } from "@/components/TopBar";
 import { getHowWeScore, getIndex } from "@/lib/api";
 import type { ScoredExample, ScoredLeg } from "@/lib/api";
 import { formatDate, formatDateShort, pctRange, pctSigned, sessionLabel } from "@/lib/format";
+import { socialMeta } from "@/lib/seo";
+
+const TITLE = "How calls are tested | PrintEarnings";
+const DESCRIPTION =
+  "Every RICH or CHEAP call is scored as if one defined-risk options structure had been traded around the report. Two real examples, step by step.";
 
 export const metadata = {
-  title: "How calls are tested | PrintEarnings",
-  description:
-    "Every RICH or CHEAP call is scored as if one defined-risk options structure had been traded around the report. Two real examples, step by step.",
+  title: TITLE,
+  description: DESCRIPTION,
   alternates: { canonical: "/how-we-score/" },
+  ...socialMeta(TITLE, DESCRIPTION, "/how-we-score/"),
 };
 
 /**

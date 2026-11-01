@@ -4,7 +4,7 @@ import Script from "next/script";
 
 import { CookieBanner } from "@/components/CookieBanner";
 import { ADS_CONSENT_INLINE_SCRIPT } from "@/lib/consent";
-import { SITE_URL } from "@/lib/seo";
+import { SITE_NAME, SITE_URL } from "@/lib/seo";
 
 import "./globals.css";
 
@@ -31,6 +31,10 @@ export const metadata: Metadata = {
   title: "PrintEarnings",
   description:
     "What the options market is pricing into an earnings print, and what actually happened the last eight quarters.",
+  // Fallback preview for any page without its own tags; pages built with
+  // pageMeta/socialMeta replace this wholesale (see lib/seo.ts).
+  openGraph: { type: "website", siteName: SITE_NAME, images: [{ url: "/og.png", width: 1200, height: 630 }] },
+  twitter: { card: "summary_large_image", images: ["/og.png"] },
   // AdSense site-ownership meta tag - the "Meta tag" verification method. Next
   // renders this as a real <meta> in the static HTML head.
   other: { "google-adsense-account": "ca-pub-1352071292500585" },

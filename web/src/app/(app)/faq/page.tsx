@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { JsonLd, nodeText } from "@/components/JsonLd";
 import { Panel } from "@/components/Panel";
 import { TopBar } from "@/components/TopBar";
 import { getIndex } from "@/lib/api";
@@ -93,6 +94,17 @@ export default async function FaqPage() {
 
   return (
     <>
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: QA.map((qa) => ({
+            "@type": "Question",
+            name: qa.question,
+            acceptedAnswer: { "@type": "Answer", text: nodeText(qa.answer).replace(/\s+/g, " ").trim() },
+          })),
+        }}
+      />
       <TopBar title="FAQ" eyebrow="Common questions" tickers={index.tickers} />
 
       <div className="px-6 py-6">
