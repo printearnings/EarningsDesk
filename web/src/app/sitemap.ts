@@ -8,10 +8,11 @@ export const dynamic = "force-static";
 
 /**
  * Pages a search engine should index. Ticker pages are included only when
- * the API marks them `indexable` (a live implied move, or enough past
- * earnings moves to show): the rest are near-empty templates, the "thin
- * content" that got the site an AdSense low-value rejection in Oct 2026, and
- * they carry `noindex` on the page itself. Utility pages (the query-driven
+ * the API marks them `indexable`: a live implied move for an upcoming report,
+ * from a fresh snapshot, with enough past moves to compare it to (see
+ * `worth_indexing` in api/app/services/pages.py). The rest are templates with
+ * blanks, the "thin content" behind AdSense low-value rejections in Oct and
+ * Nov 2026, and they carry `noindex` on the page itself. Utility pages (the query-driven
  * day view, the lookup form) and the legal boilerplate are left out too.
  */
 const CONTENT_PAGES: { path: string; priority: number; changeFrequency: "daily" | "weekly" | "monthly" }[] = [
@@ -28,6 +29,7 @@ const CONTENT_PAGES: { path: string; priority: number; changeFrequency: "daily" 
   { path: "/methodology/", priority: 0.6, changeFrequency: "monthly" },
   { path: "/about/", priority: 0.6, changeFrequency: "monthly" },
   { path: "/faq/", priority: 0.5, changeFrequency: "monthly" },
+  { path: "/support/", priority: 0.3, changeFrequency: "monthly" },
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -47,7 +49,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         url: `${SITE_URL}/t/${t.ticker}/`,
         lastModified: builtAt,
         changeFrequency: "daily" as const,
-        priority: t.implied_move != null ? 0.7 : 0.4,
+        priority: 0.7,
       })),
   ];
 }

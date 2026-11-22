@@ -35,6 +35,10 @@ export function Footer() {
         <Link href="/about/" className="underline underline-offset-2">
           About
         </Link>
+        {" · "}
+        <Link href="/support/" className="underline underline-offset-2">
+          Contact
+        </Link>
       </p>
     </footer>
   );

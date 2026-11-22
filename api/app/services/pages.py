@@ -277,18 +277,28 @@ def history_stats(ctx: TickerContext | None) -> HistoryStats | None:
     )
 
 
-# A ticker page is worth a search engine's time once it has either a live
-# implied move or this many past earnings moves to show. Below that it is a
-# template with blanks, which Google treats as thin content and which got the
-# site an AdSense "low value content" rejection (Oct 2026): those pages are
-# marked noindex and left out of the sitemap.
+# A ticker page is worth a search engine's time only while it is *live*: a
+# priced implied move for a report that hasn't happened yet, from a snapshot
+# that isn't stale, with enough past moves to compare that price against.
+# Anything less is a template with blanks ("No data", "No options pricing
+# yet", a stale banner), which Google treats as thin, auto-generated content.
+# The Oct 2026 version also let in any ticker with 4+ past moves, which
+# between seasons meant ~1,500 near-identical pages in the sitemap and a
+# second AdSense "low value content" rejection (Nov 2026). Pages that fail
+# this are marked noindex and left out of the sitemap; they still render.
 MIN_MOVES_TO_INDEX = 4
 
 
-def worth_indexing(snap: DashboardSnapshot | None) -> bool:
-    if snap is None:
+def worth_indexing(snap: DashboardSnapshot | None, now: datetime | None = None) -> bool:
+    if snap is None or snap.implied_move is None or snap.as_of is None:
         return False
-    return snap.implied_move is not None or len(_past_moves(snap)) >= MIN_MOVES_TO_INDEX
+    now = now or datetime.now(UTC)
+    if snap.next_report_date is None or snap.next_report_date < now.astimezone(_EASTERN).date():
+        return False  # the priced move is for a print that already happened
+    age_hours = (now - _aware(snap.as_of)).total_seconds() / 3600
+    if age_hours > _stale_threshold_hours(now, api_settings.snapshot_stale_after_hours):
+        return False
+    return len(_past_moves(snap)) >= MIN_MOVES_TO_INDEX
 
 
 def _past_moves(snap: DashboardSnapshot) -> list[PastMove]:
@@ -535,7 +545,7 @@ def ticker_page(
     )
     if page.next_report_date is None:
         page.expected_report_date = _expected_report_date(page.history, today_et)
-    page.indexable = worth_indexing(snap)
+    page.indexable = worth_indexing(snap, now)
     # Only surface the read when it's actually about the *next* report —
     # latest_direction_signal returns whichever Workflow-B row is newest
     # regardless of which print it was for, so a ticker that hasn't entered

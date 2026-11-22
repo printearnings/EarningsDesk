@@ -904,20 +904,39 @@ def _moves(n: int) -> str:
     return json.dumps([{"report_date": f"2025-0{i + 1}-15", "move": 0.03} for i in range(n)])
 
 
-def test_a_page_with_a_live_implied_move_is_indexable(s):
-    _snap(s, implied_move=0.08)
+def _live(**kw):
+    return {"implied_move": 0.08, "past_moves_json": _moves(pages.MIN_MOVES_TO_INDEX), **kw}
+
+
+def test_a_live_priced_page_with_history_is_indexable(s):
+    _snap(s, **_live())
     assert pages.ticker_page(s, "NVDA", now=NOW).indexable is True
 
 
-def test_a_page_with_enough_past_moves_is_indexable_between_seasons(s):
-    _snap(s, implied_move=None, past_moves_json=_moves(pages.MIN_MOVES_TO_INDEX))
-    assert pages.ticker_page(s, "NVDA", now=NOW).indexable is True
-
-
-def test_a_mostly_empty_page_is_not_indexable(s):
-    _snap(s, implied_move=None, past_moves_json=_moves(pages.MIN_MOVES_TO_INDEX - 1))
+def test_past_moves_alone_no_longer_make_a_page_indexable(s):
+    """Nov 2026: between seasons nearly every ticker has 4+ past moves, so
+    this rule put ~1,500 templated pages in the sitemap."""
+    _snap(s, **_live(implied_move=None, past_moves_json=_moves(8)))
     assert pages.ticker_page(s, "NVDA", now=NOW).indexable is False
-    assert pages.ticker_page(s, "MSFT", now=NOW).indexable is False  # no snapshot
+
+
+def test_an_implied_move_without_history_is_not_indexable(s):
+    _snap(s, **_live(past_moves_json=_moves(pages.MIN_MOVES_TO_INDEX - 1)))
+    assert pages.ticker_page(s, "NVDA", now=NOW).indexable is False
+
+
+def test_an_implied_move_for_a_print_already_passed_is_not_indexable(s):
+    _snap(s, **_live(next_report_date=date(2026, 8, 5)))
+    assert pages.ticker_page(s, "NVDA", now=NOW).indexable is False
+
+
+def test_a_stale_snapshot_is_not_indexable(s):
+    _snap(s, **_live(as_of=NOW - timedelta(days=10)))
+    assert pages.ticker_page(s, "NVDA", now=NOW).indexable is False
+
+
+def test_no_snapshot_is_not_indexable(s):
+    assert pages.ticker_page(s, "MSFT", now=NOW).indexable is False
 
 
 def test_between_seasons_the_next_date_on_file_is_offered_as_expected(s):
